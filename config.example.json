@@ -1,0 +1,122 @@
+{
+  "_comment": "Template configuration. Copy this file to config.json and replace the placeholder IDs, database details, and Discord settings with your own. Secrets are NOT stored here -- they come from .env (DISCORD_TOKEN, POSTGRES_PASSWORD, CHATGPT_TOKEN, SIGHTENGINE_*).",
+
+  "discord": {
+    "token": "LOADED_FROM_ENV",
+    "prefix": "?",
+    "author_id": 0,
+    "sightengine_enabled": false
+  },
+
+  "postgress": {
+    "user": "postgres",
+    "host": "localhost",
+    "password": "LOADED_FROM_ENV",
+    "port": 5432,
+    "database": "erupe"
+  },
+
+  "authorized_guilds": [
+    0
+  ],
+
+  "chat_gpt": {
+    "token": "LOADED_FROM_ENV",
+    "timeout": 600
+  },
+
+  "mhfz_config": {
+    "account_creation": true,
+    "sending_log": false
+  },
+
+  "bot_config": {
+    "member_join": true,
+    "member_leave": true,
+    "gacha": true,
+    "bounty": true,
+    "server_market": true,
+    "transfer_timeout": 7200
+  },
+
+  "bounty": {
+    "board_ch": 0,
+    "conquered_ch": 0,
+    "promotion_ch": 0,
+    "cooldown_ch": 0,
+    "cooldown_msg": 0,
+    "leaderboard_ch": 0,
+    "receptionist_ch": 0,
+    "judge_ch": 0
+  },
+
+  "server_role": {
+    "admin_role": 0,
+    "bartender_role": 0,
+    "register_role": 0,
+    "member_role": 0,
+    "judge_role": 0,
+    "maintainer_role": 0,
+    "weekly_distributor": 0,
+    "speedrun_supervisor_role": 0
+  },
+
+  "lfg_roles": {
+    "raviente_raid": 0,
+    "party_helper": 0,
+    "bounty_hunter": 0,
+    "road_runner": 0,
+    "gacha_enjoyer": 0,
+    "musou_slayer": 0
+  },
+
+  "log_channel": {
+    "err_channel": 0,
+    "account_channel": 0,
+    "transfer_channel": 0,
+    "info_channel": 0,
+    "info_channel_msg": 1,
+    "market_channel": 0,
+    "market_channel_msg": 1,
+    "erupe_channel": 0,
+    "request_channel": 0,
+    "join_channel": 0,
+    "leave_channel": 0,
+    "party_ch": 0,
+    "ticket_channel_id": 0
+  },
+
+  "commands_toggle": {
+    "transfer": true,
+    "pull": true,
+    "gpt": false,
+    "ping": true,
+    "change_pasword": true,
+    "card": true,
+    "monitor": true,
+    "cooldown": true,
+    "clearcache": true,
+    "purge": true,
+    "config": true,
+    "interface": true,
+    "mod": true,
+    "gacha_check": true,
+    "execute": true,
+    "tag": false,
+    "trading": true,
+    "ferias": true,
+    "party": true,
+    "pedia": true,
+    "gacha": true,
+    "huntercard": true,
+    "add": true,
+    "test": true,
+    "save": true,
+    "submit": true,
+    "guild": true,
+    "create": true,
+    "password": true,
+    "query": true,
+    "event": true
+  }
+}

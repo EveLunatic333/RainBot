@@ -15,6 +15,11 @@
 .env.*
 !.env.example
 
+# Live configuration holds server-specific IDs and infrastructure details.
+# config.example.json is the tracked template.
+/config.json
+!/config.example.json
+
 # Assistant / tooling metadata (may contain credentials and machine paths)
 /.codebuddy/
 /.serena/
