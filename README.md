@@ -3,6 +3,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-2021-orange.svg)](https://www.rust-lang.org/)
 
+**English** | [简体中文](README.zh-CN.md)
+
 Discord bot for the **Rain Server** — a Monster Hunter Frontier Z (MHFZ / Erupe)
 private server. It connects the Discord community directly to the game server
 database: account registration and binding, the bounty (hunt contract) system,
