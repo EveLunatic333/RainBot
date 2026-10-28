@@ -43,3 +43,15 @@
 .vscode/
 .idea/
 .DS_Store
+
+# ==========================================
+# INTERNAL DOCUMENTATION (kept locally, not published)
+# ==========================================
+# Analysis reports, backlog, changelog, and audit notes stay on the
+# maintainer's machine. README.md is intentionally NOT ignored.
+/BACKLOG.md
+/CHANGELOG.md
+/Laporan_Analisis*.md
+/Party_Bug_Report_and_Fix_Plan.md
+/RequestToJoin_Plan.md
+/reports/

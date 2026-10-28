@@ -37,7 +37,6 @@ modals, and autocomplete.
 | `image/` | Gacha rarity art and animated bounty titles |
 | `icon/` | Fonts, hunter-card templates, icons |
 | `query/` | SQL schema and helper scripts |
-| `reports/` | Improvement reports and player-facing notes |
 | `config.json` | Public configuration (IDs, toggles) — **no secrets** |
 | `.env` | Secrets only (git-ignored; see `.env.example`) |
 
@@ -167,33 +166,12 @@ empty directories via `.gitkeep`; their contents are user data and stay local.
 
 ---
 
-## Project documentation
+## Maintenance
 
-- [`Laporan_Analisis_Mendalam_Rain-bot_v2.1.md`](Laporan_Analisis_Mendalam_Rain-bot_v2.1.md) —
-  deep analysis: architecture, full command catalogue, security findings,
-  technical debt, and a prioritised roadmap (Indonesian).
-- [`Laporan_Analisis_Rain-bot_v2.1.md`](Laporan_Analisis_Rain-bot_v2.1.md) —
-  earlier analysis pass (Indonesian).
-- [`BACKLOG.md`](BACKLOG.md) — prioritised backlog: security (A1–A12),
-  technical debt (B1–B12), feature ideas (C1–C2).
-- [`CHANGELOG.md`](CHANGELOG.md) — implemented changes, newest first.
-- [`Party_Bug_Report_and_Fix_Plan.md`](Party_Bug_Report_and_Fix_Plan.md) and
-  [`RequestToJoin_Plan.md`](RequestToJoin_Plan.md) — party subsystem reports.
-- [`reports/`](reports/) — full improvement report and player update notes.
+This repository holds the application source and the assets required to run it.
+Operational and analytical documentation — architecture notes, backlog,
+changelog, audit findings, and release reports — is maintained separately by the
+project maintainers and is intentionally not distributed with the source.
 
----
-
-## Known issues
-
-This snapshot predates the security-hardening work tracked in `BACKLOG.md`.
-Notable open items:
-
-- Arbitrary SQL execution from Discord (`?execute`, `?query`).
-- Sensitive commands without role gates (`/distribution`, `/cooldown`).
-- Bounty review buttons do not verify the reviewer's role.
-- In-memory caches without TTL (`COOLDOWN`, `CHAT`, `PENDING_EDITS`).
-- Pending bounty submissions live only in `CACHE`, so an unclean kill loses them.
-- No automated test suite beyond a handful of unit tests.
-
-See `Laporan_Analisis_Mendalam_Rain-bot_v2.1.md` §13–§17 for the full list and
-the recommended order of fixes.
+For day-to-day work, `cargo check` and `cargo build --release` are the two
+commands that matter; the sections above cover the rest.
