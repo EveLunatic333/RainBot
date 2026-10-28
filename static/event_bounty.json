@@ -1,0 +1,2726 @@
+{
+  "bounty": [
+    {
+      "bbq": 0,
+      "description": "Musou Eruzerion (Calamity of Ice and Fire) 5min Variant",
+      "cooldown": 0,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1086490236961443963/BBQ01.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1089235240473596004/BBQ07.png",
+      "rules": [
+        "Need title Rain Demolizer",
+        "Available Solo & Co-op",
+        "For Co-op only Duo Allowed, 3rd player or full party is not allowed",
+        "Adrenaline Only",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshoot with your equipment set when your quest done"
+      ],
+      "solo": {
+        "coin": 30000,
+        "ticket": 30,
+        "items": [
+          {
+            "key": "0323",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 18000,
+            "types": 7
+          },
+          {
+            "key": "5F1F",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C905",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "CA05",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "CB05",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 25000,
+        "ticket": 60,
+        "items": [
+          {
+            "key": "0323",
+            "count": 40,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 15000,
+            "types": 7
+          },
+          {
+            "key": "5F1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "C905",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "CA05",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "CB05",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 15,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 1,
+      "description": "Musou Bogabadoromu (Commander of Explosions) 5min Variant",
+      "cooldown": 0,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1086490237309567056/BBQ02.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1089235240809156698/BBQ11.png",
+      "rules": [
+        "Need title Rain Demolizer / Rain Emperor",
+        "Available Solo & Co-op",
+        "For Co-op only Duo Allowed, 3rd player or full party is not allowed",
+        "Adrenaline Only",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshoot with your equipment set when your quest done"
+      ],
+      "solo": {
+        "coin": 50000,
+        "ticket": 30,
+        "items": [
+          {
+            "key": "0323",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 18000,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 25000,
+        "ticket": 30,
+        "items": [
+          {
+            "key": "0323",
+            "count": 40,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 2,
+      "description": "SUBVERSION - Slay Duo Yamakurai",
+      "cooldown": 0,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1086490237548634142/BBQ03.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1106991918438699180/Event_BBQ03_Subversion.jpg",
+      "rules": [
+        "GR Armor Only",
+        "GR Weapon Only",
+        "G Cuff Only",
+        "No MS, No NetCafe Weapon, No EVO, No Tenrou, No Premium Weapon, No Exotic Weapon",
+        "Must Show Quest Clear Time on Screenshot",
+        "[Solo] - No Determination Skill & No Hiden Skill, 10min Time Limit",
+        "[Co-op] - No Determination Skill, No Hiden Skill & No Cuff, 5min Time Limit",
+        "For Co-op only Duo Allowed, 3rd player or full party is not allowed",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as co-op",
+        "Send the Screenshoot with your equipment set when your quest done",
+        "If you do the bounty in co-op all the player must send the screenshoot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 10000,
+        "ticket": 30,
+        "items": [
+          {
+            "key": "0323",
+            "count": 80,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 7000,
+        "ticket": 30,
+        "items": [
+          {
+            "key": "0323",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 4500,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 3,
+      "description": "VOID TEMPEST - Slay Goa Magala & Shagaru Magala",
+      "cooldown": 0,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1086490237842247721/BBQ04.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1106991918795206706/Event_BBQ03_Void_Tempest.jpg",
+      "rules": [
+        "GR Armor Only",
+        "GR Weapon Only",
+        "G Cuff Only",
+        "No MS, No NetCafe Weapon, No EVO, No Tenrou, No Premium Weapon, No Exotic Weapon",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "Must Show Quest Clear Time on Screenshot",
+        "[Solo] - No Determination Skill & No Hiden Skill, 12min Time Limit",
+        "[Co-op] - No Determination Skill, No Hiden Skill & No Cuff, 6min Time Limit",
+        "For Co-op only Duo Allowed, 3rd player or full party is not allowed",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as co-op",
+        "Send the Screenshoot with your equipment set when your quest done",
+        "If you do the bounty in co-op all the player must send the screenshoot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 10000,
+        "ticket": 30,
+        "items": [
+          {
+            "key": "0323",
+            "count": 80,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 7000,
+        "ticket": 30,
+        "items": [
+          {
+            "key": "0323",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 4500,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 4,
+      "description": "OVERDRIVE - Deafening Thunderstorm",
+      "cooldown": 0,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1086490239192809563/BBQ05.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1106991919223029870/Event_BBQ05_Overdrive.jpg",
+      "rules": [
+        "Need title Rain Demolizer / Rain Emperor",
+        "Solo Only",
+        "Adrenaline Only",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshoot with your equipment set when your quest done"
+      ],
+      "solo": {
+        "coin": 30000,
+        "ticket": 30,
+        "items": [
+          {
+            "key": "0323",
+            "count": 80,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 15000,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0700",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0700",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 5,
+      "description": "EXORCISM - Invisible Force",
+      "cooldown": 0,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1086490239486402570/BBQ06.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1106991918040236042/Event_BBQ06_Exorcism.jpg",
+      "rules": [
+        "Need title Rain Demolizer / Rain Emperor",
+        "Solo Only",
+        "Adrenaline Only",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshoot with your equipment set when your quest done"
+      ],
+      "solo": {
+        "coin": 30000,
+        "ticket": 30,
+        "items": [
+          {
+            "key": "0323",
+            "count": 80,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 15000,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0700",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0700",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 6,
+      "description": "Man 'O War - FrostZilla",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1086490239813570610/BBQ07.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1129815438612758579/Man_O_War_01.png",
+      "rules": [
+        "1 Time Claim Only",
+        "Follow Quest Requirements",
+        "You can help people, but the bounty reward only can be claimed once",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshoot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 30000,
+        "ticket": 100,
+        "items": [
+          {
+            "key": "0323",
+            "count": 60,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 40,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 40,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 20000,
+        "ticket": 50,
+        "items": [
+          {
+            "key": "0323",
+            "count": 40,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 16000,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 7,
+      "description": "APEX Omega[Ω] - Fury of Blood Moon and Fallen Star",
+      "cooldown": 0,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1086490235627642940/BBQ08.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1334608434565480528/APEX_Omega.png",
+      "rules": [
+        "Follow Quest Requirements",
+        "Complete Quest APEX Omega[Ω] REQ The Infernal Fury for getting requirement item",
+        "Allowed Helper",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshoot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 15000,
+        "ticket": 60,
+        "items": [
+          {
+            "key": "1230",
+            "count": 18000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 200,
+            "types": 7
+          },
+          {
+            "key": "6D12",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "4F13",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "2D1F",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "281F",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "C234",
+            "count": 70,
+            "types": 7
+          },
+          {
+            "key": "B42D",
+            "count": 70,
+            "types": 7
+          },
+          {
+            "key": "6907",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 10000,
+        "ticket": 40,
+        "items": [
+          {
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "6D12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "4F13",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "2D1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "281F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "C234",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "B42D",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "6907",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 5,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 8,
+      "description": "APEX Sigma[Σ] - Rise of The Fallen Star",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1086490236332298270/BBQ09.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1334608447802703913/APEX_Sigma.png",
+      "rules": [
+        "Follow Quest Requirements",
+        "Complete Quest APEX Omega[Ω] - Fury of Blood Moon and Fallen Star for getting requirement item",
+        "Allowed Helper",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshoot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 15000,
+        "ticket": 60,
+        "items": [
+          {
+            "key": "1230",
+            "count": 18000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 200,
+            "types": 7
+          },
+          {
+            "key": "6D12",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "4F13",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "2D1F",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "281F",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "C234",
+            "count": 70,
+            "types": 7
+          },
+          {
+            "key": "B42D",
+            "count": 70,
+            "types": 7
+          },
+          {
+            "key": "6907",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 10000,
+        "ticket": 40,
+        "items": [
+          {
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "6D12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "4F13",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "2D1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "281F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "C234",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "B42D",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "6907",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 5,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 9,
+      "description": "[DemoniC] Dual Black Fox!",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1086490236680413204/BBQ10.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1167141386240401528/1167141386538209331/image.png",
+      "rules": [
+        "Follow in game Quest Requirements",
+        "Allowed helper",
+        "No NPC (Except Cat & Halk)",
+        "No Halk Pot/Login Boost",
+        "One time claim only",
+        "Send the Screenshot with  corpse shown when your quest is done",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 20000,
+        "ticket": 800,
+        "items": [
+          {
+            "key": "1230",
+            "count": 12000,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 15000,
+        "ticket": 700,
+        "items": [
+          {
+            "key": "1230",
+            "count": 8500,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 10,
+      "description": "DEVOURER",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1086490247476547666/BBQ11.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1187794157511639151/Devourer_quest.png",
+      "rules": [
+        "Follow in game Quest Requirements",
+        "Allowed helper",
+        "No NPC (Except Cat & Halk)",
+        "No Halk Pot/Login Boost",
+        "One time claim only",
+        "Send the Screenshot with  corpse shown when your quest is done",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 17000,
+        "ticket": 600,
+        "items": [
+          {
+            "key": "1230",
+            "count": 9000,
+            "types": 7
+          },
+          {
+            "key": "0700",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 12000,
+        "ticket": 350,
+        "items": [
+          {
+            "key": "1230",
+            "count": 7000,
+            "types": 7
+          },
+          {
+            "key": "0700",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 11,
+      "description": "DOOM",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1086490247753379950/BBQ12.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1205179747080863805/doom_quest.png",
+      "rules": [
+        "Follow in game Quest Requirements",
+        "Allowed helper",
+        "No NPC (Except Cat & Halk)",
+        "No Halk Pot/Login Boost",
+        "One time claim only",
+        "Send the Screenshot with  corpse shown when your quest is done",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 20000,
+        "ticket": 700,
+        "items": [
+          {
+            "key": "1230",
+            "count": 9000,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "key": "0700",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 15000,
+        "ticket": 400,
+        "items": [
+          {
+            "key": "1230",
+            "count": 7000,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 80,
+            "types": 7
+          },
+          {
+            "key": "0700",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 12,
+      "description": "ABYSS★Z4_Hellish Odyssey",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1251153253257842708/BBQ13.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1251149533564375070/ABYSSZ4_Hellish_Odyssey.png",
+      "rules": [
+        "Follow in game Quest Requirements",
+        "Allowed helper",
+        "No NPC (Except Cat & Halk)",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with  corpse shown when your quest is done",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 10000,
+        "ticket": 200,
+        "items": [
+          {
+            "key": "1230",
+            "count": 5000,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 80,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 6000,
+        "ticket": 150,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2000,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 60,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 13,
+      "description": "ABYSS★Z4_Carnage and Salvation",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1251153253509369876/BBQ14.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1251149533224898650/ABYSSZ4_Carnage_and_Salvation.png",
+      "rules": [
+        "Follow in game Quest Requirements",
+        "Allowed helper",
+        "No NPC (Except Cat & Halk)",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with  corpse shown when your quest is done",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 10000,
+        "ticket": 200,
+        "items": [
+          {
+            "key": "1230",
+            "count": 6000,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 80,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 8000,
+        "ticket": 150,
+        "items": [
+          {
+            "key": "1230",
+            "count": 3000,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 60,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 14,
+      "description": "ABYSS★Z4 Musou_Immeasurable Chasm",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1251153254646026381/BBQ22.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1251149532947812443/ABYSSZ4_Musou_Immeasurable_Chasm.png",
+      "rules": [
+        "Follow in game Quest Requirements",
+        "Allowed helper",
+        "No NPC (Except Cat & Halk)",
+        "No Halk Pot",
+        "Slay Daimyo first for clear the quest, Bogabadorumu last",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 15000,
+        "ticket": 60,
+        "items": [
+          {
+            "key": "1230",
+            "count": 18000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 200,
+            "types": 7
+          },
+          {
+            "key": "6D12",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "4F13",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "2D1F",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "281F",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "C234",
+            "count": 70,
+            "types": 7
+          },
+          {
+            "key": "B42D",
+            "count": 70,
+            "types": 7
+          },
+          {
+            "key": "6907",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 10000,
+        "ticket": 40,
+        "items": [
+          {
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "6D12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "4F13",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "2D1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "281F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "C234",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "B42D",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "6907",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 15,
+      "description": "[DemoniC] Dual Black Fox!",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1087006221619441784/BBQ16_Fate.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1167141386240401528/1167141386538209331/image.png",
+      "rules": [
+        "Follow in game Quest Requirements",
+        "Allowed helper",
+        "No NPC (Except Cat & Halk)",
+        "No Halk Pot/Login Boost",
+        "One time claim only",
+        "Send the Screenshot with  corpse shown when your quest is done",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 20000,
+        "ticket": 800,
+        "items": [
+          {
+            "key": "1230",
+            "count": 12000,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 15000,
+        "ticket": 700,
+        "items": [
+          {
+            "key": "1230",
+            "count": 8500,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 16,
+      "description": "Limited Event:Year Of The Snake",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1339260175005126777/BBQ17.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1339260174652674140/Lunar_and_Lantern_2025.png",
+      "rules": [
+        "Follow in game Quest Requirements",
+        "1x Claim Only",
+        "Allowed Helper",
+        "No NPC (Except Cat & Halk)",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with  corpse shown when your quest is done",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 15000,
+        "ticket": 150,
+        "items": [
+          {
+            "key": "1230",
+            "count": 15000,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 120,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 200,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "key": "C905",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "CA05",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "CB05",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 10000,
+        "ticket": 100,
+        "items": [
+          {
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "C905",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "CA05",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "CB05",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 15,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 17,
+      "description": "CHRISTMAS PACK",
+      "cooldown": 0,
+      "icon": "",
+      "thumbnail": "",
+      "rules": [
+        "Follow in game Quest Requirements",
+        "Allowed helper",
+        "No NPC (Except Cat & Halk)",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with  corpse shown when your quest is done",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 20,
+        "items": [
+          {
+            "key": "CE04",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "2507",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "0511",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "4D06",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "2018",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "5813",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "7A2C",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "772C",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "BF05",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 2000,
+        "ticket": 10,
+        "items": [
+          {
+            "key": "E706",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "A33D",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "5F1F",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "6D12",
+            "count": 200,
+            "types": 7
+          },
+          {
+            "key": "4F13",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "C905",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "CA05",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 18,
+      "description": "Valentine Dist Pack",
+      "cooldown": 0,
+      "icon": "",
+      "thumbnail": "",
+      "rules": [
+        "Follow in game Quest Requirements",
+        "Allowed helper",
+        "No NPC (Except Cat & Halk)",
+        "No Halk Pot/Login Boost",
+        "Required Rain Demolizer & Emperor",
+        "Send the Screenshot with  corpse shown when your quest is done",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 10,
+        "ticket": 10,
+        "items": [
+          {
+            "key": "5F1F",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C905",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "CA05",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 400,
+            "types": 7
+          },
+          {
+            "key": "0623",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "BE32",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "7B16",
+            "count": 40,
+            "types": 7
+          },
+          {
+            "key": "5613",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 10,
+        "ticket": 10,
+        "items": [
+          {
+            "key": "1213",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0A06",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "F225",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "F325",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "5813",
+            "count": 5,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 19,
+      "description": "Advanced Road - (Maverick Legency)",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1320834125854412962/BBQ20.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1318641757314875523/Adv_Road.png",
+      "rules": [
+        "ONE TIME CLAIM ONLY",
+        "Title : MAVERICK LEGENCY",
+        "For FL200 clear: Regular Perfect Sigil (3x Attack/Element +15)",
+        "For FL300 clear: Weapon Up Perfect Sigil",
+        "Since the bounty can only be claimed once, you must choose between FL200 sigil reward OR FL300 sigil reward",
+        "Reaching FL300 means you only get the Weapon Up Perfect Sigil",
+        "Send the screenshot showing your entire game screen when you reach FL201/FL301",
+        "Only players alive until that floor will be eligible for rewards"
+      ],
+      "solo": {
+        "coin": 25000,
+        "ticket": 100,
+        "items": [
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 600,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 200,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 25000,
+        "ticket": 100,
+        "items": [
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 600,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 200,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 20,
+      "description": "Extreme Road - (Eclipse Nexus)",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1320834125464338564/BBQ21.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1318641783797846076/EX_Road.png",
+      "rules": [
+        "ONE TIME CLAIM ONLY",
+        "Title : ECLIPSE NEXUS",
+        "For FL150 clear: Zenith Perfect Sigil",
+        "You must send 2 SCREENSHOTS",
+        "Send the screenshot showing your entire game screen once you reach FL150 AND after clearing FL150",
+        "Failure to submit both screenshots will disqualify your bounty",
+        "Only players alive until that floor will be eligible for rewards",
+        "To claim your perfect sigil, link your bounty promotion card in what-admin-missed"
+      ],
+      "solo": {
+        "coin": 25000,
+        "ticket": 100,
+        "items": [
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 600,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 200,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 25000,
+        "ticket": 100,
+        "items": [
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 600,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 200,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 21,
+      "description": "NONE",
+      "cooldown": 0,
+      "icon": "",
+      "thumbnail": "",
+      "rules": [
+        "HR equipment only",
+        "no MS",
+        "naked"
+      ],
+      "solo": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "EF36",
+            "count": 12,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "F225",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "F325",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0511",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "D105",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5A1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5B1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "8912",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "7612",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6D12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6907",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "4D06",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C905",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "CA05",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "CB05",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "EF36",
+            "count": 8,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "F225",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "F325",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0511",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "D105",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5A1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5B1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "8912",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 22,
+      "description": "APEX Zeta[Z] - Showdown in the Bamboo Forest!",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1082674007679193169/1433536358323847249/BBQ23Event.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1459186440465547296/ZinNarg05.png",
+      "rules": [
+        "Follow Quest Requirements",
+        "Allowed Helper",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshoot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 20000,
+        "ticket": 100,
+        "items": [
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 200,
+            "types": 7
+          },
+          {
+            "key": "6D12",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "4F13",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "2D1F",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "281F",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "C234",
+            "count": 70,
+            "types": 7
+          },
+          {
+            "key": "B42D",
+            "count": 70,
+            "types": 7
+          },
+          {
+            "key": "6907",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 10000,
+        "ticket": 40,
+        "items": [
+          {
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "6D12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "1639",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "1739",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "4F13",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "8E12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "0323",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "E626",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "2D1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "281F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "C234",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "B42D",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "6907",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 5,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 23,
+      "description": "SP Bounty (Hunter Road Quest floor 200)",
+      "cooldown": 0,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681276567396422/SP.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676681220817008/SP.png",
+      "rules": [
+        "Only for Endless Hunting Road, (solo Hunter Road Quest (i walk alone) will disqualified)",
+        "if you want to do co-op make sure the player who take the quest have good connection"
+      ],
+      "solo": {
+        "coin": 20000,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "1230",
+            "count": 65000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 65000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 65000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 65000,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 10000,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "1230",
+            "count": 65000,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 300,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 24,
+      "description": "Extreme! Solitude Depths (Raviente)\n01. Extreme Raviente\n02. Berserk Raviente",
+      "cooldown": 0,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082715500905234453/DUMMY.jpg",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676637323247696/BBQ16.jpg",
+      "rules": [
+        "The requirements is adjustable depends on the party condition, at least under 2 hours (more info will announce ingame when the event starts)",
+        "For Extreme Raviente min you have ZX armor set with hiden skill"
+      ],
+      "solo": {
+        "coin": 20000,
+        "ticket": 150,
+        "items": [
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "C905",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "CA05",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "CB05",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "4D06",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "0511",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "B922",
+            "count": 50,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 15000,
+        "ticket": 150,
+        "items": [
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "9106",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "9206",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "9306",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "C905",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "CA05",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "CB05",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "4D06",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "0511",
+            "count": 25,
+            "types": 7
+          },
+          {
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "B922",
+            "count": 50,
+            "types": 7
+          }
+        ]
+      }
+    }
+  ]
+}

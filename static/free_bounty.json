@@ -1,0 +1,2086 @@
+{
+  "bounty": [
+    {
+      "bbq": 0,
+      "description": "Howling Zinogre (Destructive Stom Howl / A Destructive Performance)",
+      "cooldown": 15,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681229314367498/BBQ01.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676597284409405/BBQ01.jpg",
+      "rules": [
+        "Solo Only!",
+        "No Halk Pot/Login Boost",
+        "[Magnet Spike, Dual Blades, Tonfa]",
+        "> If you clear it under 5 minutes, submit it as Multi to claim speedrun reward ",
+        "[Switch Axe]",
+        "> If you clear it under 6 minutes, submit it as Multi to claim speedrun reward ",
+        "[Other Weapon]",
+        "> If you clear it under 7 minutes, submit it as Multi to claim speedrun reward ",
+        "Send the Screenshot with your equipment set when quest done",
+        "Speedrun category needs to be submitted as Multiplayer",
+        "Your screenshot should show the timer if you clear it for Multi (speedrun)"
+      ],
+      "solo": {
+        "coin": 15000,
+        "ticket": 10,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 18000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 40,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "4F13",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 23000,
+        "ticket": 25,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 25000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 60,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "4F13",
+            "count": 25,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 1,
+      "description": "Starving Deviljho (Behold the Nocturnal Celebration / Behold the Nocturnal Event)",
+      "cooldown": 13,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681229557649550/BBQ02.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676597708038184/BBQ02.jpg",
+      "rules": [
+        "Bring Rasta or Partner count as Multiplayer,",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 7000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 18000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 70,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 5000,
+        "ticket": 10,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 12000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 70,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1739",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 2,
+      "description": "Blinking Nargacuga (Destructive White Winds / Supersonic Speed)",
+      "cooldown": 15,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681229779931166/BBQ03.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676598303621120/BBQ03.jpg",
+      "rules": [
+        "Solo only",
+        "No Halk Pot/Login Boost",
+        "[Magnet Spike, Dual Blades, Tonfa]",
+        "> If you clear it under 5 minutes, submit it as Multi to claim speedrun reward",
+        "[Switch Axe, Gunlance, Lance]",
+        "> If you clear it under 6 minutes, submit it as Multi to claim speedrun reward",
+        "[Other Weapon]",
+        "> If you clear it under 7 minutes, submit it as Multi to claim speedrun reward",
+        "Send the screenshot with your equipment set when quest done",
+        "Speedrun category needs to be submitted as Multiplayer",
+        "Your screenshot should show the timer if you clear it for Multi (speedrun)"
+      ],
+      "solo": {
+        "coin": 13000,
+        "ticket": 10,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 18000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 40,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 20000,
+        "ticket": 25,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 25000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 60,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "4F13",
+            "count": 25,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 3,
+      "description": "Advanced Shiten Unknown (The End of Eternity)",
+      "cooldown": 10,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681230035787816/BBQ04.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1124575534689558589/shiten_unk.png",
+      "rules": [
+        "No Halk Pot/Login Boost",
+        "[Solo]",
+        "> No Evolution & Tenrou Weapon",
+        "> Magnet Spike only allow Chroma non upgrade version (Rare 9)",
+        "[Multiplayer]",
+        "> No Evolution & Tenrou Weapon",
+        "> No Magnet Spike",
+        "> No Rasta or Partner",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 18000,
+        "ticket": 60,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 18000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 80,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "9206",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 10000,
+        "ticket": 30,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 80,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "9206",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 4,
+      "description": "The Hunt For Legends (Slay 5 Musou)",
+      "cooldown": 9,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681230241320981/BBQ05.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676599398342666/BBQ05.jpg",
+      "rules": [
+        "No Halk Pot/Login Boost",
+        "[Solo]",
+        "> Need title Rain Emperor",
+        "> No Evolution Magnet Spike",
+        "[Multiplayer]",
+        "> No Cuff",
+        "> No Evolution & Tenrou Magnet Spike",
+        "> No Rasta or Partner",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 40000,
+        "ticket": 80,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 25000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1739",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 100,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 28000,
+        "ticket": 50,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1739",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 100,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 5,
+      "description": "Arrogant Duremudiura (The Brutal Thunder of Oblivion)",
+      "cooldown": 11,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681230501351464/BBQ06.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676599977156788/BBQ06.png",
+      "rules": [
+        "Solo only",
+        "Need title Rain Demolizer",
+        "Only allowed bring cat",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done"
+      ],
+      "solo": {
+        "coin": 20000,
+        "ticket": 50,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 18000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1739",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 50,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "name": null,
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 6,
+      "description": "Musou Eruzerion (Lord of Frost and Flame)",
+      "cooldown": 9,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681230723653782/BBQ07.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676600690184272/BBQ07.jpg",
+      "rules": [
+        "Solo Only",
+        "Need title Bounty Expert",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done"
+      ],
+      "solo": {
+        "coin": 23000,
+        "ticket": 30,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 14000,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "name": null,
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 7,
+      "description": "Shagaru Magala / Amatsumagatsuchi (G8 Exotic Quest)",
+      "cooldown": 15,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681230971129977/BBQ08.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1124576006620074134/amatsumagala.png",
+      "rules": [
+        "Only Grank Exotics Weapon and Grank Armor",
+        "No Magnet Spike (Include Graham)",
+        "No Hiden and Solid Determination Skills",
+        "No cuff",
+        "No Rasta or Partner",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 4000,
+        "ticket": 10,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 7000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 15,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 3500,
+        "ticket": 5,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 5000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 15,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 8,
+      "description": "GR Varusaburosu (Ravanger of the Blazing World)",
+      "cooldown": 25,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681231231160412/BBQ09.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1124575950877753454/varusablos.png",
+      "rules": [
+        "For GR: Grank Weapon (No exotic, Premium, G Supreme, Evolution) & Grank Armor only",
+        "For HR: High-rank Weapon (HR Skill only, No Exotic, No Extreme Style, Premium, Gou, Evolution) & High-rank Armor only",
+        "No Magnet Spike",
+        "No Tonfa for HR clears",
+        "No Hiden and Solid Determination Skills",
+        "No Cuff",
+        "No Rasta/Legendary Rasta or Partner",
+        "No Halk Pot/Login Boost",
+        "Allowed Helper",
+        "Send the screenshot showing all relevant information (entire game screen showing player names, player models, monster corpse, in-game chat log, and Equipment Status information) once the quest is done",
+        "GR Rewards: Complete the GR version of the quest under G-rank restrictions, and submit as Solo",
+        "HR Rewards: Complete the HR version of the quest under High-rank restrictions, and submit as Multiplayer",
+        "All participating players must send their own screenshots following the same requirements showing necessary information",
+        "Any participating player's failure to comply will result in a rejected submission"
+      ],
+      "solo": {
+        "coin": 4000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "7B16",
+            "count": 170,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0323",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 15,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 2000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "7B16",
+            "count": 150,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0A06",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 9,
+      "description": "Musou Guanzorumu (Monarch of the Dragons) 5 minutes quest",
+      "cooldown": 10,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681229079482479/BBQ10.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676596881752154/BBQ10.jpg",
+      "rules": [
+        "Solo Only",
+        "No Magnet Spike",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done"
+      ],
+      "solo": {
+        "coin": 3000,
+        "ticket": 10,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 8000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "8E12",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "name": null,
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 10,
+      "description": "Musou Bogabadorumu (Void Creating Explosions)",
+      "cooldown": 12,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681268124270662/BBQ11.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676634471125143/BBQ11.png",
+      "rules": [
+        "Solo Only",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done"
+      ],
+      "solo": {
+        "coin": 13000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1739",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "4F13",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "8E12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "name": null,
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 11,
+      "description": "Elite Battle 4 (Diva Defence Quest Z4) Quest No.58",
+      "cooldown": 12,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681268468207686/BBQ12.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676634928283788/BBQ12.jpg",
+      "rules": [
+        "No Tenrou, Netcafe, and Evolution Weapon",
+        "Bring Rasta or Partner count as Multiplayer,",
+        "No Halk Pot/Login Boost",
+        "[Solo]",
+        "> No Poison Magnet Spike",
+        "[Multiplayer]",
+        "> Only Proto Magnet Spike allowed (Except Graham)",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 7000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 100,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 4500,
+        "ticket": 15,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 15000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "6D12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 12,
+      "description": "Positive Song - Charge 4 (Diva Defence Quest Z4) Quest No.45",
+      "cooldown": 10,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681268719861830/BBQ13.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676635477754007/BBQ13.jpg",
+      "rules": [
+        "No Tenrou, Netcafe, and Evolution Weapon",
+        "Bring Rasta or Partner count as Multiplayer,",
+        "No Halk Pot/Login Boost",
+        "[Multiplayer]",
+        "Only Proto Magnet Spike allowed (Except Graham)",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 10000,
+        "ticket": 25,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 25000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 120,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 30,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 5000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 15000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "6D12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "F025",
+            "count": 50,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 13,
+      "description": "Exotic Madness (Diva Defence Quest Exotic) Quest No.40",
+      "cooldown": 11,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681269000863835/BBQ14.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676636278870138/BBQ14.jpg",
+      "rules": [
+        "Only Grank armor",
+        "No Tenrou, Netcafe, and Evolution Weapon",
+        "No Magnet Spike",
+        "No Hiden Skills",
+        "G Cuff only",
+        "No Halk Pot/Login Boost",
+        "No Rasta",
+        "Bring Partner count as Multiplayer",
+        "[Solo]",
+        "> Allowed using Z weapon",
+        "[Multiplayer]",
+        "> Only G rank weapon (except Partner)",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 10,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 13000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 50,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 5000,
+        "ticket": 10,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 13000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 40,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 14,
+      "description": "[HR] Kill Shen Gaoren (The Crab's Eternal Approach)",
+      "cooldown": 20,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681269302874162/BBQ15.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676636887023666/BBQ15.jpg",
+      "rules": [
+        "No premium Weapon & Armor (netcafe, gacha, kit, etc)",
+        "No Rasta",
+        "No Halk Pot/Login Boost",
+        "No Cuff",
+        "[HR Player]",
+        "> Only HR Weapon & Armor (Not Raviente)",
+        "[GR Player]",
+        "> Only Hope Armor HR lvl 1",
+        "> No Partner",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 2500,
+        "ticket": 10,
+        "items": [
+          {
+            "name": null,
+            "key": "7A2C",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "772C",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C005",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "2018",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0511",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 2500,
+        "ticket": 10,
+        "items": [
+          {
+            "name": null,
+            "key": "7A2C",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "772C",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C005",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "2018",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0511",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 15,
+      "description": "Separate Their Ranks 4 (Diva Defence Quest) Quest No.16",
+      "cooldown": 13,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1087006221619441784/BBQ16_Fate.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1124576074542628915/diva5gr.png",
+      "rules": [
+        "Only Grank Weapon and Grank Armor",
+        "No Evolution & Netcafe Weapon",
+        "No Magnet Spike",
+        "No Hiden and Determination skills ",
+        "G Cuff only",
+        "No Rasta",
+        "Bring Partner count as Multiplayer",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 9000,
+        "ticket": 30,
+        "items": [
+          {
+            "name": null,
+            "key": "281F",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "7A2C",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "772C",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 55,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "6D12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0611",
+            "count": 40,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 7000,
+        "ticket": 30,
+        "items": [
+          {
+            "name": null,
+            "key": "281F",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "7A2C",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "772C",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 55,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "6D12",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0611",
+            "count": 40,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 16,
+      "description": "G-Caravan Quest (The RGB Challenge Route 102)",
+      "cooldown": 12,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681269831335976/BBQ17.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676637772042391/BBQ17.jpg",
+      "rules": [
+        "Only Grank Weapon and Grank Armor",
+        "No Evolution & Netcafe Weapon",
+        "No Magnet Spike",
+        "No Hiden and Determination skills",
+        "G Cuff only",
+        "No Rasta",
+        "Bring Partner count as Multiplayer",
+        "No Halk Pot/Login Boost",
+        "Bring Rasta or Partner count as Multiplayer,",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 10,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 40,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 4000,
+        "ticket": 5,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 17,
+      "description": "Musou Zerureusu (Circling Red Radiance)",
+      "cooldown": 14,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681270103986276/BBQ18.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676638199840809/BBQ18.jpg",
+      "rules": [
+        "Bring Rasta or Partner count as Multiplayer,",
+        "No Halk Pot/Login Boost",
+        "[Multiplayer]",
+        "> Only 1 Magnet Spike (Except Rasta)",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 15000,
+        "ticket": 25,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 50,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 8000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 13000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 35,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1739",
+            "count": 40,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 18,
+      "description": "G-Caravan Quest (G*1 Route 101)",
+      "cooldown": 13,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681270393389106/BBQ19.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676638841585735/BBQ19.png",
+      "rules": [
+        "Only Grank Weapon and Grank Armor",
+        "No Evolution & Netcafe Weapon",
+        "No Magnet Spike",
+        "No Hiden and Determination skills",
+        "G Cuff only",
+        "No Rasta",
+        "Bring Partner count as Multiplayer,",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 4000,
+        "ticket": 30,
+        "items": [
+          {
+            "name": null,
+            "key": "7A2C",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "772C",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0611",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "F025",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 3000,
+        "ticket": 30,
+        "items": [
+          {
+            "name": null,
+            "key": "7A2C",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "772C",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0611",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "F025",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 19,
+      "description": "Negative Song - Charge 2 (Diva Defence Quest Z2) Quest No.43",
+      "cooldown": 13,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681267864227930/BBQ20.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676633812615219/BBQ20.jpg",
+      "rules": [
+        "No Tenrou, Netcafe, and Evolution Weapon",
+        "No Magnet Spike",
+        "No Rasta",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 7000,
+        "ticket": 50,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 5000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0611",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "F025",
+            "count": 20,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 5000,
+        "ticket": 40,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 5000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0611",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "F025",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "6D12",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 20,
+      "description": "[HR] White Espinas (Cloaked in Ivory and Flames)",
+      "cooldown": 15,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681276856795147/BBQ21.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676680168046682/BBQ21.png",
+      "rules": [
+        "Hope Armor only (no upgrade)",
+        "Weapon only rarity 5 or below",
+        "No Extreme style",
+        "No Resolute Weapon",
+        "No Hiden and Determination skills",
+        "No Cuff",
+        "No Rasta or Partner",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 2000,
+        "ticket": 15,
+        "items": [
+          {
+            "name": null,
+            "key": "772C",
+            "count": 7,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "281F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "2D1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0511",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 2000,
+        "ticket": 15,
+        "items": [
+          {
+            "name": null,
+            "key": "772C",
+            "count": 7,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "281F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "2D1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0511",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 21,
+      "description": "HR Odibatorosu (Unsinkable Cannon)",
+      "cooldown": 15,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681277251063888/BBQ22.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676680767836251/BBQ22.jpg",
+      "rules": [
+        "Only HR Armor Rarity 7 or below",
+        "Only HR Weapon",
+        "No Extreme style",
+        "No Hiden and Determination skills",
+        "No Cuff",
+        "No Rasta or Partner",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 3000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "7A2C",
+            "count": 7,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "281F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "2D1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0511",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 3000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "7A2C",
+            "count": 7,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "EF36",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "281F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "2D1F",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "E626",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "5E1F",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0511",
+            "count": 10,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 22,
+      "description": "White Fatalis (Road's Ancestral Challenger)",
+      "cooldown": 13,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1087006222064025610/BBQ23_Fate.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1082674007679193169/1124575839833559090/wfata.png",
+      "rules": [
+        "Solo only",
+        "Only Grank Weapon and Grank Armor",
+        "No Evolution & Netcafe Weapon",
+        "No Magnet Spike",
+        "No Hiden and Determination skills ",
+        "G Cuff only",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 7000,
+        "ticket": 30,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 6000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C234",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "B42D",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "6907",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0323",
+            "count": 30,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 30,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 6000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C234",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "B42D",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "6907",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0323",
+            "count": 30,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 23,
+      "description": "SP Bounty (Multiplayer Hunter Road Quest floor 200/300)",
+      "cooldown": 7,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1082681276567396422/SP.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1082676681220817008/SP.png",
+      "rules": [
+        "(Multiplayer (Floor 201))",
+        "- Title  ***Road Champion*** (1x claim only)",
+        "- Divine Power Gems x70.000",
+        "- Shiten Tkt x300",
+        "- Upper Shiten Key x100",
+        "(Multiplayer (Floor 301))",
+        "- Title  ***Road Champion*** (1x claim only)",
+        "- Divine Power Gems x140.000",
+        "- Shiten Tkt x600",
+        "- Upper Shiten Key x200",
+        "More Info:",
+        "- If your team clear want to submit floor 201, submit it as <Solo> Then 301 is <Multiplayer>",
+        "- Submit when you reach that as said floor (Not when floor 200 / 300)",
+        "- Reward only for people who still alive till that floor"
+      ],
+      "solo": {
+        "coin": 15000,
+        "ticket": 50,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1230",
+            "count": 10000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 300,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 100,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 25000,
+        "ticket": 100,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 30000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1230",
+            "count": 30000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1230",
+            "count": 30000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1230",
+            "count": 30000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 600,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "1639",
+            "count": 200,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 24,
+      "description": "Dual monster special collaboration",
+      "cooldown": 13,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1087006221300678666/BBQ25_NieR.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1086991871575855145/NieR_and_Fate_Costume_quest_Eventl.png",
+      "rules": [
+        "Only Grank Weapon and Grank Armor",
+        "No Evolution and Netcafe",
+        "No Magnet Spike",
+        "No Determination skills",
+        "No Hiden Skills (Tonfa)",
+        "G Cuff only",
+        "Bring Rasta or Partner count as Multiplayer,",
+        "No Halk Pot/Login Boost",
+        "Send the Screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer, all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 7000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 7500,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "9306",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "9206",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "6907",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0511",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "F025",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "B922",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "7A2C",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "772C",
+            "count": 5,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 7000,
+        "ticket": 20,
+        "items": [
+          {
+            "name": null,
+            "key": "1230",
+            "count": 7500,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "9306",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "9206",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "6907",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "0511",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "F025",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "C327",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "B922",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "7A2C",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "name": null,
+            "key": "772C",
+            "count": 5,
+            "types": 7
+          }
+        ]
+      }
+    }
+  ]
+}

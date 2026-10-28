@@ -1,0 +1,19 @@
+{
+  "embeds": [
+    {
+      "title": "Rain Server: Command Interface",
+      "description": "Welcome to the Rain Server control panel. Use the interactive buttons below to manage your game account seamlessly.\n\n**1. Register:** Create a new game account directly via Discord.\n**2. Bind:** Connect an existing launcher account to your Discord profile.\n**3. Link PSN:** Register your console PSN ID to your game account.\n**4. DM Save:** Securely backup your character save data (requires a fully bound account).\n**5. Claim Role:** Retrieve your authorized Discord role if it is missing.",
+      "color": 3447003
+    },
+    {
+      "title": "Account Creation & Access",
+      "description": "You can establish your presence on the Rain Server by creating an account via the **Register** button below or through the game launcher.\n\nOnce your account is registered, simply input your credentials into the launcher or console to access the game. No further authentication is required to enter the server.",
+      "color": 3066993
+    },
+    {
+      "title": "Account Binding System",
+      "description": "To unlock advanced Discord integrations (e.g., Bounties, Gacha, Event Tracking, and Data Backups), your Discord profile must be **fully bound** to an active game character.\n\n**Binding Prerequisites:**\n* Your account must exist on the Rain Server.\n* You must have at least one active character that has passed the creation phase and entered Mezeporta Square.\n\n**Binding Process:**\n* **Scenario A (Discord Registration):** If you created your account using the `Register` button, you are automatically half-bound. Execute any integrated command (e.g., `/switch`, `/card`, or `/bounty`) to trigger the character selection prompt and finalize your binding.\n* **Scenario B (Launcher Registration):** If you created your account via the launcher, click the `Bind` button below to link your profiles. Afterward, use the `/switch` command to designate your main character.",
+      "color": 10181046
+    }
+  ]
+}

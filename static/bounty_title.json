@@ -1,0 +1,354 @@
+{
+  "bronze_bounty": {
+    "image": {
+      "url": "Bounty_Expert",
+      "diameter": 180,
+      "x_start": 695,
+      "y_start": 170,
+      "animated": false,
+      "bg_width": 1150,
+      "bg_height": 658
+    },
+    "trigger": "0_21",
+    "role_id": 1088480408489951383,
+    "db_code": 1
+  },
+  "silver_bounty": {
+    "image": {
+      "url": "Bounty_Master",
+      "diameter": 180,
+      "x_start": 695,
+      "y_start": 170,
+      "animated": false,
+      "bg_width": 1150,
+      "bg_height": 658
+    },
+    "trigger": "1_20",
+    "role_id": 1104391129660665876,
+    "db_code": 3
+  },
+  "gold_bounty": {
+    "image": {
+      "url": "Bounty_Champion",
+      "diameter": 180,
+      "x_start": 695,
+      "y_start": 170,
+      "animated": false,
+      "bg_width": 1150,
+      "bg_height": 658
+    },
+    "trigger": "2_21",
+    "role_id": 1127588991584194570,
+    "db_code": 12
+  },
+  "bronze_trading": {
+    "image": {
+      "url": "bronze_trading_title",
+      "diameter": 180,
+      "x_start": 695,
+      "y_start": 170,
+      "animated": false,
+      "bg_width": 1150,
+      "bg_height": 658
+    },
+    "trigger": "0_21",
+    "role_id": 1089179588657152081,
+    "db_code": 8
+  },
+  "silver_trading": {
+    "image": {
+      "url": "trading_title_silver",
+      "diameter": 180,
+      "x_start": 695,
+      "y_start": 170,
+      "animated": false,
+      "bg_width": 1150,
+      "bg_height": 658
+    },
+    "trigger": "1_20",
+    "role_id": 1104391584902029392,
+    "db_code": 6
+  },
+  "gold_trading": {
+    "image": {
+      "url": "Gold_trading_title",
+      "diameter": 180,
+      "x_start": 695,
+      "y_start": 170,
+      "animated": false,
+      "bg_width": 1150,
+      "bg_height": 658
+    },
+    "trigger": "2_20",
+    "role_id": 1127589304022077550,
+    "db_code": 15
+  },
+  "custom": [
+    {
+      "image": {
+        "url": "NewRainDemolizerV2",
+        "diameter": 175,
+        "x_start": 485,
+        "y_start": 53,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "3_7",
+      "role_id": 1005775305497137223,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "ROAD_CHAMPION",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "3_24",
+      "role_id": 1005774414081708112,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "RainEmperorV2",
+        "diameter": 175,
+        "x_start": 493,
+        "y_start": 58,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "3_6",
+      "role_id": 1037726156553736253,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "Musou_Legion",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "3_5",
+      "role_id": 1046052691941543936,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "overlord",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_1",
+      "role_id": 1088833640164773888,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "APOCALYPTIC",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_2",
+      "role_id": 1089238112275800198,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "OVERDRIVE",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_5",
+      "role_id": 1105887662587527309,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "EXORCISM2",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_6",
+      "role_id": 1105889678978191380,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "SUBVERSION",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_3",
+      "role_id": 1105891157810102282,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "VOID_TEMPEST",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_4",
+      "role_id": 1105890882022031430,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "SERENITY",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "2_10",
+      "role_id": 1127584976360189992,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "KIWAMI",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "2_18",
+      "role_id": 1127586041235247155,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "Bounty_Triumph_ABYSS",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "2_24",
+      "role_id": 1251162534745210930,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "Eclipse_Nexus",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_21",
+      "role_id": 1320843869390114920,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "Maverick_Legency",
+        "diameter": 180,
+        "x_start": 695,
+        "y_start": 170,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_20",
+      "role_id": 1320838188427776092,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "Apex_OMEGA",
+        "diameter": 170,
+        "x_start": 488,
+        "y_start": 99,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_8",
+      "role_id": 1341349150054289418,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "Apex_SIGMA",
+        "diameter": 170,
+        "x_start": 488,
+        "y_start": 99,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_9",
+      "role_id": 1341343225717198850,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "Apex_ZETA04",
+        "diameter": 170,
+        "x_start": 488,
+        "y_start": 99,
+        "animated": false,
+        "bg_width": 1150,
+        "bg_height": 658
+      },
+      "trigger": "4_23",
+      "role_id": 1491471357840724158,
+      "db_code": 0
+    },
+    {
+      "image": {
+        "url": "Apex_ZETA05",
+        "diameter": 85,
+        "x_start": 244,
+        "y_start": 49,
+        "animated": true,
+        "bg_width": 575,
+        "bg_height": 329
+      },
+      "trigger": "4_23",
+      "role_id": 1491471357840724158,
+      "db_code": 0
+    }
+  ]
+}

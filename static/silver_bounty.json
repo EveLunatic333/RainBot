@@ -1,0 +1,4467 @@
+{
+  "bounty": [
+    {
+      "bbq": 0,
+      "description": "Extreme Conquest Quest Lv.1000 (Soaring in the Skies)",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661220965396480/BBQ01.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654416827023360/SILVER_BBQ01.png",
+      "rules": [
+        "GR Weapon craft (Include Gou, Supremacy, Exotic)",
+        "No Diva, Evolution, Premium Weapon",
+        "No Magnet Spike",
+        "GR Armor Only (G-GX) (No Premium)",
+        "No Determination Skill",
+        "G Cuff Only",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 1,
+      "description": "Extreme Conquest Quest Lv.1000 (Resentful Star of Dark Skies)",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661221305126934/BBQ02.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654417259057263/SILVER_BBQ02.png",
+      "rules": [
+        "GR Weapon craft (Include Gou, Supremacy, Exotic)",
+        "No Diva, Evolution, Premium Weapon",
+        "No Magnet Spike",
+        "GR Armor Only (G-GX) (No Premium)",
+        "No Determination Skill",
+        "G Cuff Only",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 2,
+      "description": "Exploding Heatwave!",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661221590356078/BBQ03.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654417678479430/SILVER_BBQ03.png",
+      "rules": [
+        "GR Weapon craft (Include Gou, Supremacy, Exotic)",
+        "No Diva, Evolution, Premium Weapon",
+        "No Magnet Spike",
+        "GR Armor Only (G-GX) (No Premium)",
+        "No Determination Skill",
+        "G Cuff Only",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 3,
+      "description": "Progenitor of the Highlands",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661221900726293/BBQ04.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654418005643264/SILVER_BBQ04.png",
+      "rules": [
+        "GR Weapon craft (Include Gou, Supremacy, Exotic)",
+        "No Diva, Evolution, Premium Weapon",
+        "No Magnet Spike",
+        "GR Armor Only (G-GX) (No Premium)",
+        "No Determination Skill",
+        "G Cuff Only",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 4,
+      "description": "Twins of the Endtimes",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661222173347961/BBQ05.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654418680905818/SILVER_BBQ05.png",
+      "rules": [
+        "GR Weapon craft (Include Gou, Supremacy, Exotic)",
+        "No Diva, Evolution, Premium Weapon",
+        "No Magnet Spike",
+        "GR Armor Only (G-GX) (No Premium)",
+        "No Determination Skill",
+        "G Cuff Only",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 5,
+      "description": "Progenitor of the Volcano",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661222450188380/BBQ06.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654419112931368/SILVER_BBQ06.png",
+      "rules": [
+        "GR Weapon craft (Include Gou, Supremacy, Exotic)",
+        "No Diva, Evolution, Premium Weapon",
+        "No Magnet Spike",
+        "GR Armor Only (G-GX) (No Premium)",
+        "No Determination Skill",
+        "G Cuff Only",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 6,
+      "description": "Diva Quest Zenith*1 (Negative Song - Charge *1)",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661222710226974/BBQ07.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1104069051195588618/SILVER_BBQ07v2.png",
+      "rules": [
+        "GR Weapon craft (Include Gou, Supremacy, Exotic)",
+        "No Diva, Evolution, Premium Weapon",
+        "No Magnet Spike",
+        "GR Armor Only (G-GX) (No Premium)",
+        "No Determination Skill",
+        "G Cuff Only",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 7,
+      "description": "Diva Quest Zenith*2 (Negative Song - Charge *2",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661222995431456/BBQ08.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1104069052227399711/SILVER_BBQ08v2.png",
+      "rules": [
+        "GR Weapon craft (Include Gou, Supremacy, Exotic)",
+        "No Diva, Evolution, Premium Weapon",
+        "No Magnet Spike",
+        "GR Armor Only (G-GX) (No Premium)",
+        "No Determination Skill",
+        "G Cuff Only",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 8,
+      "description": "Zenith*3 The Crystal Trapper",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661223330992138/BBQ09.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654420178292756/SILVER_BBQ09.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Regular Zenith Weapon Only",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "No Magnet Spike",
+        "No Diva, Evolution, Tenrou, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 9,
+      "description": "Zenith*3 Silver Conqueror",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661220705357864/BBQ10.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654416420196372/SILVER_BBQ10.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Regular Zenith Weapon Only",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "No Magnet Spike",
+        "No Diva, Evolution, Tenrou, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 10,
+      "description": "Zenith*3 The Light of Temptation",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661281505972324/BBQ11.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654436921938010/SILVER_BBQ11.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Regular Zenith Weapon Only",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "No Magnet Spike",
+        "No Diva, Evolution, Tenrou, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 11,
+      "description": "Zenith*3 Violent Sands",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661281820540938/BBQ12.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654437265879151/SILVER_BBQ12.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Regular Zenith Weapon Only",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "No Magnet Spike",
+        "No Diva, Evolution, Tenrou, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 12,
+      "description": "Zenith*3 Filthy Mucus",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661282227392532/BBQ13.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654437584650380/SILVER_BBQ13.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Regular Zenith Weapon Only",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "No Magnet Spike",
+        "No Diva, Evolution, Tenrou, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 13,
+      "description": "Zenith*3 Shattering Frozen Blood",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661282520989768/BBQ14.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654437895024660/SILVER_BBQ14.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Regular Zenith Weapon Only",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "No Magnet Spike",
+        "No Diva, Evolution, Tenrou, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 14,
+      "description": "Zenith*3 The Melting Earth",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661282932039800/BBQ15.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654438217977937/SILVER_BBQ15.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Regular Zenith Weapon Only",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "No Magnet Spike",
+        "No Diva, Evolution, Tenrou, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 15,
+      "description": "Zenith*3 Rising Pincer Attack",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661283292741632/BBQ16.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654438561923163/SILVER_BBQ16.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Regular Zenith Weapon Only",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "No Magnet Spike",
+        "No Diva, Evolution, Tenrou, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 16,
+      "description": "Zenith*3 Frenzied Predator",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661283712180235/BBQ17.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654438910038036/SILVER_BBQ17.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Regular Zenith Weapon Only",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "No Magnet Spike",
+        "No Diva, Evolution, Tenrou, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 17,
+      "description": "Zenith*4 Abyssal Horn",
+      "cooldown": 999,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661284030943362/BBQ18.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654439576944640/SILVER_BBQ18.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "> Regular Zenith",
+        "> Tenrou",
+        "No Magnet Spike",
+        "No Diva, Evolution, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 18,
+      "description": "Zenith*4 The Horn's Wicked Poison",
+      "cooldown": 1,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661284391649331/BBQ19.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654440000557136/SILVER_BBQ19.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "> Regular Zenith",
+        "> Tenrou",
+        "No Magnet Spike",
+        "No Diva, Evolution, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Bring Rasta or Partner count as Multiplayer (No Magnet Spike)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 5000,
+        "ticket": 15,
+        "items": [
+          {
+            "key": "1230",
+            "count": 2500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 30,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 4,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 3,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1500,
+        "ticket": 5,
+        "items": [
+          {
+            "key": "1230",
+            "count": 999,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 15,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 19,
+      "description": "(URGENT) Diva Quest - War Battle Zenith*4",
+      "cooldown": 1,
+      "icon": "https://cdn.discordapp.com/attachments/1082674007679193169/1103661284785922059/BBQ.URGENT.png",
+      "thumbnail": "https://cdn.discordapp.com/attachments/1082674007679193169/1103654436489932913/SILVER_BBQ20_URGENT_SILVER.jpg.png",
+      "rules": [
+        "Korinyi Armor Only (Z-ZX)",
+        "Weapon Only Rarity 11 Below is Allowed",
+        "> Regular Zenith",
+        "> Tenrou",
+        "No Magnet Spike",
+        "No Diva, Evolution, Premium Weapon",
+        "No Determination Skill",
+        "No Halk Pot",
+        "Only 1 Rasta allowed (partner, palico & halk is allowed)",
+        "Send the screenshot with your equipment set when your quest done",
+        "If you do the bounty in Multiplayer all the player must send the screenshot of the armor set too",
+        "If there's the player who not send the screenshot of his armor set, the reward cannot be claim"
+      ],
+      "solo": {
+        "coin": 10000,
+        "ticket": 30,
+        "items": [
+          {
+            "key": "1230",
+            "count": 20000,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 100,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 50,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 6,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 10,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 5,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 6000,
+        "ticket": 20,
+        "items": [
+          {
+            "key": "1230",
+            "count": 8500,
+            "types": 7
+          },
+          {
+            "key": "6208",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6308",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6408",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6508",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6608",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6708",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6808",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6908",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6A08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "6B08",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "C327",
+            "count": 40,
+            "types": 7
+          },
+          {
+            "key": "C427",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "C527",
+            "count": 20,
+            "types": 7
+          },
+          {
+            "key": "0811",
+            "count": 5,
+            "types": 7
+          },
+          {
+            "key": "EF36",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "F725",
+            "count": 2,
+            "types": 7
+          },
+          {
+            "key": "9406",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 20,
+      "description": "this is bbq description",
+      "cooldown": 1,
+      "icon": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+      "rules": [
+        "HR equipment only",
+        "no MS",
+        "naked"
+      ],
+      "solo": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 21,
+      "description": "this is bbq description",
+      "cooldown": 1,
+      "icon": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+      "rules": [
+        "HR equipment only",
+        "no MS",
+        "naked"
+      ],
+      "solo": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 22,
+      "description": "this is bbq description",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+      "rules": [
+        "HR equipment only",
+        "no MS",
+        "naked"
+      ],
+      "solo": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 23,
+      "description": "this is bbq description",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+      "rules": [
+        "HR equipment only",
+        "no MS",
+        "naked"
+      ],
+      "solo": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    },
+    {
+      "bbq": 24,
+      "description": "this is bbq description",
+      "cooldown": 0,
+      "icon": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+      "thumbnail": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+      "rules": [
+        "HR equipment only",
+        "no MS",
+        "naked"
+      ],
+      "solo": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      },
+      "multi": {
+        "coin": 1,
+        "ticket": 1,
+        "items": [
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          },
+          {
+            "key": "0000",
+            "count": 1,
+            "types": 7
+          }
+        ]
+      }
+    }
+  ]
+}

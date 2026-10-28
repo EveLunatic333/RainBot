@@ -1,0 +1,43 @@
+{
+  "default_template": "base_card",
+  "templates": {
+    "base_card": {
+      "priority": 0,
+      "role_id": 0,
+      "image": "HunterCard06.png",
+      "font": "NotoSansJP-Bold.ttf",
+      "char_box": { "x": 1362, "y": 51, "w": 598, "h": 942 },
+      "equip_box": { "x": 93, "y": 463, "w": 253, "h": 355 },
+	  "avatar_box": { "x": 110, "y": 66, "w": 101, "h": 101, "shape": "circle" },
+      "roles_list": { "x": 332, "y": 615, "spacing_y": 34, "size": 28.0, "icon_size": 20, "max_roles": 6, "align": "right" },
+      "texts": {
+        "hunter_note": { "x": 230, "y": 72, "max_w": 290, "size": 29.0, "color": [255, 255, 255, 255], "align": "left" },
+		"hunter_title": { "x": 119, "y": 420, "max_w": 200, "size": 28.0, "color": [255, 215, 0, 255], "align": "center" },
+        "gr": { "x": 220, "y": 250, "max_w": 88, "size": 70.0, "color": [255, 215, 0, 255], "align": "center" },
+        "hr": { "x": 136, "y": 305, "max_w": 44, "size": 65.0, "color": [255, 255, 255, 255], "align": "center" },
+        "name": { "x": 280, "y": 205, "max_w": 300, "size": 33.0, "color": [255, 255, 255, 255], "align": "right" },
+        "username": { "x": 280, "y": 280, "max_w": 300, "size": 33.0, "color": [255, 255, 255, 255], "align": "right" },
+        "guild": { "x": 280, "y": 346, "max_w": 300, "size": 33.0, "color": [255, 255, 255, 255], "align": "right" },
+        "playtime": { "x": 280, "y": 412, "max_w": 300, "size": 30.0, "color": [255, 255, 255, 255], "align": "right" },
+        "bc": { "x": 280, "y": 459, "max_w": 300, "size": 30.0, "color": [255, 255, 255, 255], "align": "right" },
+        "premi_gacha": { "x": 280, "y": 515, "max_w": 300, "size": 30.0, "color": [255, 255, 255, 255], "align": "right" },
+        "gacha_tkt": { "x": 280, "y": 560, "max_w": 300, "size": 30.0, "color": [255, 255, 255, 255], "align": "right" },
+        "bronze": { "x": 205, "y": 890, "max_w": 250, "size": 33.0, "color": [148, 83, 44, 255], "align": "left" },
+        "silver": { "x": 205, "y": 920, "max_w": 250, "size": 33.0, "color": [181, 196, 204, 255], "align": "left" },
+        "gold": { "x": 205, "y": 950, "max_w": 250, "size": 33.0, "color": [243, 215, 12, 255], "align": "left" }
+      }
+    },
+    "lunatic_event": {
+      "priority": 10,
+      "role_id": 987654321098765432,
+      "image": "EventCardLunatic.png",
+      "font": "Arial.ttf",
+      "char_box": { "x": 1000, "y": 100, "w": 500, "h": 800 },
+      "equip_box": { "x": 50, "y": 500, "w": 200, "h": 300 },
+      "texts": {
+        "name": { "x": 300, "y": 150, "max_w": 300, "size": 28.0, "color": [255, 0, 0, 255] },
+        "event_title": { "x": 300, "y": 100, "max_w": 400, "size": 35.0, "color": [255, 255, 255, 255] }
+      }
+    }
+  }
+}

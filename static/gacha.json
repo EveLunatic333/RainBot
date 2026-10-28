@@ -1,0 +1,435 @@
+{
+  "config": {
+    "cost_single": 15,
+    "cost_multi": 150,
+    "pity_threshold": 60,
+    "rate_ur": 0.001,
+    "rate_ssr1": 0.009,
+    "rate_ssr2": 0.030,
+    "rate_sr1": 0.060,
+    "rate_sr2": 0.150,
+    "rate_sr3": 0.250,
+    "rate_r1": 0.300,
+    "rate_r2": 0.200,
+    "guaranteed_ur": 0.20,
+    "guaranteed_ssr1": 0.80
+  },
+  "ur": [
+    {
+      "name": "A024 - 蒼流旋生産券/Soryu Tkt - GL",
+      "key": "A024",
+      "count": 1,
+      "types": 7
+    },
+    {
+      "name": "AC24 - ＲＯＳ・?生産券/ROS Ⅵ Tkt - LBG",
+      "key": "AC24",
+      "count": 1,
+      "types": 7
+    },
+    {
+      "name": "9F24 - 空裂生産券/Void fissure Tkt - LS",
+      "key": "9F24",
+      "count": 1,
+      "types": 7
+    },
+    {
+      "name": "A624 - ＳＬ・?生産券/SL Ⅵ Tkt - HBG",
+      "key": "A624",
+      "count": 1,
+      "types": 7
+    }
+  ],
+  "ssr1": [
+    {
+      "name": "8F24 - IS生産券頭/IS Head Tkt - IS Academy Head/Piercings",
+      "key": "8F24",
+      "count": 1,
+      "types": 7
+    },
+    {
+      "name": "9024 - IS生産券胴/IS Torso Tkt - IS Academy Suit/Vest",
+      "key": "9024",
+      "count": 1,
+      "types": 7
+    },
+    {
+      "name": "9124 - IS生産券腕/IS Arms Tkt - IS Academy Arms/Guard ",
+      "key": "9124",
+      "count": 1,
+      "types": 7
+    },
+    {
+      "name": "9224 - IS生産券腰/IS Waist Tkt - IS Academy Coil/Coat",
+      "key": "9224",
+      "count": 1,
+      "types": 7
+    },
+    {
+      "name": "9324 - IS生産券脚/IS Legs Tkt - IS Academy Boots/Leggings",
+      "key": "9324",
+      "count": 1,
+      "types": 7
+    }
+  ],
+  "ssr2": [
+    {
+      "name": "AA3B - Hiden Stamp・GL x5",
+      "key": "AA3B",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "A53B - Hiden Stamp・GS x5",
+      "key": "A53B",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "A73B - Hiden Stamp・Hammer x5",
+      "key": "A73B",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "AB3B - Hiden Stamp・Swaxe x5",
+      "key": "AB3B",
+      "count": 5,
+      "types": 7
+    },
+	{
+      "name": "A33B - Hiden Stamp・SnS x5",
+      "key": "A33B",
+      "count": 5,
+      "types": 7
+    },
+	{
+      "name": "A43B - Hiden Stamp・DS x5",
+      "key": "A43B",
+      "count": 5,
+      "types": 7
+    },
+	{
+      "name": "AD3B - Hiden Stamp・Magspike x5",
+      "key": "AD3B",
+      "count": 5,
+      "types": 7
+    },
+	{
+      "name": "A83B - Hiden Stamp・HH x5",
+      "key": "A83B",
+      "count": 5,
+      "types": 7
+    },
+	{
+      "name": "B03B - Hiden Stamp・Bow x5",
+      "key": "B03B",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "A63B - Hiden Stamp・LS x5",
+      "key": "A63B",
+      "count": 5,
+      "types": 7
+    },
+	{
+      "name": "A93B - Hiden Stamp・Lance x5",
+      "key": "A93B",
+      "count": 5,
+      "types": 7
+    },
+	{
+      "name": "AE3B - Hiden Stamp・LBG x5",
+      "key": "AE3B",
+      "count": 5,
+      "types": 7
+    },
+	{
+      "name": "AC3B - Hiden Stamp・Tonfa x5",
+      "key": "AC3B",
+      "count": 5,
+      "types": 7
+    },
+	{
+      "name": "AF3B - Hiden Stamp・HBG x5",
+      "key": "AF3B",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "C327 - Shiten Tkt x300",
+      "key": "C327",
+      "count": 300,
+      "types": 7
+    }
+  ],
+  "sr1": [
+    {
+      "name": "9206 - Maiden's Wish (Evd) x5",
+      "key": "9206",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "9106 - Maiden's Wish (HP) x5",
+      "key": "9106",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "9306 - Maiden's Wish (Stm) x5",
+      "key": "9306",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "C905 - Maiden's Heart (HP) x5",
+      "key": "C905",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "CA05 - Maiden's Heart (Evd) x5",
+      "key": "CA05",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "CB05 - Maiden's Heart (Stm) x5",
+      "key": "CB05",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "C327 - Shiten Tkt x100",
+      "key": "C327",
+      "count": 100,
+      "types": 7
+    }
+  ],
+  "sr2": [
+    {
+      "name": "1230 - Divine Power Gem x200",
+      "key": "1230",
+      "count": 200,
+      "types": 7
+    },
+    {
+      "name": "A33A - Heaven Wedge Stone x25",
+      "key": "A33A",
+      "count": 25,
+      "types": 7
+    },
+    {
+      "name": "C234 - NP Duals Mat x25",
+      "key": "C234",
+      "count": 25,
+      "types": 7
+    },
+    {
+      "name": "4435 - NP Swaxe Mat x25",
+      "key": "4435",
+      "count": 25,
+      "types": 7
+    },
+    {
+      "name": "B42D - NP SnS Mat x25",
+      "key": "B42D",
+      "count": 25,
+      "types": 7
+    }
+  ],
+  "sr3": [
+    {
+      "name": "C427 - Shiten Key x10",
+      "key": "C427",
+      "count": 10,
+      "types": 7
+    },
+    {
+      "name": "1639 - Upper Shiten Key x10",
+      "key": "1639",
+      "count": 10,
+      "types": 7
+    },
+    {
+      "name": "1739 - Upper Shiten Lock x10",
+      "key": "1739",
+      "count": 10,
+      "types": 7
+    },
+    {
+      "name": "8912 - All Resist Fruit x5",
+      "key": "8912",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "F225 - Quick Max Potion x10",
+      "key": "F225",
+      "count": 10,
+      "types": 7
+    },
+    {
+      "name": "F025 - Quick Mega Potion x10",
+      "key": "F025",
+      "count": 10,
+      "types": 7
+    },
+    {
+      "name": "EF25 - Quick Potion x20",
+      "key": "EF25",
+      "count": 20,
+      "types": 7
+    },
+    {
+      "name": "F325 - Quick Mega Juice x5",
+      "key": "F325",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "5F1F - Elixir of Peace x3",
+      "key": "5F1F",
+      "count": 3,
+      "types": 7
+    },
+    {
+      "name": "1106 - L.Sword Spirit Drug x3",
+      "key": "1106",
+      "count": 3,
+      "types": 7
+    },
+    {
+      "name": "F725 - All Element Drug x3",
+      "key": "F725",
+      "count": 3,
+      "types": 7
+    }
+  ],
+  "r1": [
+    {
+      "name": "C427 - Shiten Key x5",
+      "key": "C427",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "1639 - Upper Shiten Key x5",
+      "key": "1639",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "1739 - Upper Shiten Lock x5",
+      "key": "1739",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "0511 - Quick-Eating Fruit x5",
+      "key": "0511",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "F225 - Quick Max Potion x5",
+      "key": "F225",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "F025 - Quick Mega Potion x5",
+      "key": "F025",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "EF25 - Quick Potion x10",
+      "key": "EF25",
+      "count": 10,
+      "types": 7
+    },
+    {
+      "name": "F325 - Quick Mega Juice x2",
+      "key": "F325",
+      "count": 2,
+      "types": 7
+    },
+    {
+      "name": "9506 - Expert Whetstone x2",
+      "key": "9506",
+      "count": 2,
+      "types": 7
+    },
+    {
+      "name": "DC05 - G Whetstone x2",
+      "key": "DC05",
+      "count": 2,
+      "types": 7
+    },
+    {
+      "name": "F906 - Hi-Qual Whetstone x2",
+      "key": "F906",
+      "count": 2,
+      "types": 7
+    }
+  ],
+  "r2": [
+    {
+      "name": "4A00 - Dung x5",
+      "key": "4A00",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "4B00 - Dung Bomb x5",
+      "key": "4B00",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "A014 - ??? Doll/Guku doll x5",
+      "key": "A014",
+      "count": 5,
+      "types": 7
+    },
+    {
+      "name": "5A1F - Encourage Fruit x2",
+      "key": "5A1F",
+      "count": 2,
+      "types": 7
+    },
+    {
+      "name": "0111 - Ultra Earplug Fruit x2",
+      "key": "0111",
+      "count": 2,
+      "types": 7
+    },
+    {
+      "name": "DB04 - Large Barrel Bomb G2 x3",
+      "key": "DB04",
+      "count": 3,
+      "types": 7
+    },
+	{
+      "name": "5016 - Gook Fireworks x3",
+      "key": "5016",
+      "count": 3,
+      "types": 7
+    },
+	{
+      "name": "5E1F - Shiriagari Fruit x2",
+      "key": "5E1F",
+      "count": 2,
+      "types": 7
+    },
+	{
+      "name": "F225 - Quick Max Potion x3",
+      "key": "F225",
+      "count": 3,
+      "types": 7
+    }
+  ]
+}

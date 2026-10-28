@@ -1,0 +1,351 @@
+{
+  "responses": [
+    {
+      "trigger": "!bounty",
+      "response": "",
+      "embed": {
+        "title": "📜 Bounty System Guide",
+        "description": "**Bounty** is a mission system where you earn rewards by completing specific server event targets.\n\n**How to Use:**\n1. Use `/bounty submit` to upload your proof.\n2. Wait for a review by the Guild Gals.\n3. Receive your rewards once approved.",
+        "color": 16776960,
+        "thumbnail": "https://media.discordapp.net/attachments/1068440173479739393/1068440373132800080/SAF.png",
+        "image": null,
+        "footer": "RainRust v2.1 | Use /bounty for more info",
+        "fields": null
+      },
+      "case_sensitive": false,
+      "regex": null,
+      "cooldown": 30,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!gacha",
+      "response": "",
+      "embed": {
+        "title": "🎰 Gacha System",
+        "description": "**Gacha** is a random reward system utilizing tickets.\n\n**Commands:**\n• `/gacha pull` - Single pull (1 ticket)\n• `/gacha multi` - Multi pull (10 tickets)\n\n**Rates:**\n• SSR: 2%\n• SR: 10%\n• R: 88%",
+        "color": 16711680,
+        "thumbnail": "https://example.com/gacha-icon.png",
+        "image": "https://example.com/gacha-banner.jpg",
+        "footer": "Good luck, Hunter!",
+        "fields": null
+      },
+      "case_sensitive": false,
+      "regex": null,
+      "cooldown": 20,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!rules",
+      "response": "",
+      "embed": {
+        "title": "📋 Server Rules",
+        "description": "**General Rules:**\n1. No spam or self-promotion.\n2. Be respectful to all members.\n3. No NSFW content.\n4. Follow Discord ToS.\n\n**Bounty Rules:**\n1. Only HR equipment allowed for Gold/Silver.\n2. No MS (Monster Skill) for specific categories.\n3. Submit clear, high-quality screenshots.\n4. Strictly one submission per person.",
+        "color": 65280,
+        "thumbnail": null,
+        "image": null,
+        "footer": "Violations may result in disciplinary action",
+        "fields": null
+      },
+      "case_sensitive": false,
+      "regex": null,
+      "cooldown": 60,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!reward",
+      "response": "",
+      "embed": {
+        "title": "🎁 Bounty Rewards",
+        "description": "**Bronze Category:**\n• Coins: 1,000 - 5,000\n• Tickets: 1-3\n• Basic Equipment\n\n**Silver Category:**\n• Coins: 5,000 - 15,000\n• Tickets: 3-5\n• Rare Equipment\n\n**Gold Category:**\n• Coins: 15,000 - 50,000\n• Tickets: 5-10\n• Epic/Legendary Equipment",
+        "color": 16776960,
+        "thumbnail": "https://example.com/reward-icon.png",
+        "image": null,
+        "footer": "Rewards may vary based on BBQ level",
+        "fields": null
+      },
+      "case_sensitive": false,
+      "regex": null,
+      "cooldown": 45,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!title",
+      "response": "",
+      "embed": {
+        "title": "🏆 Title System",
+        "description": "**Bounty Titles:**\n• Bronze Bounty Hunter - Complete 10 Bronze bounties\n• Silver Bounty Hunter - Complete 10 Silver bounties\n• Gold Bounty Hunter - Complete 10 Gold bounties\n\n**Trading Titles:**\n• Bronze Trader - Complete 50 trades\n• Silver Trader - Complete 100 trades\n• Gold Trader - Complete 250 trades\n\n**Benefits:**\n• Bonus bounty coins (10-30%)\n• Trading discounts (10-30%)",
+        "color": 16711935,
+        "thumbnail": null,
+        "image": "https://example.com/titles-showcase.jpg",
+        "footer": "Titles are permanent once earned",
+        "fields": null
+      },
+      "case_sensitive": false,
+      "regex": null,
+      "cooldown": 60,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!faq",
+      "response": "",
+      "embed": {
+        "title": "❓ Frequently Asked Questions",
+        "description": "**Q: How do I submit a bounty?**\nA: Use `/bounty submit` and attach your screenshot.\n\n**Q: Why was my bounty rejected?**\nA: Check the rejection reason provided. Common issues include wrong equipment or low-quality screenshots.\n\n**Q: How long does the review take?**\nA: Usually within 24 hours. Contact the Guild Gals if it takes longer.\n\n**Q: Can I submit multiple bounties?**\nA: No, please wait for your current submission to be reviewed before submitting another.",
+        "color": 65535,
+        "thumbnail": null,
+        "image": null,
+        "footer": "Still have questions? Ask in the #help channel",
+        "fields": null
+      },
+      "case_sensitive": false,
+      "regex": null,
+      "cooldown": 30,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!bbq(\\d+)",
+      "response": "",
+      "embed": {
+        "title": "🍖 BBQ Progress Guide",
+        "description": "**BBQ System:**\nComplete bounties to progress through BBQ levels (01-25).\n\n**Requirements:**\n• BBQ 01-05: Bronze bounties\n• BBQ 06-15: Silver bounties\n• BBQ 16-25: Gold bounties\n\n**Benefits:**\n• Higher BBQ = Better rewards\n• Access to exclusive equipment\n• Title progression",
+        "color": 16753920,
+        "thumbnail": "https://example.com/bbq-icon.png",
+        "image": null,
+        "footer": "Current BBQ level is shown in your profile",
+        "fields": null
+      },
+      "case_sensitive": false,
+      "regex": "!bbq(\\d+)",
+      "cooldown": 30,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!help",
+      "response": "",
+      "embed": {
+        "title": "🤖 RainRust Bot - Help Menu",
+        "description": "**Available Commands:**\n\n**Bounty:**\n• `/bounty` - View bounty info\n• `/bounty submit` - Submit bounty\n• `/cooldown` - Check cooldown\n\n**Gacha:**\n• `/gacha pull` - Single pull\n• `/gacha multi` - Multi pull\n\n**Trading:**\n• `/trading create` - List item\n• `/trading buy` - Buy item\n\n**Info:**\n• `!bounty` - Bounty guide\n• `!rules` - Server rules\n• `!faq` - FAQ",
+        "color": 5814783,
+        "thumbnail": "https://example.com/bot-avatar.png",
+        "image": null,
+        "footer": "RainRust v2.1 | Developed for the MHF-Z Community",
+        "fields": null
+      },
+      "case_sensitive": false,
+      "regex": null,
+      "cooldown": 20,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!testrules",
+      "response": "",
+      "embed": {
+        "title": "📜 Rain Server MHFZ - Server Rules",
+        "description": "**Welcome to Rain Server MHFZ!**\\n\\nPlease read and adhere to the following rules to maintain a comfortable environment.",
+        "color": 16753920,
+        "thumbnail": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973393/1502628900721787111/3x.gif?ex=6a0067b7&is=69ff1637&hm=1883d81aa17898467d344cebead487953fda32b802a9d157d87b97d2e6106b8d&",
+        "image": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973393/1502628901799596122/2g1cj6.jpg?ex=6a0067b7&is=69ff1637&hm=adac1494bab2e43d8dd707856767193eaaddb0e456f1dffb9b1c5c416cee19fb&",
+        "footer": "Rain Server MHFZ | Updated 2026",
+        "fields": [
+          {
+            "name": "⚔️ GAMEPLAY RULES",
+            "value": "1. Cheat, hacks, or third-party tools are strictly prohibited.\\n2. Do not exploit game bugs.\\n3. HR gear is mandatory for Gold category bounties.\\n4. Using Monster Skills (MS) is forbidden for specific bounties.\\n5. Submit clear, non-blurry screenshots.",
+            "inline": false
+          },
+          {
+            "name": "💬 CHAT & COMMUNICATION",
+            "value": "1. No spamming, flooding, or excessive use of caps.\\n2. SFW/NSFW content must be kept in appropriate channels.\\n3. Respect all members; toxic behavior or harassment is not tolerated.\\n4. Do not promote other servers without Admin permission.\\n5. Use channels according to their designated topics.",
+            "inline": false
+          },
+          {
+            "name": "🎯 BOUNTY SYSTEM",
+            "value": "1. One submission per person; wait for the current review to finish.\\n2. Cooldown: 40 hours for the same category.\\n3. Cooldown: 20 hours for different categories.\\n4. Rewards are distributed automatically upon approval.\\n5. Rejections will add 1 hour to your cooldown.",
+            "inline": false
+          },
+          {
+            "name": "⚔️ TRADING & MARKET",
+            "value": "1. No price manipulation or scamming.\\n2. Only trade legitimate items (no duped items).\\n3. Minimum price: 100 BC (Bounty Coins).\\n4. Market Tax: 5% of the selling price.\\n5. Admins are not responsible for trades between members.",
+            "inline": false
+          },
+          {
+            "name": "🏆 TITLES & RANKS",
+            "value": "1. Titles are earned by completing bounties.\\n2. Titles provide a Bounty Coin bonus (10-30%).\\n3. Titles provide a trading discount (10-30%).\\n4. Titles are permanent once acquired.\\n5. Buying/selling accounts or titles is strictly forbidden.",
+            "inline": false
+          },
+          {
+            "name": "🔧 GENERAL RULES",
+            "value": "1. Follow Discord Terms of Service.\\n2. Obey instructions from Admins & Moderators.\\n3. Do not mention Admins without an urgent reason.\\n4. Report bugs/errors to the staff immediately.\\n5. Rules are subject to change at any time.",
+            "inline": false
+          },
+          {
+            "name": "⚠️ PENALTIES",
+            "value": "- Warning 1-3: Verbal/Direct Warning.\\n- Warning 4: 24-hour Mute.\\n- Warning 5: Kick from server.\\n- Severe Violations: Permanent Ban.",
+            "inline": false
+          },
+          {
+            "name": "📞 STAFF CONTACT",
+            "value": "For questions or assistance, contact:\\n- Admin: @Admin Role\\n- Moderator: @Moderator Role\\n- Guild Gals: @Guild Gals Role",
+            "inline": false
+          }
+        ]
+      },
+      "case_sensitive": false,
+      "regex": null,
+      "cooldown": 30,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!helloworld",
+      "response": "",
+      "embed": {
+        "title": "asdasd",
+        "description": "hola",
+        "color": 16761035,
+        "thumbnail": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973392/1502639032218419341/descargar.jpg?ex=6a007126&is=69ff1fa6&hm=34ef070197cd12ad399948732f7c74ff0af3ec4f093ff51e9e046f3ad329a380&",
+        "image": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973392/1502639033409343658/poopy_narga.png?ex=6a007127&is=69ff1fa7&hm=069f9d604dcab7bc85ed257aaccb4f9307dfc29df2f7bc24878458bea6836234&",
+        "footer": null,
+        "fields": null
+      },
+      "case_sensitive": true,
+      "regex": null,
+      "cooldown": 8,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!rainstaff",
+      "response": "",
+      "embed": {
+        "title": null,
+        "description": "asdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj dasdasdoihasdikhasidhaisdhaisdhaisdjaoidsjaodjaosdjaosdjaosdjaodjaosjdaosdj ojaod joasjd ojasod jaosd jaosd jaos djaos djaoj d",
+        "color": 1752220,
+        "thumbnail": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973392/1502943828892586124/arknights-myrtle.mp4?ex=6a018d04&is=6a003b84&hm=2aa5af720db67a8dfa7aba70ab5d1e8632542c78c1691a4636e168f420a98964&",
+        "image": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973392/1502943830746333214/arknights-myrtle.mp4?ex=6a018d04&is=6a003b84&hm=ef8d21d3fe1f512b2cad90e98c02de5eed63b6843fe173e6dc76f7fb9bb743c2&",
+        "footer": null,
+        "fields": null
+      },
+      "case_sensitive": true,
+      "regex": null,
+      "cooldown": 30,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "gacha info",
+      "response": "",
+      "embed": {
+        "title": "gacha info",
+        "description": "El servidor de Rain tiene dos sistemas de gacha: el NPC Harisen Felyne que esta en la Herrería, y el otro siendo el gacha-pon en #🎊┃gacha-pon   1. Harisen Felyne Gacha (dentro del juego) Al interactuar con el NPC vas a poder seleccionar `Normal Gacha`. Este menu te mostrara una lista de todos los banners gacha que hay en el juego, cada uno con su respectiva lista de premios que puedes ver si seleccionas un banner y presionas el boton que figura como `Prize List`. Para poder tirar de estos banners y obtener los tickets que desbloquean equipamiento de collabs (Nier, Fate, Hatsune Miku, Attack on Titan), vas a necesitar Gacha Coins que tienen el nombre de `0323 きんぴか小判Ｇ` en tu baul de objetos. Mientras que es posible farmear Gacha Coins en HR es **recomendable esperar al menos que estes en G-Rank** con un equipamiento decente para poder farmear una quest como Amatsu. También es recomendable formar un grupo en #🆘 | party-search para poder farmear mas eficientemente.  2. Gacha en el Servidor #🎊┃gacha-pon Una de las recompensas de cada [bounty](https://discord.com/channels/937230168223789066/962864233371021342/1424785006139674766) es una cantidad determinada de `Gacha Ticket`, esta moneda se puede usar con el bot para tirar y obtener la recompensas del banner en rotación. Es importante tener la cuenta [bindeada](https://discord.com/channels/937230168223789066/1090267127161827429/1501716420667510784) para poder participar en este gacha, las recompensas se pueden recolectar desde el [NPC Guia](https://discord.com/channels/937230168223789066/1090267127161827429/1501193752054857828).",
+        "color": 65280,
+        "thumbnail": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973392/1502945145367298078/pixel-art-of-frieren-and-himmel-i-based-on-the-character-v0-7a8rs274w0sc1.webp?ex=6a018e3e&is=6a003cbe&hm=ba4f6cac3d83aaec0893baf06eeea6aac58fa819a01d42579600f3d248e3cc01&",
+        "image": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973392/1502945146856017960/6a4e28f6034a7292e3dcbafa7a9f97ed.jpg?ex=6a018e3e&is=6a003cbe&hm=e2dc58921a7ea7b4c349b387cf5e43edfee4e80dad0d700d0959a8c0e3f22797&",
+        "footer": null,
+        "fields": null
+      },
+      "case_sensitive": true,
+      "regex": null,
+      "cooldown": 0,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!gachainfo",
+      "response": "",
+      "embed": {
+        "title": null,
+        "description": "El servidor de Rain tiene dos sistemas de gacha: el NPC Harisen Felyne que esta en la Herrería, y el otro siendo el gacha-pon en #🎊┃gacha-pon                                                                                                                                                                                                                                                                                                                                   1. Harisen Felyne Gacha (dentro del juego) Al interactuar con el NPC vas a poder seleccionar `Normal Gacha`. Este menu te mostrara una lista de todos los banners gacha que hay en el juego, cada uno con su respectiva lista de premios que puedes ver si seleccionas un banner y presionas el boton que figura como `Prize List`. Para poder tirar de estos banners y obtener los tickets que desbloquean equipamiento de collabs (Nier, Fate, Hatsune Miku, Attack on Titan), vas a necesitar Gacha Coins que tienen el nombre de `0323 きんぴか小判Ｇ` en tu baul de objetos. Mientras que es posible farmear Gacha Coins en HR es **recomendable esperar al menos que estes en G-Rank** con un equipamiento decente para poder farmear una quest como Amatsu. También es recomendable formar un grupo en #🆘 | party-search para poder farmear mas eficientemente.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     Gacha en el Servidor #🎊┃gacha-pon Una de las recompensas de cada [bounty](https://discord.com/channels/937230168223789066/962864233371021342/1424785006139674766) es una cantidad determinada de `Gacha Ticket`, esta moneda se puede usar con el bot para tirar y obtener la recompensas del banner en rotación. Es importante tener la cuenta [bindeada](https://discord.com/channels/937230168223789066/1090267127161827429/1501716420667510784) para poder participar en este gacha, las recompensas se pueden recolectar desde el [NPC Guia](https://discord.com/channels/937230168223789066/1090267127161827429/1501193752054857828).",
+        "color": 16761035,
+        "thumbnail": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973392/1502946086837293267/ea42d640db2fe907965eabb2c8f2860f.jpg?ex=6a018f1e&is=6a003d9e&hm=34211888aa598e862eff2142c0e888153aa5745e5aa1b0d809dfdeaeb3add26b&",
+        "image": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973392/1502946087957299233/ea42d640db2fe907965eabb2c8f2860f.jpg?ex=6a018f1e&is=6a003d9e&hm=6cf3d9e6d87cd0a4eda989647efea93ef92dee19a5dcf63455b1fd66c8339077&",
+        "footer": null,
+        "fields": null
+      },
+      "case_sensitive": true,
+      "regex": null,
+      "cooldown": 0,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!eve",
+      "response": "",
+      "embed": {
+        "title": "eve",
+        "description": "eve eve eve eve eve \\n eve eve eve eve \\t  idk what symbol for tab is \\n **eve eve eve but this time in bold** \\n  **eve** **eve** **eve**",
+        "color": 16777215,
+        "thumbnail": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973392/1503401896092893184/5bce3d2c8dd80fef99973bfa3427236e.jpg?ex=6a03379f&is=6a01e61f&hm=3c3dd6e85c601723ddcb421ed53269913d5d591f0982977dedab06d68f7ec7c6&",
+        "image": "https://cdn.discordapp.com/ephemeral-attachments/1502620302360973392/1503401897460105236/frieren-icons-chibi-v0-eeyxiwwwkl3f1.jpg?ex=6a0337a0&is=6a01e620&hm=e3476c2c98bdead37d8737d73398864d6424f2f13e97f18f9e175abc2196e01e&",
+        "footer": null,
+        "fields": null
+      },
+      "case_sensitive": true,
+      "regex": null,
+      "cooldown": 0,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!gachainfoesp",
+      "response": "",
+      "embed": {
+        "title": null,
+        "description": "El servidor de Rain tiene dos sistemas de gacha: el NPC Harisen Felyne que esta en la Herrería, y el otro siendo el gacha-pon en #🎊┃gacha-\\n pon   1. Harisen Felyne Gacha (dentro del juego) Al interactuar con el NPC vas a poder seleccionar `Normal Gacha`. Este menu te mostrara \\n una lista de todos los banners gacha que hay en el juego, cada uno con su respectiva lista de premios que puedes ver si seleccionas un \\n banner y presionas el boton que figura como `Prize List`. Para poder tirar de estos banners y obtener los tickets que desbloquean  \\n equipamiento de collabs (Nier, Fate, Hatsune Miku, Attack on Titan), vas a necesitar Gacha Coins que tienen el nombre de `0323 きんぴか小 \\n  \\n  \\n  \\n  \\n  判Ｇ` en tu baul de objetos. Mientras que es posible farmear Gacha Coins en HR es **recomendable esperar al menos que estes en G-Rank** con un equipamiento decente para poder farmear una quest como Amatsu. También es recomendable formar un grupo en #🆘 | party-search para poder farmear mas eficientemente.  2. Gacha en el Servidor #🎊┃gacha-pon Una de las recompensas de cada [bounty](https://discord.com/channels/937230168223789066/962864233371021342/1424785006139674766) es una cantidad determinada de \\n\\n\\n `Gacha Ticket`, esta moneda se puede usar con el bot para tirar y obtener la recompensas del banner en rotación. Es importante tener la cuenta [bindeada](https://discord.com/channels/937230168223789066/1090267127161827429/1501716420667510784) para poder participar en este gacha, las recompensas se pueden recolectar desde el [NPC Guia] \\n \\n \\n \\n \\n \\n \\n \\n (https://discord.com/channels/937230168223789066/1090267127161827429/1501193752054857828).",
+        "color": 9807270,
+        "thumbnail": null,
+        "image": null,
+        "footer": null,
+        "fields": null
+      },
+      "case_sensitive": true,
+      "regex": null,
+      "cooldown": 0,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!evocalc",
+      "response": "",
+      "embed": {
+        "title": "Evolution Weapon Upgrade Cost Calculator by Luckssmith",
+        "description": "Link: https://ceaseless.github.io/evocalc/\\n\\nAssumptions:\\n1. You only buy the \"good\" DPG packages (999 for 7500 rdp)\\n2. You use DPG for the HR1 and HR100 upgrade tiers",
+        "color": 16711680,
+        "thumbnail": null,
+        "image": null,
+        "footer": null,
+        "fields": null
+      },
+      "case_sensitive": false,
+      "regex": null,
+      "cooldown": 0,
+      "roles_required": [],
+      "channels_allowed": []
+    },
+    {
+      "trigger": "!rainscam",
+      "response": "",
+      "embed": {
+        "title": null,
+        "description": "How to Claim your free DPG!!",
+        "color": 16711680,
+        "thumbnail": null,
+        "image": "https://cdn.discordapp.com/ephemeral-attachments/1507305361840013375/1511094257384034334/Rain_Scam.png?ex=6a1f33b1&is=6a1de231&hm=024d34d4324b4d6d6301a44ee0d3c337dc677c57a18a07eb727c9af8d6954f14&",
+        "footer": null,
+        "fields": null
+      },
+      "case_sensitive": true,
+      "regex": null,
+      "cooldown": 20,
+      "roles_required": [],
+      "channels_allowed": []
+    }
+  ]
+}

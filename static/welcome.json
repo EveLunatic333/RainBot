@@ -1,0 +1,49 @@
+{
+  "button_role_id": 937304763513573446,
+  "guide_link": "https://discord.com/channels/937230168223789066/952959980749881434",
+  "welcome_embed": {
+    "title": "Welcome To Our Server",
+    "description": "Welcome `{username}` to our server, we are happy to have you as our {count}'s member.",
+    "color": "RANDOM",
+    "image_url": "Rain_Wallpaper_Banner.png",
+    "fields": [
+      {
+        "name": "About Server",
+        "value": "As you might heard off, this server consist community of monster hunter frontier player across global,to make server better we already have set rule that we need to obey as player and as member of community.",
+        "inline": false
+      },
+      {
+        "name": "Access Rules",
+        "value": "You can press the button bellow to have access to our channel, we also send the rules with DM, hope you read it at leasure time.",
+        "inline": false
+      },
+	  {
+        "name": "About Channels",
+        "value": "To start with our server,we recommend to press the link button bellow to take you on our server channel mapping and information.",
+        "inline": false
+      }
+    ]
+  },
+  "dm_rules": [
+    {
+      "title": "Server Rules 🎉",
+      "description": "Please follow our rules to maintain a healthy environment.",
+      "color": "1ABC9C",
+      "image_url": "",
+      "fields": [
+        {
+          "name": "🛑 No Cheating",
+          "value": "Use of Cheat Engine or memory scanners is strictly prohibited.",
+          "inline": false
+        }
+      ]
+    }
+  ],
+  "leave_embed": {
+    "title": "Member Leave",
+    "description": "{mention} left at <t:{time}:F>\nRemaining members: {count}",
+    "color": "8B0000",
+    "image_url": "",
+    "fields": []
+  }
+}

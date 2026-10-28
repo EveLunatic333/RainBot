@@ -1,0 +1,114 @@
+{
+  "meals": [
+    {
+      "id": 1,
+      "level": 3,
+      "name": "Buchigire"
+    },
+    {
+      "id": 109,
+      "level": 3,
+      "name": "Unaffected+3"
+    },
+    {
+      "id": 163,
+      "level": 3,
+      "name": "Great Luck"
+    },
+    {
+      "id": 253,
+      "level": 3,
+      "name": "Super HG Earplugs"
+    },
+    {
+      "id": 296,
+      "level": 3,
+      "name": "Caring+3"
+    },
+    {
+      "id": 332,
+      "level": 3,
+      "name": "Adrenaline+2"
+    },
+    {
+      "id": 368,
+      "level": 3,
+      "name": "Dragon Wind Breaker"
+    },
+    {
+      "id": 395,
+      "level": 3,
+      "name": "Peerless"
+    },
+    {
+      "id": 422,
+      "level": 3,
+      "name": "Goddess Embrace"
+    },
+    {
+      "id": 455,
+      "level": 3,
+      "name": "Hunger Negated"
+    },
+    {
+      "id": 500,
+      "level": 3,
+      "name": "Wide Area+3"
+    },
+    {
+      "id": 527,
+      "level": 3,
+      "name": "Hazard Res (Large)"
+    },
+    {
+      "id": 551,
+      "level": 3,
+      "name": "Divine Whim"
+    },
+    {
+      "id": 596,
+      "level": 3,
+      "name": "Paralysis Negated"
+    },
+    {
+      "id": 614,
+      "level": 3,
+      "name": "Sleep Negated"
+    },
+    {
+      "id": 632,
+      "level": 3,
+      "name": "Poison Negated"
+    },
+    {
+      "id": 650,
+      "level": 3,
+      "name": "Stun Negated"
+    },
+    {
+      "id": 668,
+      "level": 3,
+      "name": "All Res+20"
+    },
+    {
+      "id": 704,
+      "level": 3,
+      "name": "Medical Sage"
+    },
+    {
+      "id": 708,
+      "level": 3,
+      "name": "Encourage+2"
+    },
+    {
+      "id": 712,
+      "level": 3,
+      "name": "Assistance"
+    },
+    {
+      "id": 716,
+      "level": 2,
+      "name": "Incitement"
+    }
+  ]
+}
