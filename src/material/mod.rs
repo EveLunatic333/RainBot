@@ -109,4 +109,35 @@ mod test{
         let pedia = ItemPedia::default();
         assert_eq!(pedia.dictionary(7, "4404"),Some("父への憧憬"))
     }
+
+    /// Item-name tables are hand-maintained data. A stray zero-width space once sat in
+    /// `melee.rs` ("Imperial Commandment\u{200B} H."), which is invisible in rendered
+    /// output but breaks string comparisons and set off clippy's `invisible_characters`
+    /// lint. Guard every table so the same slip cannot return unnoticed.
+    #[test]
+    fn item_names_have_no_invisible_characters() {
+        // Zero-width and bidirectional-control characters, plus no-break space.
+        fn is_invisible(c: char) -> bool {
+            matches!(c,
+                '\u{200B}'..='\u{200F}' | '\u{202A}'..='\u{202E}'
+                | '\u{2060}' | '\u{FEFF}' | '\u{00A0}')
+        }
+
+        let mut scanned = 0usize;
+        for (kind, list) in ItemPedia::default().types {
+            for (id, name) in list {
+                scanned += 1;
+                if let Some(bad) = name.chars().find(|c| is_invisible(*c)) {
+                    panic!(
+                        "item {id} in table {kind} contains invisible character U+{:04X}: {:?}",
+                        bad as u32, name
+                    );
+                }
+            }
+        }
+
+        // Guard against a vacuous pass: if the tables ever stop loading, this test would
+        // otherwise succeed while checking nothing at all.
+        assert!(scanned > 1000, "item tables look empty: only {scanned} entries scanned");
+    }
 }
