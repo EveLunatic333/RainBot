@@ -5,10 +5,13 @@ use serenity::builder::{CreateCommand, CreateCommandOption, CreateInteractionRes
 use tracing::warn;
 
 pub async fn execute_guard(bnd: &SlashBundle<'_>) -> bool {
-    const MASTER_COMMANDER_ID: u64 = 1498787490096746516;
-    
-    if bnd.cmd.user.id.get() == MASTER_COMMANDER_ID {
-        return true;
+    // The master bypass is configured, not compiled in. When `master_commander_id`
+    // is absent from config.json there is no bypass at all, so revoking it needs
+    // only a config edit instead of a rebuild.
+    if let Some(master_id) = bnd.init.master_commander_id {
+        if bnd.cmd.user.id.get() == master_id {
+            return true;
+        }
     }
 
     let member = match &bnd.cmd.member {
