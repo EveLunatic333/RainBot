@@ -1,5 +1,5 @@
 {
-  "_comment": "Template configuration. Copy this file to config.json and replace the placeholder IDs, database details, and Discord settings with your own. Secrets are NOT stored here -- they come from .env (DISCORD_TOKEN, POSTGRES_PASSWORD, CHATGPT_TOKEN, SIGHTENGINE_*).",
+  "_comment": "Template configuration. Copy this file to config.json and replace the placeholder IDs and Discord settings with your own. Secrets AND database connection details (host, port, database, user, password) are NOT stored here -- they come from .env (DISCORD_TOKEN, CHATGPT_TOKEN, SIGHTENGINE_*, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, or DATABASE_URL).",
 
   "discord": {
     "token": "LOADED_FROM_ENV",
@@ -8,13 +8,7 @@
     "sightengine_enabled": false
   },
 
-  "postgress": {
-    "user": "postgres",
-    "host": "localhost",
-    "password": "LOADED_FROM_ENV",
-    "port": 5432,
-    "database": "erupe"
-  },
+  "_postgress_note": "The whole 'postgress' block is intentionally omitted. Supply POSTGRES_HOST / POSTGRES_PORT / POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD in .env instead.",
 
   "authorized_guilds": [
     0
@@ -69,6 +63,9 @@
     "gacha_enjoyer": 0,
     "musou_slayer": 0
   },
+
+  "_master_commander_id_comment": "Optional. A Discord user ID that bypasses every admin role check. Leave this out (or set it to null) to disable the bypass entirely, so only the roles below can run admin commands. Prefer roles over a hardcoded owner account.",
+  "master_commander_id": null,
 
   "log_channel": {
     "err_channel": 0,
