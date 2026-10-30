@@ -73,8 +73,10 @@ impl MyConfig for Market {
     async fn check(data: &[u8]) -> Result<(), MyErr> {
         Ok(Market::check(data).await?)
     }
-    async fn update(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
-        Market::update_new(bnd.ctx, bnd.init, bnd.pedia).await?;
+    async fn update(_bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
+        // Uploading `market.json` no longer republishes a public board: the
+        // "Server Market Stall" message was removed by request. The new stock is
+        // picked up by the next `/trading market` invocation, which reads the file.
         Ok(())
     }
 }
