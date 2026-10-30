@@ -97,16 +97,17 @@ impl CompModel {
     }
 
     pub async fn timeout(id: &str, ctx: &Context, msg: SerenityMessage, init: &Init) -> Result<(), MyErr> {
-        let stream = ComponentInteractionCollector::new(ctx)
+        // `next()` resolves to the first matching button press, or to `None` once the
+        // collector times out. The chat message is only removed when nobody replied
+        // before the deadline, so the button is spent either way.
+        let expired = ComponentInteractionCollector::new(ctx)
             .custom_ids(vec![format!("chat-{}", &id)])
-            .timeout(std::time::Duration::from_secs(init.chat_gpt.timeout as u64));
-        
-        let mut conf = true;
-        while let Some(_) = stream.next().await {
-            conf = false;
-            break;
-        }
-        Self::delete(id, msg, ctx, conf).await
+            .timeout(std::time::Duration::from_secs(init.chat_gpt.timeout as u64))
+            .next()
+            .await
+            .is_none();
+
+        Self::delete(id, msg, ctx, expired).await
     }
 
     pub fn button(id: &str) -> Vec<CreateActionRow> {

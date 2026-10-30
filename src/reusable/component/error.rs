@@ -71,6 +71,12 @@ impl<'a> ErrorLog<'a> {
     }
 
     pub fn defer_response(&self, severity: bool) -> EditInteractionResponse {
-        EditInteractionResponse::new().embed(self.make_embed(severity))
+        // Clearing components is deliberate: an error embed replaces the previous
+        // screen, and leaving its buttons/selects attached produces a message whose
+        // widgets look live but no longer have a collector behind them. Pressing one
+        // then fails to acknowledge within Discord's 3-second window.
+        EditInteractionResponse::new()
+            .embed(self.make_embed(severity))
+            .components(Vec::new())
     }
 }

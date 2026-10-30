@@ -1,6 +1,6 @@
 use serenity::all::*;
 use crate::{commands, COOLDOWN};
-use crate::{Init, ItemPedia, MyErr, ErrorLog, Reg, Images, Mytrait};
+use crate::{Init, ItemPedia, MyErr, ErrorLog, Reg, Images, Mytrait, Components};
 use crate::reusable::utils::MyTime;
 use serenity::async_trait;
 use tracing::warn;
@@ -267,7 +267,27 @@ async fn route_component_interaction(bnd: &ComponentBundle<'_>) {
         "role_btn" => commands::misc::role_btn::discordall(bnd).await,
         "switch" => switch(bnd).await,
         "join" => super::join::discordbutton(bnd).await,
-        "method_sel" | "category_sel" | "bbq_sel" | "done" | "reset" | "d_methode" | "d_cat" | "d_bbq" | "d_cancel" | "d_ok" | "d_reset" | "m_qty" | "m_order" | "yes" | "next" | "prev" | "use" | "clear" | "cancel" | "m_next" | "m_search" | "m_search_clear" | "m_cancel" | "m_clear" | "m_item" | "view_pedia" => {},
+        "method_sel" | "category_sel" | "bbq_sel" | "done" | "reset" | "d_methode" | "d_cat" | "d_bbq" | "d_cancel" | "d_ok" | "d_reset" | "yes" | "next" | "prev" | "use" | "clear" | "cancel" => {},
+        // Market component ids are only valid while the collector inside
+        // `market::slash` is alive (180 s). Once it has ended the message can still
+        // show live buttons, and Discord requires *every* interaction to be
+        // acknowledged within 3 seconds or the client shows
+        // "This interaction failed". Acknowledge and tell the user to rerun.
+        "m_qty" | "m_order" | "m_next" | "m_search" | "m_search_clear" | "m_cancel"
+        | "m_clear" | "m_item" | "m_prev" => {
+            let note = "⌛ **This market menu has expired.** Please run `/trading market` again.";
+            if let Err(e) = bnd
+                .cmd
+                .create_response(
+                    &bnd.ctx.http,
+                    Components::interaction_response(note, true),
+                )
+                .await
+            {
+                warn!("Expired market component could not be acknowledged: {:?}", e);
+            }
+        }
+        "view_pedia" => {},
         unknown => warn!(custom_id = %unknown, user_id = %bnd.user().id, "Unknown component interaction received"),
     }
 }
