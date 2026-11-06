@@ -50,35 +50,8 @@ impl<'a> PgConn<'a> {
         dist_id: i32,
         data: &[ItemCode],
     ) -> Result<(), BitwiseError> {
-        if data.is_empty() {
-            return Ok(());
-        }
-
-        let mut dist_ids = Vec::with_capacity(data.len());
-        let mut item_types = Vec::with_capacity(data.len());
-        let mut item_ids = Vec::with_capacity(data.len());
-        let mut quantities = Vec::with_capacity(data.len());
-
-        for item in data {
-            dist_ids.push(dist_id);
-            item_types.push(item.types as i32);
-            let reversed_key = item.reverse_key().unwrap_or_else(|_| item.key.clone());
-            item_ids.push(i32::from_str_radix(&reversed_key, 16).unwrap_or(0));
-            quantities.push(item.count as i32);
-        }
-
-        sqlx::query(
-            "INSERT INTO distribution_items (distribution_id, item_type, item_id, quantity) \
-             SELECT * FROM UNNEST($1::int[], $2::int[], $3::int[], $4::int[])",
-        )
-        .bind(&dist_ids)
-        .bind(&item_types)
-        .bind(&item_ids)
-        .bind(&quantities)
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
+        let mut conn = self.pool.acquire().await?;
+        insert_distribution_items_tx(&mut conn, dist_id, data).await
     }
 
     pub async fn send_item(
@@ -88,27 +61,8 @@ impl<'a> PgConn<'a> {
         name: &str,
         desc: &str,
     ) -> Result<(), BitwiseError> {
-        if !self.validate_character_exists(cid).await? {
-            return Err(BitwiseError::Custom(format!("Character ID {} is not registered", cid)));
-        }
-
-        let byte = Bitwise::new(data);
-        let byte_data = byte.multiple_item()?;
-
-        let dist_id: i32 = sqlx::query(
-            "INSERT INTO distribution (character_id, data, type, bot, event_name, description) \
-             VALUES ($1, $2, 1, true, $3, $4) RETURNING id",
-        )
-        .bind(cid)
-        .bind(&byte_data)
-        .bind(name)
-        .bind(&format!("~C05 {}", desc))
-        .fetch_one(&self.pool)
-        .await?
-        .get("id");
-
-        self.insert_distribution_items(dist_id, data).await?;
-        Ok(())
+        let mut conn = self.pool.acquire().await?;
+        send_item_tx(&mut conn, data, cid, name, desc).await
     }
 
     pub async fn send_distrib(
@@ -256,3 +210,100 @@ impl<'a> PgConn<'a> {
         Ok(())
     }
 }
+
+/// Inserts the item rows of one distribution inside the caller's transaction.
+pub async fn insert_distribution_items_tx(
+    conn: &mut sqlx::PgConnection,
+    dist_id: i32,
+    data: &[ItemCode],
+) -> Result<(), BitwiseError> {
+    if data.is_empty() {
+        return Ok(());
+    }
+
+    let mut dist_ids = Vec::with_capacity(data.len());
+    let mut item_types = Vec::with_capacity(data.len());
+    let mut item_ids = Vec::with_capacity(data.len());
+    let mut quantities = Vec::with_capacity(data.len());
+
+    for item in data {
+        dist_ids.push(dist_id);
+        item_types.push(item.types as i32);
+        let reversed_key = item.reverse_key().unwrap_or_else(|_| item.key.clone());
+        item_ids.push(i32::from_str_radix(&reversed_key, 16).unwrap_or(0));
+        quantities.push(item.count as i32);
+    }
+
+    sqlx::query(
+        "INSERT INTO distribution_items (distribution_id, item_type, item_id, quantity) \
+         SELECT * FROM UNNEST($1::int[], $2::int[], $3::int[], $4::int[])",
+    )
+    .bind(&dist_ids)
+    .bind(&item_types)
+    .bind(&item_ids)
+    .bind(&quantities)
+    .execute(&mut *conn)
+    .await?;
+
+    Ok(())
+}
+
+/// Grants items to a character inside the caller's transaction.
+pub async fn send_item_tx(
+    conn: &mut sqlx::PgConnection,
+    data: &[ItemCode],
+    cid: i32,
+    name: &str,
+    desc: &str,
+) -> Result<(), BitwiseError> {
+    let exists = sqlx::query_scalar::<_, bool>("SELECT EXISTS(SELECT 1 FROM characters WHERE id = $1)")
+        .bind(cid)
+        .fetch_one(&mut *conn)
+        .await?;
+    if !exists {
+        return Err(BitwiseError::Custom(format!("Character ID {} is not registered", cid)));
+    }
+
+    let byte = Bitwise::new(data);
+    let byte_data = byte.multiple_item()?;
+
+    let dist_id: i32 = sqlx::query(
+        "INSERT INTO distribution (character_id, data, type, bot, event_name, description) \
+         VALUES ($1, $2, 1, true, $3, $4) RETURNING id",
+    )
+    .bind(cid)
+    .bind(&byte_data)
+    .bind(name)
+    .bind(&format!("~C05 {}", desc))
+    .fetch_one(&mut *conn)
+    .await?
+    .get("id");
+
+    insert_distribution_items_tx(conn, dist_id, data).await?;
+    Ok(())
+}
+
+/// Writes the bounty row of one hunter inside the caller's transaction.
+pub async fn bounty_event_tx(
+    conn: &mut sqlx::PgConnection,
+    did: &str,
+    event: &Event,
+) -> Result<(), BitwiseError> {
+    sqlx::query(
+        "UPDATE discord SET bounty = $1, gacha = $2, gold = $3, silver = $4, bronze = $5, \
+         latest_bounty = $6, latest_bounty_time = $7, title = $8 WHERE discord_id = $9",
+    )
+    .bind(event.bounty)
+    .bind(event.gacha)
+    .bind(event.gold)
+    .bind(event.silver)
+    .bind(event.bronze)
+    .bind(&event.latest_bounty)
+    .bind(event.latest_bounty_time)
+    .bind(event.title)
+    .bind(did)
+    .execute(&mut *conn)
+    .await?;
+    Ok(())
+}
+

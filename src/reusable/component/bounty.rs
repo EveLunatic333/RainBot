@@ -503,7 +503,7 @@ impl BountySubmit {
         })
     }
 
-    async fn send_reward(&self, pg: &mut PgConn<'_>) -> Result<(), MyErr> {
+    async fn send_reward(&self, pg: &PgConn<'_>) -> Result<(), MyErr> {
         let name = format!(
             "{} {} {} Rewards",
             self.method.name(),
@@ -516,12 +516,26 @@ impl BountySubmit {
             self.bbq.name(),
             self.method.name()
         );
+
+        // Every hunter's currency row and item rows are written in one
+        // transaction. A failure for the second member of a party used to leave
+        // the first member rewarded and the rest empty-handed while all of them
+        // had already been stamped with a fresh cooldown; now nothing is written
+        // unless every member succeeds.
+        let mut tx = pg.pool().begin().await?;
         for i in &self.hunter {
-            pg.did = i.member.user.id.to_string();
-            pg.send_item(&self.reward.items.as_slice(), i.event.char_id, &name, &desc)
-                .await?;
-            pg.bounty_event(&i.event).await?;
+            let did = i.member.user.id.to_string();
+            crate::reusable::postgress::gacha::send_item_tx(
+                &mut tx,
+                &self.reward.items,
+                i.event.char_id,
+                &name,
+                &desc,
+            )
+            .await?;
+            crate::reusable::postgress::gacha::bounty_event_tx(&mut tx, &did, &i.event).await?;
         }
+        tx.commit().await?;
         Ok(())
     }
 

@@ -68,6 +68,11 @@ impl<'a> PgConn<'a> {
 
     pub async fn close(&mut self) {}
 
+    /// The underlying pool, for callers that need to open a transaction.
+    pub fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
+
     pub async fn re_connect(&mut self) -> Result<(), BitwiseError> {
         self.pool = get_pool().clone();
         Ok(())
