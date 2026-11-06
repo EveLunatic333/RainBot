@@ -150,13 +150,26 @@ impl Event {
         }
     }
 
-    fn embed(&self, user: &User) -> Result<CreateEmbed, MyErr> {
-        let time = self.latest_bounty_time + 20 * 60 * 60;
-        let time2 = self.latest_bounty_time + 40 * 60 * 60;
+    fn embed(
+        &self,
+        user: &User,
+        history: &[super::bounty_cooldown::GroupHistory],
+        policy: &super::bounty_cooldown::CooldownPolicy,
+    ) -> Result<CreateEmbed, MyErr> {
+        use super::bounty::Category;
+        use super::bounty_cooldown::{self, CooldownVerdict};
+
         let now = MyTime::now();
 
-        let cd = |t: i64| {
-            if t >= now { format!("<t:{}:R>", t) } else { "You can do it now".to_string() }
+        // Ask the same evaluator the submit flow uses, so the card can never
+        // disagree with what the bot actually enforces. `earliest_reopen` shows
+        // the soonest a new bounty of this group can be taken, which is what a
+        // player asking "when can I go again?" wants to know.
+        let status = |category: Category| -> String {
+            match bounty_cooldown::earliest_reopen(history, &category, policy, now) {
+                CooldownVerdict::Allowed => "✅ Ready".to_string(),
+                CooldownVerdict::Blocked { ends_at } => format!("⏳ <t:{}:R>", ends_at),
+            }
         };
 
         let latest = BountyTitle::name(&self.latest_bounty);
@@ -178,12 +191,24 @@ impl Event {
             Market::currency(self.bounty as i64), self.gacha, self.gacha_premium
         );
 
-        let event_desc = format!(
-            "🕜 **Latest Bounty:** {latest}\n🕒 **Time Completed:** {time_completed}\n🍽️ **Restaurant Buff:** {}\n\n👨‍🌾 **Different Bounty CD:** {}\n👩‍🌾 **Same Bounty CD:** {}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
-            meal_status, cd(time), cd(time2),
+        // Cooldown is per group, so the card lists groups rather than the old
+        // "same / different" pair, which no longer maps to anything real.
+        let cooldown_desc = format!(
+            "🥇 **Progression:** {}\n🎁 **Free:** {}\n⭐ **Event:** {}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
+            status(Category::Bronze),
+            status(Category::Free),
+            status(Category::Event),
             BBQ::name_encode(self.bronze as u8),
             BBQ::name_encode(self.silver as u8),
             BBQ::name_encode(self.gold as u8)
+        );
+
+        // Naming the groups explicitly keeps the embed readable when a player only
+        // cares about one ladder.
+
+        let event_desc = format!(
+            "🕜 **Latest Bounty:** {latest}\n🕒 **Time Completed:** {time_completed}\n🍽️ **Restaurant Buff:** {}\n\n{}",
+            meal_status, cooldown_desc
         );
 
         Ok(CreateEmbed::new()
@@ -195,11 +220,54 @@ impl Event {
     }
 
     pub async fn response<T: Mybundle>(&self, user: &User, bnd: &T) -> Result<(), MyErr> {
+        let policy = super::bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty.cooldown_hours);
+
+        // One query for at most three rows; no per-category round trips.
+        let did = user.id.to_string();
+        let history = match crate::reusable::postgress::gacha::group_history(
+            crate::reusable::postgress::get_pool(),
+            &did,
+        )
+        .await
+        {
+            Ok(rows) => {
+                let flat: Vec<_> = rows
+                    .iter()
+                    .map(|r| (r.group_id, r.category, r.bbq, r.completed_at))
+                    .collect();
+                super::bounty_cooldown::history_from_rows(&flat)
+            }
+            // Falls back to the legacy single timestamp so the card still says
+            // something sensible if the new table is unavailable.
+            Err(_) => self
+                .legacy_history()
+                .map(|h| vec![h])
+                .unwrap_or_default(),
+        };
+
         Ok(Components::response_adv(
             bnd,
             CreateInteractionResponse::Message(
-                CreateInteractionResponseMessage::new().embed(self.embed(user)?),
+                CreateInteractionResponseMessage::new().embed(self.embed(user, &history, &policy)?),
             ),
         ).await?)
+    }
+
+    /// Builds a Progression history entry from the legacy `latest_bounty_time`.
+    ///
+    /// Used only when the cooldown table cannot be read, so an operator sees a
+    /// roughly correct countdown instead of an empty card.
+    fn legacy_history(&self) -> Option<super::bounty_cooldown::GroupHistory> {
+        if self.latest_bounty_time <= 0 {
+            return None;
+        }
+        let (category, bbq) = super::bounty::BountyTitle::decrypt(&self.latest_bounty)?;
+        let group = super::bounty_cooldown::CooldownGroup::from_category(&category);
+        Some(super::bounty_cooldown::GroupHistory {
+            group,
+            category,
+            bbq,
+            completed_at: self.latest_bounty_time,
+        })
     }
 }

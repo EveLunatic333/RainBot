@@ -110,6 +110,11 @@ impl PgConn<'_> {
             .bind(&self.did)
             .execute(&self.pool)
             .await?;
+
+        // Cooldown is tracked per group now, so clearing the legacy column alone
+        // would leave every group row in place and the reset would look ignored.
+        let mut conn = self.pool.acquire().await?;
+        crate::reusable::postgress::gacha::clear_cooldown_history(&mut conn, &self.did).await?;
         Ok(())
     }
 }

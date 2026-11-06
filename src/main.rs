@@ -91,6 +91,30 @@ async fn main() {
         .await
         .expect("Critical: Database pool initialization failed");
 
+    // Bounty cooldown is tracked per group (Progression / Free / Event) so one
+    // ladder shares a single timer: a Gold run locks Bronze and Silver too, while
+    // Free and Event stay independent.
+    let pool = reusable::postgress::get_pool();
+    match reusable::postgress::gacha::ensure_bounty_cooldown_group_table(pool).await {
+        Ok(()) => {
+            match reusable::postgress::gacha::backfill_cooldown_history(pool).await {
+                Ok(n) if n > 0 => {
+                    tracing::info!(rows = n, "Backfilled bounty cooldown from latest_bounty")
+                }
+                Ok(_) => {}
+                Err(e) => tracing::error!(error = %e, "Cannot backfill bounty cooldown rows"),
+            }
+            match reusable::postgress::gacha::migrate_category_cooldown_to_group(pool).await {
+                Ok(n) if n > 0 => {
+                    tracing::info!(rows = n, "Migrated per-category cooldown rows into groups")
+                }
+                Ok(_) => {}
+                Err(e) => tracing::error!(error = %e, "Cannot migrate per-category cooldown rows"),
+            }
+        }
+        Err(e) => tracing::error!(error = %e, "Cannot create the bounty_cooldown_group table"),
+    }
+
     let image_handler = Images::new().await.expect("Critical: Image processor initialization failed");
 
     let auto_config = AutoResponseConfig::load().await.unwrap_or_else(|_| AutoResponseConfig { responses: vec![] });

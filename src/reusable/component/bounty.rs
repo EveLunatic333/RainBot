@@ -14,6 +14,7 @@ use std::path::PathBuf;
 use super::market::Market;
 use super::Components;
 use super::MyErr;
+use super::bounty_cooldown;
 
 #[derive(Clone)]
 pub struct Title {
@@ -438,20 +439,27 @@ impl Hunter {
             })?;
             let title = Title::new(u8::try_from(event.title).unwrap());
             if !bypass {
-                if let Some((x, y)) = BountyTitle::decrypt(&event.latest_bounty) {
-                    let time;
-                    if &x == category && &y == bbq {
-                        time = event.latest_bounty_time + 40 * 60 * 60;
-                    } else {
-                        time = event.latest_bounty_time + 20 * 60 * 60;
-                    }
-                    if time > MyTime::now() && *category != Category::Event {
-                        return Err(MyErr::Custom(format!(
-                            "{} is still on cooldown until <t:{}:R>",
-                            us.to_string(),
-                            time
-                        )));
-                    }
+                
+
+                let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty.cooldown_hours);
+                let did = us.user.id.to_string();
+                let rows = crate::reusable::postgress::gacha::group_history(pg.pool(), &did)
+                    .await
+                    .map(|rows| {
+                        rows.iter()
+                            .map(|r| (r.group_id, r.category, r.bbq, r.completed_at))
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+                let history = bounty_cooldown::history_from_rows(&rows);
+                let verdict =
+                    bounty_cooldown::evaluate(&history, category, bbq, &policy, MyTime::now());
+                if let Some(ends_at) = verdict.ends_at() {
+                    return Err(MyErr::Custom(format!(
+                        "{} is still on cooldown until <t:{}:R>",
+                        us.to_string(),
+                        ends_at
+                    )));
                 }
                 let sub = bbq.encode();
                 if !category.check_rank(&event, sub) {
@@ -503,7 +511,7 @@ impl BountySubmit {
         })
     }
 
-    async fn send_reward(&self, pg: &PgConn<'_>) -> Result<(), MyErr> {
+    async fn send_reward(&self, bypass: bool, pg: &PgConn<'_>) -> Result<(), MyErr> {
         let name = format!(
             "{} {} {} Rewards",
             self.method.name(),
@@ -534,6 +542,23 @@ impl BountySubmit {
             )
             .await?;
             crate::reusable::postgress::gacha::bounty_event_tx(&mut tx, &did, &i.event).await?;
+
+            // Per-group cooldown: Bronze, Silver and Gold share one row, so a Gold
+            // run also locks Bronze and Silver (one progression ladder). Free and
+            // Event have their own rows and stay independent.
+            // `bypass` means an administrator granted this reward directly; it must
+            // not start a cooldown for the user.
+            if !bypass {
+                crate::reusable::postgress::gacha::record_group_completion_tx(
+                    &mut tx,
+                    &did,
+                    bounty_cooldown::CooldownGroup::from_category(&self.category).encode(),
+                    self.category.encode() as i16,
+                    self.bbq.encode() as i16,
+                    self.time,
+                )
+                .await?;
+            }
         }
         tx.commit().await?;
         Ok(())
@@ -545,6 +570,8 @@ impl BountySubmit {
         bnd: &T,
         pg: &mut PgConn<'_>,
     ) -> Result<(), MyErr> {
+        // Phase 1: read the current state and compute the new values. No writes yet,
+        // so a read failure cannot leave a half-applied reward behind.
         for hunt in self.hunter.iter_mut() {
             pg.did = hunt.member.user.id.to_string();
             let eve = pg.get_event().await?;
@@ -556,12 +583,18 @@ impl BountySubmit {
 
             if !bypass {
                 self.category.change_rank(hunt, self.bbq.encode());
+                // `latest_bounty` stays the "most recent completion" shown on the
+                // player card. Cooldown no longer reads it, so overwriting it here
+                // can no longer shorten another category's wait.
                 hunt.event.latest_bounty =
                     BountyTitle::encrypt(self.category.clone(), self.bbq.clone());
                 hunt.event.latest_bounty_time = self.time;
             }
         }
-        self.send_reward(pg).await?;
+
+        // Phase 2: apply every write atomically.
+        self.send_reward(bypass, pg).await?;
+
         let ch = ChannelId::new(bnd.init().bounty.receptionist_ch);
         for (user, embed) in self.reward_embed(bnd.pedia()) {
             ch.send_message(
@@ -1250,6 +1283,34 @@ impl BountyTitle {
         Ok(())
     }
 
+    /// Reports every configured role id that the guild does not actually have.
+    ///
+    /// Approving a bounty assigns the role for the matching trigger; if that role
+    /// does not exist the approval fails at the very last moment, after a judge
+    /// already decided to accept the submission. Checking at startup turns a
+    /// production-time surprise into a log line nobody has to pay for.
+    ///
+    /// Read-only: it never creates or edits roles.
+    pub async fn missing_roles(&self, guild: GuildId, http: &Http) -> Vec<(String, u64)> {
+        let roles = match guild.roles(http).await {
+            Ok(roles) => roles,
+            Err(_) => return Vec::new(),
+        };
+        let present: std::collections::HashSet<u64> = roles.keys().map(|id| id.get()).collect();
+
+        let mut missing = Vec::new();
+        for i in self.get_trigger() {
+            if i.role_id == 0 {
+                continue;
+            }
+            if !present.contains(&i.role_id) {
+                missing.push((i.trigger.clone(), i.role_id));
+            }
+        }
+        missing
+    }
+
+
     pub fn hash<'a>(&'a self) -> HashMap<&'a str, &'a CustomTitle> {
         let mut images: HashMap<&str, &CustomTitle> = HashMap::new();
         for (i, _) in self.custom.iter().enumerate() {
@@ -1305,7 +1366,7 @@ impl BountyTitle {
         Ok(())
     }
 
-    fn decrypt(code: &str) -> Option<(Category, BBQ)> {
+    pub fn decrypt(code: &str) -> Option<(Category, BBQ)> {
         let mut x = code.split('_');
         let cat = Category::new(x.next()?.parse::<u8>().ok()?).ok()?;
         let bbq = BBQ::new(x.next()?.parse::<u8>().ok()?).ok()?;

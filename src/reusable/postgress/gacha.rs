@@ -307,3 +307,167 @@ pub async fn bounty_event_tx(
     Ok(())
 }
 
+/// Creates the per-group cooldown table if it does not exist yet.
+///
+/// One row per (user, group), so a Progression run locks Bronze, Silver and Gold
+/// together while Free and Event keep their own timers. `category` and `bbq` are
+/// kept to tell a repeat (40 h) from a change (20 h).
+pub async fn ensure_bounty_cooldown_group_table(pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS bounty_cooldown_group (
+            discord_id VARCHAR(255) NOT NULL,
+            group_id SMALLINT NOT NULL,
+            category SMALLINT NOT NULL,
+            bbq SMALLINT NOT NULL,
+            completed_at BIGINT NOT NULL,
+            PRIMARY KEY (discord_id, group_id)
+        )",
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Records one completed bounty for a user and cooldown group.
+///
+/// Only the most recent completion of a group can ever start a cooldown, so one
+/// row per (user, group) is enough; older data would already be expired.
+pub async fn record_group_completion_tx(
+    conn: &mut sqlx::PgConnection,
+    did: &str,
+    group: i16,
+    category: i16,
+    bbq: i16,
+    completed_at: i64,
+) -> Result<(), BitwiseError> {
+    sqlx::query(
+        "INSERT INTO bounty_cooldown_group (discord_id, group_id, category, bbq, completed_at) \
+         VALUES ($1, $2, $3, $4, $5) \
+         ON CONFLICT (discord_id, group_id) DO UPDATE \
+         SET category = EXCLUDED.category, bbq = EXCLUDED.bbq, \
+             completed_at = EXCLUDED.completed_at",
+    )
+    .bind(did)
+    .bind(group)
+    .bind(category)
+    .bind(bbq)
+    .bind(completed_at)
+    .execute(&mut *conn)
+    .await?;
+    Ok(())
+}
+
+#[derive(FromRow)]
+pub struct GroupCooldownRow {
+    pub group_id: i16,
+    pub category: i16,
+    pub bbq: i16,
+    pub completed_at: i64,
+}
+
+/// Reads every stored per-group completion for one user (at most three rows).
+pub async fn group_history(
+    pool: &sqlx::PgPool,
+    did: &str,
+) -> Result<Vec<GroupCooldownRow>, BitwiseError> {
+    Ok(sqlx::query_as::<_, GroupCooldownRow>(
+        "SELECT group_id, category, bbq, completed_at \
+         FROM bounty_cooldown_group WHERE discord_id = $1",
+    )
+    .bind(did)
+    .fetch_all(pool)
+    .await?)
+}
+
+/// Deletes the cooldown rows of one user, so an administrator reset is not
+/// immediately undone by leftovers. Clears both the current group table and the
+/// legacy per-category table kept for rollback.
+pub async fn clear_cooldown_history(
+    conn: &mut sqlx::PgConnection,
+    did: &str,
+) -> Result<(), BitwiseError> {
+    sqlx::query("DELETE FROM bounty_cooldown_group WHERE discord_id = $1")
+        .bind(did)
+        .execute(&mut *conn)
+        .await?;
+    sqlx::query(
+        "DO $$ BEGIN \
+             IF to_regclass('public.bounty_cooldown') IS NOT NULL THEN \
+                 DELETE FROM bounty_cooldown WHERE discord_id = $1; \
+             END IF; \
+         END $$",
+    )
+    .bind(did)
+    .execute(&mut *conn)
+    .await?;
+    Ok(())
+}
+
+/// Carries the legacy single-row cooldown over into the group table.
+///
+/// Before any cooldown table existed the last completion lived in
+/// `discord.latest_bounty` / `latest_bounty_time`. Without a backfill every user
+/// would look like they had never done a bounty, and every outstanding cooldown
+/// would silently vanish on upgrade. `ON CONFLICT DO NOTHING` keeps newer rows
+/// intact, so running this on every start is safe.
+pub async fn backfill_cooldown_history(pool: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
+    // Category -> group: Bronze/Silver/Gold (0,1,2) collapse to 0, Free is 1,
+    // Event is 2. The CASE mirrors CooldownGroup::encode.
+    let result = sqlx::query(
+        "INSERT INTO bounty_cooldown_group (discord_id, group_id, category, bbq, completed_at)
+         SELECT d.discord_id,
+                CASE WHEN c = 3 THEN 1 WHEN c = 4 THEN 2 ELSE 0 END,
+                c,
+                split_part(d.latest_bounty, '_', 2)::smallint,
+                d.latest_bounty_time
+         FROM (
+             SELECT discord_id, latest_bounty, latest_bounty_time,
+                    split_part(latest_bounty, '_', 1)::smallint AS c
+             FROM discord
+             WHERE latest_bounty_time > 0
+               AND latest_bounty ~ '^[0-9]+_[0-9]+$'
+               AND split_part(latest_bounty, '_', 1)::smallint BETWEEN 0 AND 4
+         ) d
+         ON CONFLICT (discord_id, group_id) DO NOTHING",
+    )
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected())
+}
+
+/// Migrates the superseded per-category table into the per-group table.
+///
+/// The previous design stored one row per category, which let a player chain
+/// Bronze/Silver/Gold with no wait. For each (user, group) the most recent row is
+/// kept, because an older one would already be expired. If the old table does not
+/// exist this is a no-op, so it is safe to call on every start.
+pub async fn migrate_category_cooldown_to_group(pool: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
+    let exists: Option<String> = sqlx::query_scalar(
+        "SELECT to_regclass('public.bounty_cooldown')::text",
+    )
+    .fetch_one(pool)
+    .await?;
+    if exists.is_none() {
+        return Ok(0);
+    }
+
+    let result = sqlx::query(
+        "INSERT INTO bounty_cooldown_group (discord_id, group_id, category, bbq, completed_at)
+         SELECT DISTINCT ON (discord_id, group_id)
+                discord_id, group_id, category, bbq, completed_at
+         FROM (
+             SELECT discord_id,
+                    CASE WHEN category = 3 THEN 1 WHEN category = 4 THEN 2 ELSE 0 END AS group_id,
+                    category,
+                    bbq,
+                    completed_at
+             FROM bounty_cooldown
+             WHERE category BETWEEN 0 AND 4
+         ) t
+         ORDER BY discord_id, group_id, completed_at DESC
+         ON CONFLICT (discord_id, group_id) DO NOTHING",
+    )
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected())
+}

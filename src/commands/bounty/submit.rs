@@ -5,14 +5,13 @@ use serenity::all::*;
 use serenity::futures::StreamExt;
 use crate::{MyErr, SlashBundle, PgConn, Components, ComponentBundle};
 use crate::reusable::component::bounty::{Methode, BBQ, Category, BountySubmit, Bounty, BountyTitle, BountyRefresh};
+use crate::reusable::component::bounty_cooldown;
 use serenity::all::{CommandInteraction, Context, Message};
 use crate::reusable::component::shutdown::Shutdown;
 use tracing::{warn, error};
 
 const ITEMS_PER_PAGE: usize = 23;
 const MENU_TIMEOUT: Duration = Duration::from_secs(120);
-const SAME_CATEGORY_COOLDOWN: i64 = 40 * 60 * 60;
-const DIFF_CATEGORY_COOLDOWN: i64 = 20 * 60 * 60;
 const MAX_ATTACHMENTS: usize = 4;
 
 fn create_select_menu(custom_id: &str, options: Vec<(String, String)>, disabled: bool) -> CreateSelectMenu {
@@ -267,19 +266,35 @@ async fn handle_final_submission(bnd: &SlashBundle<'_>, urls: &[String], mention
     let mut cooldown_config = Box::new(BountyRefresh::new(true).await?);
     let member = bnd.cmd.member.clone().ok_or_else(|| MyErr::Custom("Guild member data unavailable".into()))?;
     let mut cooldown_violations = Vec::new();
+    let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init.bounty.cooldown_hours);
     for uid in target_users {
         let pg_temp = PgConn::create(bnd.init, uid.to_string()).await?;
         if let Ok(event) = pg_temp.get_event().await {
-            let parts: Vec<&str> = event.latest_bounty.split('_').collect();
-            if parts.len() >= 2 {
-                if let (Some(hist_cat), Some(hist_bbq)) = (parts[0].parse::<u8>().ok().and_then(|v| Category::new(v).ok()), parts[1].parse::<u8>().ok().and_then(|v| BBQ::new(v).ok())) {
-                    let cooldown_duration = if hist_cat == category && hist_bbq == bbq_type { SAME_CATEGORY_COOLDOWN } else { DIFF_CATEGORY_COOLDOWN };
-                    let cooldown_end = event.latest_bounty_time + cooldown_duration;
-                    let current_time = crate::reusable::utils::MyTime::now();
-                    if cooldown_end > current_time && category != Category::Event {
-                        cooldown_violations.push(format!("- <@{}> is still on cooldown until <t:{}:R>.", uid, cooldown_end));
-                    }
-                }
+            let rows = match crate::reusable::postgress::gacha::group_history(
+                pg_temp.pool(),
+                &uid.to_string(),
+            )
+            .await
+            {
+                Ok(rows) => rows
+                    .iter()
+                    .map(|r| (r.group_id, r.category, r.bbq, r.completed_at))
+                    .collect::<Vec<_>>(),
+                Err(_) => Vec::new(),
+            };
+            let history = bounty_cooldown::history_from_rows(&rows);
+            let verdict = bounty_cooldown::evaluate(
+                &history,
+                &category,
+                &bbq_type,
+                &policy,
+                crate::reusable::utils::MyTime::now(),
+            );
+            if let Some(ends_at) = verdict.ends_at() {
+                cooldown_violations.push(format!(
+                    "- <@{}> is still on cooldown until <t:{}:R>.",
+                    uid, ends_at
+                ));
             }
         }
     }
@@ -589,33 +604,122 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
         }
         "a" => {
             bnd.cmd.defer(&bnd.ctx.http).await?;
-            let title_config = BountyTitle::new().await?;
-            submission.title(bnd, &title_config).await?;
-            let _ = ChannelId::new(bnd.init.bounty.receptionist_ch).send_message(&bnd.ctx.http, CreateMessage::new().content(format!("✅ The bounty submitted by <@{}> has been approved by {} ", user_id, bnd.cmd.user.name))).await;
-            let mut pg_conn = PgConn::create(bnd.init, user_id.to_owned()).await?;
-            let recipient_cid = match pg_conn.get_char_id_by_discord(user_id.parse::<u64>().unwrap_or(0)).await {
-                Ok(cid) => cid,
-                Err(_) => {
-                    let _ = ChannelId::new(bnd.init.bounty.receptionist_ch).send_message(&bnd.ctx.http, CreateMessage::new().content(format!("❌ Failed to inject reward for <@{}> because user is not registered in the database.", user_id))).await;
+            // The role IS the reward here, item drops are only a bonus, so a role
+            // failure must abort the approval. What must not happen is leaving the
+            // judge with a dead message: on any failure the Approve/Reject buttons
+            // are put back so the approval can be retried once the cause is fixed.
+            let outcome = approve(bnd, &mut submission, user_id, &jump_url).await;
+            match outcome {
+                Ok(()) => {
                     submission.delete().await;
-                    return Ok(());
+                    let _ = original_message.delete(&bnd.ctx.http).await;
+                    let _ = ChannelId::new(bnd.init.bounty.conquered_ch)
+                        .send_message(&bnd.ctx.http, CreateMessage::new().embed(submission.embed()))
+                        .await;
+                    Ok(())
                 }
-            };
-            if !pg_conn.validate_character_exists(recipient_cid).await? {
-                let _ = ChannelId::new(bnd.init.bounty.receptionist_ch).send_message(&bnd.ctx.http, CreateMessage::new().content(format!("❌ Failed to inject reward for <@{}> because character ID {} is invalid.", user_id, recipient_cid))).await;
-                submission.delete().await;
-                return Ok(());
+                Err(e) => {
+                    warn!(user_id = %user_id, error = %e, "Bounty approval failed; restoring judge buttons");
+                    restore_judge_buttons(bnd, &submission, &jump_url, &e).await;
+                    Err(e)
+                }
             }
-            let reward_injection_result = submission.reward(false, bnd, &mut pg_conn).await;
-            submission.delete().await;
-            let _ = original_message.delete(&bnd.ctx.http).await;
-            if let Err(e) = reward_injection_result { return Err(e); }
-            let _ = ChannelId::new(bnd.init.bounty.conquered_ch).send_message(&bnd.ctx.http, CreateMessage::new().embed(submission.embed())).await;
-            Ok(())
         }
         _ => {
             warn!(custom_id = %bnd.cmd.data.custom_id, "Unknown bounty button action state");
             Ok(())
         }
     }
+}
+
+/// Puts the Approve/Reject/Check buttons back on the judge message after a failed
+/// approval, so the judge can retry without waiting for an administrator.
+async fn restore_judge_buttons(
+    bnd: &ComponentBundle<'_>,
+    submission: &BountySubmit,
+    jump_url: &Option<String>,
+    cause: &MyErr,
+) {
+    let mut rows = submission.button();
+    if let Some(url) = jump_url {
+        rows.push(CreateActionRow::Buttons(vec![
+            CreateButton::new_link(url).label("View Submission").emoji('🔗'),
+        ]));
+    }
+    let note = format!(
+        "⚠️ **Approval Failed — Nothing Was Granted**\n\
+         The submission is still pending and the buttons are active again.\n\
+         Fix the cause below, then press **Approve** again.\n\n\
+         **Reason:**\n```\n{}\n```",
+        cause
+    );
+    let _ = bnd
+        .cmd
+        .edit_response(
+            &bnd.ctx.http,
+            EditInteractionResponse::new().content(note).components(rows),
+        )
+        .await;
+}
+
+/// Runs the approval steps that touch Discord roles and the database.
+async fn approve(
+    bnd: &ComponentBundle<'_>,
+    submission: &mut BountySubmit,
+    user_id: &str,
+    _jump_url: &Option<String>,
+) -> Result<(), MyErr> {
+    let title_config = BountyTitle::new().await?;
+    submission.title(bnd, &title_config).await?;
+
+    let _ = ChannelId::new(bnd.init.bounty.receptionist_ch)
+        .send_message(
+            &bnd.ctx.http,
+            CreateMessage::new().content(format!(
+                "✅ The bounty submitted by <@{}> has been approved by {} ",
+                user_id, bnd.cmd.user.name
+            )),
+        )
+        .await;
+
+    let mut pg_conn = PgConn::create(bnd.init, user_id.to_owned()).await?;
+    let recipient_cid = match pg_conn
+        .get_char_id_by_discord(user_id.parse::<u64>().unwrap_or(0))
+        .await
+    {
+        Ok(cid) => cid,
+        Err(_) => {
+            let _ = ChannelId::new(bnd.init.bounty.receptionist_ch)
+                .send_message(
+                    &bnd.ctx.http,
+                    CreateMessage::new().content(format!(
+                        "❌ Failed to inject reward for <@{}> because user is not registered in the database.",
+                        user_id
+                    )),
+                )
+                .await;
+            return Err(MyErr::Custom(
+                "User is not registered in the database.".to_owned(),
+            ));
+        }
+    };
+
+    if !pg_conn.validate_character_exists(recipient_cid).await? {
+        let _ = ChannelId::new(bnd.init.bounty.receptionist_ch)
+            .send_message(
+                &bnd.ctx.http,
+                CreateMessage::new().content(format!(
+                    "❌ Failed to inject reward for <@{}> because character ID {} is invalid.",
+                    user_id, recipient_cid
+                )),
+            )
+            .await;
+        return Err(MyErr::Custom(format!(
+            "Character ID {} is invalid.",
+            recipient_cid
+        )));
+    }
+
+    submission.reward(false, bnd, &mut pg_conn).await?;
+    Ok(())
 }
