@@ -267,9 +267,40 @@ async fn handle_final_submission(bnd: &SlashBundle<'_>, urls: &[String], mention
     let member = bnd.cmd.member.clone().ok_or_else(|| MyErr::Custom("Guild member data unavailable".into()))?;
     let mut cooldown_violations = Vec::new();
     let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init.bounty.cooldown_hours);
+    let tier = BountyTitle::progression_tier().await;
     for uid in target_users {
         let pg_temp = PgConn::create(bnd.init, uid.to_string()).await?;
         if let Ok(event) = pg_temp.get_event().await {
+            // Progression is walked in order; report the first unmet tier before
+            // bothering the player about a cooldown.
+            let title_bits = crate::reusable::component::bounty::Title::new(
+                u8::try_from(event.title).unwrap_or(0),
+            );
+            if let bounty_cooldown::ProgressionGate::Blocked {
+                required,
+                need,
+                have,
+            } = bounty_cooldown::progression_gate(
+                event.bronze,
+                event.silver,
+                title_bits.bounty_bronze,
+                title_bits.bounty_silver,
+                &category,
+                &tier,
+                bnd.init.bounty.progression_gate,
+            )
+            {
+                cooldown_violations.push(format!(
+                    "- <@{}> must finish {} {} first (progress {}/{}).",
+                    uid,
+                    required.name(),
+                    BBQ::new(need)?.name(),
+                    have,
+                    need
+                ));
+                continue;
+            }
+
             let rows = match crate::reusable::postgress::gacha::group_history(
                 pg_temp.pool(),
                 &uid.to_string(),

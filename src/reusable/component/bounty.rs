@@ -416,6 +416,7 @@ impl Hunter {
         pg: &mut PgConn<'_>,
         bbq: &BBQ,
         category: &Category,
+        tier: &bounty_cooldown::ProgressionTier,
     ) -> Result<Vec<Hunter>, MyErr> {
         let mut vec = vec![user];
         let mut hunter = Vec::new();
@@ -439,7 +440,34 @@ impl Hunter {
             })?;
             let title = Title::new(u8::try_from(event.title).unwrap());
             if !bypass {
-                
+                // Progression must be walked in order: Bronze finishes before
+                // Silver opens, Silver before Gold. `config.json` decides whether
+                // the counter, the achievement bit, or both are required.
+                let gate = bounty_cooldown::progression_gate(
+                    event.bronze,
+                    event.silver,
+                    title.bounty_bronze,
+                    title.bounty_silver,
+                    category,
+                    &tier,
+                    bnd.init().bounty.progression_gate,
+                );
+                if let bounty_cooldown::ProgressionGate::Blocked {
+                    required,
+                    need,
+                    have,
+                } = gate
+                {
+                    return Err(MyErr::Custom(format!(
+                        "{} must finish {} {} first (progress {}/{}) before taking a {} bounty",
+                        us.to_string(),
+                        required.name(),
+                        BBQ::new(need)?.name(),
+                        have,
+                        need,
+                        category.name()
+                    )));
+                }
 
                 let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty.cooldown_hours);
                 let did = us.user.id.to_string();
@@ -495,7 +523,8 @@ impl BountySubmit {
         bbq: BBQ,
         category: Category,
     ) -> Result<BountySubmit, MyErr> {
-        let hunter = Hunter::new(bnd, bypass, user, uid, pg, &bbq, &category).await?;
+        let tier = BountyTitle::progression_tier().await;
+        let hunter = Hunter::new(bnd, bypass, user, uid, pg, &bbq, &category, &tier).await?;
         let desc = bbq.get_bounty(&*bounty)?;
         let reward = method.get_reward(desc).clone();
         Ok(BountySubmit {
@@ -1310,6 +1339,32 @@ impl BountyTitle {
         missing
     }
 
+    /// Reads the Bronze/Silver goals from the achievement triggers.
+    ///
+    /// The trigger format is `<category>_<bbq>`, so `0_21` means Bronze opens once
+    /// BBQ21 is cleared. Reading them here keeps the progression gate in sync with
+    /// the moment the achievement role is actually granted instead of duplicating
+    /// the numbers in code. Falls back to the shipped defaults when the file is
+    /// missing or the triggers do not parse.
+    pub async fn progression_tier() -> bounty_cooldown::ProgressionTier {
+        let Ok(titles) = Self::new().await else {
+            return bounty_cooldown::ProgressionTier::fallback();
+        };
+
+        let goal_of = |trigger: &str| -> Option<u8> {
+            let (category, bbq) = trigger.split_once('_')?;
+            let category: u8 = category.parse().ok()?;
+            let bbq: u8 = bbq.parse().ok()?;
+            Some(bbq).filter(|_| category <= 4 && bbq > 0)
+        };
+
+        bounty_cooldown::ProgressionTier {
+            bronze_goal: goal_of(&titles.bronze_bounty.trigger)
+                .unwrap_or(bounty_cooldown::ProgressionTier::fallback().bronze_goal),
+            silver_goal: goal_of(&titles.silver_bounty.trigger)
+                .unwrap_or(bounty_cooldown::ProgressionTier::fallback().silver_goal),
+        }
+    }
 
     pub fn hash<'a>(&'a self) -> HashMap<&'a str, &'a CustomTitle> {
         let mut images: HashMap<&str, &CustomTitle> = HashMap::new();
