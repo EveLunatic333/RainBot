@@ -192,6 +192,80 @@ pub struct Bounty {
     pub cooldown_ch: u64,
     pub cooldown_msg: u64,
     pub judge_ch: u64,
+    /// Per-category cooldown, in hours, applied to the *next* submission of the
+    /// same category. Absent from old configs, which keeps the historical 20/40
+    /// hour rule in force.
+    #[serde(default)]
+    pub cooldown_hours: CooldownHours,
+    /// What the Bronze -> Silver -> Gold gate requires. See [`ProgressionGateMode`].
+    #[serde(default)]
+    pub progression_gate: ProgressionGateMode,
+}
+
+/// What must be true before the next progression category opens.
+///
+/// The counter (`bronze` / `silver` columns) is the upstream record: it is bumped
+/// unconditionally when a bounty is approved. The achievement bit in `title` is
+/// downstream: it is only set once the role was actually granted, which can fail
+/// or be skipped. `Counter` therefore stays the safe default.
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ProgressionGateMode {
+    /// Only the counter is required. A missing achievement bit never blocks.
+    Counter,
+    /// The counter OR the achievement bit is enough. Identical to `Counter` today
+    /// (every set bit has its counter), but tolerant of manually granted roles.
+    Either,
+    /// Both are required. Stricter than the counter alone: a player whose role was
+    /// never granted loses access even though their progress is complete.
+    Both,
+}
+
+impl Default for ProgressionGateMode {
+    fn default() -> Self {
+        Self::Counter
+    }
+}
+
+/// How long a user must wait between bounties.
+///
+/// The bot used to hold one global timer per user, and the Event category
+/// bypassed it entirely. That let an Event approval overwrite the timestamp of a
+/// Gold/Bronze/Silver run, shortening the user's real cooldown. These settings
+/// give every category its own wait instead.
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub struct CooldownHours {
+    /// Wait after the same category and the same BBQ number.
+    #[serde(default = "default_same")]
+    pub same: i64,
+    /// Wait after a different category or a different BBQ number.
+    #[serde(default = "default_diff")]
+    pub different: i64,
+    /// Wait for the Event category. `0` keeps the old behaviour of no cooldown.
+    #[serde(default = "default_event")]
+    pub event: i64,
+}
+
+fn default_same() -> i64 {
+    40
+}
+
+fn default_diff() -> i64 {
+    20
+}
+
+fn default_event() -> i64 {
+    0
+}
+
+impl Default for CooldownHours {
+    fn default() -> Self {
+        Self {
+            same: default_same(),
+            different: default_diff(),
+            event: default_event(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, Serialize)]

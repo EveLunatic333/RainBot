@@ -113,7 +113,7 @@ impl Methode {
     }
 }
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Category {
     Bronze,
     Silver,
@@ -218,7 +218,7 @@ impl Category {
     }
 }
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum BBQ {
     BBQ01,
     BBQ02,
