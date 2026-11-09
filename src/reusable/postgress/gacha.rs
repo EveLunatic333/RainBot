@@ -406,30 +406,64 @@ pub async fn clear_cooldown_history(
 /// Carries the legacy single-row cooldown over into the group table.
 ///
 /// Before any cooldown table existed the last completion lived in
-/// `discord.latest_bounty` / `latest_bounty_time`. Without a backfill every user
-/// would look like they had never done a bounty, and every outstanding cooldown
-/// would silently vanish on upgrade. `ON CONFLICT DO NOTHING` keeps newer rows
-/// intact, so running this on every start is safe.
+/// `discord.latest_bounty` / `latest_bounty_time`, and that **one** timestamp
+/// gated the submission regardless of which category it was: the old check was
+/// `time > now && category != Event`, with 40 h on an exact (category, BBQ)
+/// repeat and 20 h otherwise. There was no per-group split at all.
+///
+/// So one legacy timestamp is evidence for **more than one group**:
+///
+/// * Progression and Free were both gated by it, whatever the stored category
+///   was. A player whose last run was an Event was still blocked from taking a
+///   Gold for 20 h. Writing only the stored category's group would therefore
+///   unlock the other two groups and let those players submit immediately.
+/// * Event was exempt under the old rule, so a legacy Event timestamp is **not**
+///   evidence that Event should be blocked. Event now has its own timer, and it
+///   measures the wait between Events; seeding it from a Free or Bronze run would
+///   invent a restriction the old build never applied.
+///
+/// The migration writes the timestamp into Progression and Free unconditionally,
+/// and into Event only when the stored category already was Event.
+///
+/// Rows are skipped when the legacy value cannot be read — a malformed
+/// `latest_bounty` or a BBQ outside 1..=25 — because `BountyTitle::decrypt`
+/// returned `None` for those too, so the old build treated them as no history.
+///
+/// `ON CONFLICT DO NOTHING` keeps rows written by a real completion, so running
+/// this on every start is safe.
 pub async fn backfill_cooldown_history(pool: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
-    // Category -> group: Bronze/Silver/Gold (0,1,2) collapse to 0, Free is 1,
-    // Event is 2. The CASE mirrors CooldownGroup::encode.
-    let result = sqlx::query(
+    use crate::reusable::component::bounty::Category;
+    use crate::reusable::component::bounty_cooldown::CooldownGroup;
+
+    // Built from the enums so the database keys can never drift from the code.
+    let groups = CooldownGroup::ALL
+        .iter()
+        .map(|g| format!("({}::smallint)", g.encode()))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let event_group = CooldownGroup::Event.encode();
+    let event_category = i16::from(Category::Event.encode());
+
+    let result = sqlx::query(&format!(
         "INSERT INTO bounty_cooldown_group (discord_id, group_id, category, bbq, completed_at)
-         SELECT d.discord_id,
-                CASE WHEN c = 3 THEN 1 WHEN c = 4 THEN 2 ELSE 0 END,
-                c,
-                split_part(d.latest_bounty, '_', 2)::smallint,
-                d.latest_bounty_time
+         SELECT d.discord_id, g.group_id, d.c, d.bbq, d.latest_bounty_time
          FROM (
-             SELECT discord_id, latest_bounty, latest_bounty_time,
-                    split_part(latest_bounty, '_', 1)::smallint AS c
+             SELECT discord_id,
+                    split_part(latest_bounty, '_', 1)::smallint AS c,
+                    split_part(latest_bounty, '_', 2)::smallint AS bbq,
+                    latest_bounty_time
              FROM discord
              WHERE latest_bounty_time > 0
                AND latest_bounty ~ '^[0-9]+_[0-9]+$'
                AND split_part(latest_bounty, '_', 1)::smallint BETWEEN 0 AND 4
+               AND split_part(latest_bounty, '_', 2)::smallint BETWEEN 1 AND 25
          ) d
-         ON CONFLICT (discord_id, group_id) DO NOTHING",
-    )
+         CROSS JOIN (VALUES {groups}) AS g(group_id)
+         WHERE g.group_id <> $1 OR d.c = $2
+         ON CONFLICT (discord_id, group_id) DO NOTHING"
+    ))
+    .bind(event_group)
+    .bind(event_category)
     .execute(pool)
     .await?;
     Ok(result.rows_affected())

@@ -27,9 +27,14 @@ pub const DEFAULT_SAME_HOURS: i64 = 40;
 /// Default wait, in hours, when the category or the BBQ differs.
 pub const DEFAULT_DIFF_HOURS: i64 = 20;
 
-/// Default wait, in hours, for the Event category. `0` disables the check, which
-/// reproduces the historical "Event bypasses cooldown" behaviour.
-pub const DEFAULT_EVENT_HOURS: i64 = 0;
+/// Default wait, in hours, for the Event category.
+///
+/// This used to be `0`, which disabled the check and reproduced the historical
+/// "Event bypasses cooldown" behaviour. That is the bug this module exists to
+/// close: a `0` here means an Event approval can be repeated with no wait at all.
+/// The default is therefore a real wait, and an operator who genuinely wants no
+/// Event cooldown has to configure `event: 0` explicitly.
+pub const DEFAULT_EVENT_HOURS: i64 = 20;
 
 /// The cooldown ladder a category belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,6 +62,12 @@ impl CooldownGroup {
             Self::Event => 2,
         }
     }
+
+    /// Every group, so a migration can enumerate them without hard-coding numbers.
+    ///
+    /// The backfill builds its SQL from `encode()` values, which keeps the
+    /// database keys and this enum from drifting apart.
+    pub const ALL: [CooldownGroup; 3] = [Self::Progression, Self::Free, Self::Event];
 
     pub fn decode(value: i16) -> Option<Self> {
         match value {
@@ -723,10 +734,48 @@ mod tests {
     // ------------------------------------------------------------- event configured
 
     #[test]
-    fn event_is_free_while_the_configured_wait_is_zero() {
+    fn event_is_free_only_when_zero_is_configured_explicitly() {
+        // `0` is no longer the default, but an operator may still ask for it. The
+        // evaluator must honour that literally rather than falling back to 20.
+        let hist = history_of(Category::Event, BBQ::BBQ01, T0);
+        let no_wait = CooldownPolicy {
+            event: 0,
+            ..CooldownPolicy::default()
+        };
+        assert_eq!(
+            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &no_wait, T0),
+            CooldownVerdict::Allowed
+        );
+    }
+
+    #[test]
+    fn every_group_has_a_distinct_database_key() {
+        // The backfill builds its SQL from these numbers. A duplicated key would
+        // silently collapse two timers into one row, so pin them here.
+        let keys: Vec<i16> = CooldownGroup::ALL.iter().map(|g| g.encode()).collect();
+        assert_eq!(keys, vec![0, 1, 2]);
+        assert_eq!(CooldownGroup::ALL.len(), 3);
+
+        for group in CooldownGroup::ALL {
+            assert_eq!(CooldownGroup::decode(group.encode()), Some(group));
+        }
+    }
+
+    #[test]
+    fn the_shipped_default_gives_event_a_real_wait() {
+        // The bug being fixed: an Event approval must not be repeatable instantly
+        // by default. This pins the shipped default, not just the mechanics.
+        assert_eq!(DEFAULT_EVENT_HOURS, 20);
+
         let hist = history_of(Category::Event, BBQ::BBQ01, T0);
         assert_eq!(
-            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy(), T0),
+            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy(), T0 + 19 * HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 20 * HOUR
+            }
+        );
+        assert_eq!(
+            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy(), T0 + 20 * HOUR),
             CooldownVerdict::Allowed
         );
     }
