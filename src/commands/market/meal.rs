@@ -1,13 +1,14 @@
 use crate::reusable::component::bounty::Title;
 use crate::{MyErr, Reg, Components, SlashBundle};
 use crate::reusable::component::market::{Meal, Trading, Market};
+use crate::reusable::component::notices;
 use serenity::all::*;
 use super::market::Bought;
 
 pub(super) async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
     let trade = Trading::new().await?;
     if !trade.restourant.enabled {
-        return Err(MyErr::Custom("Restaurant is currently disabled.".to_string()));
+        return Err(notices::meal_disabled().into());
     }
     let meal = Meal::new().await?;
     let mut duration_hours: i64 = 0;
@@ -17,7 +18,7 @@ pub(super) async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), My
         if let CommandDataOptionValue::Integer(x) = &data.value {
             let value = *x;
             if value <= 0 {
-                return Err(MyErr::Custom("You cannot buy 0 or negative quantities.".to_string()));
+                return Err(notices::meal_bad_quantity().into());
             }
             match data.name.as_str() {
                 "food" => food_id = value as i32,
@@ -27,11 +28,11 @@ pub(super) async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), My
     }
 
     if duration_hours > 1440 {
-        return Err(MyErr::Custom("For safety and stability reasons, you can only order food for up to 1440 hours (60 Days) maximum per order!".to_string()));
+        return Err(notices::meal_too_long(duration_hours, 1440).into());
     }
 
     let selected_meal = meal.meals.iter().find(|&x| x.id == food_id)
-        .ok_or_else(|| MyErr::Custom("Unidentified input. Make sure you properly select food options.".to_string()))?;
+        .ok_or_else(|| MyErr::from(notices::meal_food_not_found()))?;
 
     let (co_res, event_res) = tokio::join!(reg.pg.get_coin(), reg.pg.get_event());
     let coin = co_res?;
@@ -46,10 +47,12 @@ pub(super) async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), My
     let change = coin as i64 - discounted_price;
 
     if change < 0 {
-        return Err(MyErr::Custom(format!(
-            "You only have {} Bounty Coins, but you need {} for this transaction.",
-            Market::currency(coin as i64), Market::currency(discounted_price)
-        )));
+        return Err(notices::market_insufficient_balance_formatted(
+            coin as i64,
+            discounted_price,
+            Market::currency,
+        )
+        .into());
     }
 
     let duration_sec = (duration_hours * 3600) as i32;
@@ -68,7 +71,7 @@ pub(super) async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), My
 
     if receipt.confirmation(bnd).await? {
         if !reg.pg.guild_food(reg.cid, food_id, selected_meal.level, duration_sec).await? {
-            return Err(MyErr::Custom("You do not belong to any guild to use this command (Don't worry, your Bounty Coins have been refunded).".to_string()));
+            return Err(notices::meal_no_guild().into());
         }
         reg.pg.bounty_transaction(discounted_price as i32).await?;
     }

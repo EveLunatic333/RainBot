@@ -1,6 +1,7 @@
 use crate::{MyErr, SlashBundle, ComponentBundle, ModalBundle, Components, Mybundle};
 use serenity::all::*;
 use crate::reusable::gpt::{Gpt, chat::CompModel};
+use crate::reusable::component::notices;
 
 #[hertz::hertz_slash_normal(0, true)]
 async fn slash(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
@@ -23,7 +24,7 @@ async fn slash(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     match name {
         "chat" => chat(bnd).await?,
         "image" => image(bnd).await?,
-        _ => return Err(MyErr::Custom("we dont have that command".to_owned())),
+        _ => return Err(notices::gpt_unknown_request().into()),
     }
     Ok(())
 }
@@ -61,7 +62,7 @@ async fn modal(bnd: &ModalBundle<'_>) -> Result<(), MyErr> {
         resp.modal_send(bnd, &id).await?;
         Ok(())
     } else {
-        Err(MyErr::Custom("no question asked".to_owned()))
+        Err(notices::gpt_no_question().into())
     }
 }
 
@@ -85,7 +86,7 @@ async fn chat(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
         }
     }
     if name == "" {
-        return Err(MyErr::Custom("Unknown request".to_owned()));
+        return Err(notices::gpt_unknown_request().into());
     } else {
         let resp = gpt_struct.completion(name).await?;
         resp.send(bnd, &id).await?;

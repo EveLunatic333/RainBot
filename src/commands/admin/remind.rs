@@ -1,7 +1,11 @@
 use crate::event::interaction::SlashBundle;
 use crate::MyErr;
 use crate::commands::admin::execute_guard;
+use crate::reusable::component::notices;
 use serenity::all::{CommandDataOption, CommandDataOptionValue, CreateEmbed, CreateInteractionResponseFollowup, ChannelType};
+
+/// The actions `/remind` accepts, listed whenever the user picks none.
+const REMIND_ACTIONS: &[&str] = &["add", "list", "edit", "remove"];
 
 fn parse_message_content(input: &str) -> String {
     input.replace("\\n", "\n")
@@ -11,18 +15,18 @@ fn parse_message_content(input: &str) -> String {
 
 pub async fn slash(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     if !execute_guard(bnd).await {
-        return Err(MyErr::Custom("Access Denied".into()));
+        return Err(MyErr::from(notices::admin_only("/remind")));
     }
 
-    let scheduler = crate::SCHEDULER.get().ok_or_else(|| MyErr::Custom("Scheduler not initialized".into()))?;
+    let scheduler = crate::SCHEDULER.get().ok_or_else(|| MyErr::from(notices::scheduler_unavailable()))?;
 
     let sub_opt = bnd.cmd.data.options.first()
-        .ok_or_else(|| MyErr::Custom("Missing subcommand".into()))?;
+        .ok_or_else(|| MyErr::from(notices::remind_no_subcommand(REMIND_ACTIONS)))?;
 
     let sub_name = sub_opt.name.as_str();
     let sub_opts = match &sub_opt.value {
         CommandDataOptionValue::SubCommand(opts) => opts,
-        _ => return Err(MyErr::Custom("Invalid subcommand structure".into())),
+        _ => return Err(MyErr::from(notices::remind_bad_subcommand(sub_name))),
     };
 
     match sub_name {
@@ -30,7 +34,7 @@ pub async fn slash(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
         "list" => list_reminders(bnd, scheduler).await,
         "edit" => edit_reminder(bnd, scheduler, sub_opts).await,
         "remove" => remove_reminder(bnd, scheduler, sub_opts).await,
-        _ => Err(MyErr::Custom("Unknown subcommand".into())),
+        _ => Err(MyErr::from(notices::remind_unknown_subcommand(sub_name, REMIND_ACTIONS))),
     }
 }
 
@@ -72,13 +76,13 @@ async fn resolve_channel(bnd: &SlashBundle<'_>, input: &str) -> Result<u64, MyEr
     if input.starts_with("<#") && input.ends_with('>') {
         let inner = &input[2..input.len()-1];
         return Ok(inner.parse::<u64>()
-            .map_err(|_| MyErr::Custom(format!("Invalid channel mention format: {}", input)))?);
+            .map_err(|_| MyErr::from(notices::remind_bad_channel_mention(input)))?);
     }
     
     let channel_name = input.trim_start_matches('#').to_lowercase();
     
     let guild_id = bnd.cmd.guild_id
-        .ok_or_else(|| MyErr::Custom("This command can only be used in a server".into()))?;
+        .ok_or_else(|| MyErr::from(notices::remind_needs_guild()))?;
     
     if let Some(guild) = bnd.ctx.cache.guild(guild_id) {
         for channel in guild.channels.values() {
@@ -90,10 +94,7 @@ async fn resolve_channel(bnd: &SlashBundle<'_>, input: &str) -> Result<u64, MyEr
         }
     }
     
-    Err(MyErr::Custom(format!(
-        "❌ Channel '{}' not found!\n\n💡 Usage:\n• Raw ID: `1492149802052485371`\n• Mention: `<#1492149802052485371>`\n• Name: `#announcements` or `announcements`",
-        input
-    )))
+    Err(MyErr::from(notices::remind_channel_not_found(input, "no text channel in this server has that name")))
 }
 
 async fn send_response(bnd: &SlashBundle<'_>, content: &str) -> Result<(), MyErr> {
@@ -105,9 +106,9 @@ async fn send_response(bnd: &SlashBundle<'_>, content: &str) -> Result<(), MyErr
 async fn add_reminder(bnd: &SlashBundle<'_>, scheduler: &crate::reusable::component::scheduler::Scheduler, opts: &[CommandDataOption]) -> Result<(), MyErr> {
     let _ = bnd.cmd.defer_ephemeral(&bnd.ctx.http).await;
 
-    let r_type = get_str_opt(opts, "type").ok_or_else(|| MyErr::Custom("Type is required".into()))?;
-    let channel_input = get_str_opt(opts, "channel").ok_or_else(|| MyErr::Custom("Channel is required".into()))?;
-    let message = get_str_opt(opts, "message").ok_or_else(|| MyErr::Custom("Message is required".into()))?;
+    let r_type = get_str_opt(opts, "type").ok_or_else(|| MyErr::from(notices::remind_field_missing("type")))?;
+    let channel_input = get_str_opt(opts, "channel").ok_or_else(|| MyErr::from(notices::remind_field_missing("channel")))?;
+    let message = get_str_opt(opts, "message").ok_or_else(|| MyErr::from(notices::remind_field_missing("message")))?;
     let role_str = get_str_opt(opts, "role");
     
     let interval = get_int_opt(opts, "interval_minutes").unwrap_or(60);
@@ -182,7 +183,7 @@ async fn list_reminders(bnd: &SlashBundle<'_>, scheduler: &crate::reusable::comp
 async fn edit_reminder(bnd: &SlashBundle<'_>, scheduler: &crate::reusable::component::scheduler::Scheduler, opts: &[CommandDataOption]) -> Result<(), MyErr> {
     let _ = bnd.cmd.defer_ephemeral(&bnd.ctx.http).await;
     
-    let id: i32 = get_int_opt(opts, "id").ok_or_else(|| MyErr::Custom("ID is required".into()))? as i32;
+    let id: i32 = get_int_opt(opts, "id").ok_or_else(|| MyErr::from(notices::remind_id_missing()))? as i32;
     let msg = get_str_opt(opts, "message");
     let interval = get_int_opt(opts, "interval_minutes");
     let active = get_bool_opt(opts, "active");
@@ -199,7 +200,7 @@ async fn edit_reminder(bnd: &SlashBundle<'_>, scheduler: &crate::reusable::compo
 async fn remove_reminder(bnd: &SlashBundle<'_>, scheduler: &crate::reusable::component::scheduler::Scheduler, opts: &[CommandDataOption]) -> Result<(), MyErr> {
     let _ = bnd.cmd.defer_ephemeral(&bnd.ctx.http).await;
     
-    let id: i32 = get_int_opt(opts, "id").ok_or_else(|| MyErr::Custom("ID is required".into()))? as i32;
+    let id: i32 = get_int_opt(opts, "id").ok_or_else(|| MyErr::from(notices::remind_id_missing()))? as i32;
     
     match scheduler.remove_reminder(id).await {
         Ok(_) => send_response(bnd, &format!("🗑️ **Reminder {} removed!**", id)).await?,

@@ -1,6 +1,7 @@
 use crate::reusable::component::bounty::Title;
 use crate::{MyErr, SlashBundle, Reg, Components};
 use crate::reusable::component::market::{Market, Trading};
+use crate::reusable::component::notices;
 use serenity::all::*;
 use super::market::{self, Bought};
 use super::meal;
@@ -30,7 +31,7 @@ async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
         "jewelry" => trading(bnd, reg, "Gacha Premium".to_owned()).await?,
         "guild" => trading(bnd, reg, "RP".to_owned()).await?,
         "casino" => trading(bnd, reg, "Ticket".to_owned()).await?,
-        _ => return Err(MyErr::Custom("You don't have market enabled".to_owned())),
+        _ => return Err(notices::trading_disabled().into()),
     }
     Ok(())
 }
@@ -61,7 +62,7 @@ async fn auto(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     match name {
         "market" => market::auto(bnd, focus).await?,
         "restourant" => meal::auto(bnd, focus).await?,
-        _ => return Err(MyErr::Custom("You don't have market enabled".to_owned())),
+        _ => return Err(notices::trading_disabled().into()),
     }
     Ok(())
 }
@@ -81,17 +82,17 @@ async fn trading(bnd: &SlashBundle<'_>, reg: &Reg<'_>, unit: String) -> Result<(
 
     match unit.as_str() {
         "Ticket" => {
-            if !trade.casino.enabled { return Err(MyErr::Custom("Casino is currently closed".to_string())); }
+            if !trade.casino.enabled { return Err(notices::trading_section_closed("Casino").into()); }
             item = trade.casino.clone();
             name = "Gacha Ticket".to_string();
         }
         "RP" => {
-            if !trade.guild.enabled { return Err(MyErr::Custom("Guild trade RP is currently closed".to_string())); }
+            if !trade.guild.enabled { return Err(notices::trading_section_closed("Guild trade RP").into()); }
             item = trade.guild.clone();
             name = "Guild RP".to_string();
         }
         _ => {
-            if !trade.jewelry.enabled { return Err(MyErr::Custom("Jewelry is currently closed".to_string())); }
+            if !trade.jewelry.enabled { return Err(notices::trading_section_closed("Jewelry").into()); }
             item = trade.jewelry.clone();
             name = "Gacha Premium".to_string();
         }
@@ -100,7 +101,7 @@ async fn trading(bnd: &SlashBundle<'_>, reg: &Reg<'_>, unit: String) -> Result<(
     let mut bought = 0;
     for data in Components::sub_options(bnd)? {
         if let CommandDataOptionValue::Integer(x) = &data.value {
-            if *x < 0 { return Err(MyErr::Custom("You can't buy 0 or negative quantity".to_owned())); }
+            if *x < 0 { return Err(notices::trading_bad_quantity().into()); }
             bought = *x;
         }
     }
@@ -117,7 +118,7 @@ async fn trading(bnd: &SlashBundle<'_>, reg: &Reg<'_>, unit: String) -> Result<(
     let change = coin as i64 - discounted;
 
     if change < 0 {
-        return Err(MyErr::Custom(format!("You only have {} bounty coin, and you need {} for this transaction", Market::currency(coin as i64), Market::currency(discounted))));
+        return Err(notices::market_insufficient_balance_formatted(coin as i64, discounted, Market::currency).into());
     }
 
     let receipt = Bought::new(name, bought, total, change, coin, item.price, unit.to_owned(), discounted, disc);
@@ -127,7 +128,7 @@ async fn trading(bnd: &SlashBundle<'_>, reg: &Reg<'_>, unit: String) -> Result<(
             "Ticket" => reg.pg.buy_ticket(bought as i32).await?,
             "RP" => {
                 if !reg.pg.guild_rp(reg.cid, bought as i32).await? {
-                    return Err(MyErr::Custom("You don't have any guild to use this command (don't worry your bounty is refunded)".to_owned()));
+                    return Err(notices::trading_no_guild(true).into());
                 }
             }
             _ => reg.pg.jelewelry(reg.cid, bought as i32).await?,

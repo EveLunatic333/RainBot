@@ -175,7 +175,12 @@ impl Category {
         ]
     }
 
-    fn rank(&self, event: &Event) -> i32 {
+    /// Highest BBQ number currently unlocked in this category.
+    ///
+    /// `pub(crate)` so the submit pre-check can report the same limit the final
+    /// grant enforces, instead of letting the player reach the grant before being
+    /// told the number is locked.
+    pub(crate) fn rank(&self, event: &Event) -> i32 {
         match self {
             Self::Gold => event.gold + 1,
             Self::Bronze => event.bronze + 1,
@@ -184,8 +189,19 @@ impl Category {
         }
     }
 
-    fn check_rank(&self, event: &Event, code: u8) -> bool {
+    pub(crate) fn check_rank(&self, event: &Event, code: u8) -> bool {
         code as i32 <= self.rank(event)
+    }
+
+    /// Completed bounty count for this category, which is what `rank` adds to.
+    pub(crate) fn counter(&self, event: &Event) -> i32 {
+        match self {
+            Self::Gold => event.gold,
+            Self::Silver => event.silver,
+            Self::Bronze => event.bronze,
+            // Free and Event have no ladder, so `rank` is the fixed ceiling.
+            _ => 0,
+        }
     }
 
     fn change_rank(&self, hunt: &mut Hunter, code: u8) {
@@ -458,15 +474,19 @@ impl Hunter {
                     have,
                 } = gate
                 {
-                    return Err(MyErr::Custom(format!(
-                        "{} must finish {} {} first (progress {}/{}) before taking a {} bounty",
-                        us.to_string(),
-                        required.name(),
-                        BBQ::new(need)?.name(),
-                        have,
-                        need,
-                        category.name()
-                    )));
+                    // Same shape as the submit pre-check: name the tier, show how
+                    // far along the player is, and say what clears it.
+                    return Err(MyErr::Custom(
+                        super::bounty_notice::blocked_submission(&[
+                            super::bounty_notice::Block::Progression {
+                                user: us.to_string(),
+                                required,
+                                need,
+                                have,
+                            },
+                        ])
+                        .to_plain_text(),
+                    ));
                 }
 
                 let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty.cooldown_hours);
@@ -480,23 +500,43 @@ impl Hunter {
                     })
                     .unwrap_or_default();
                 let history = bounty_cooldown::history_from_rows(&rows);
+                let group = bounty_cooldown::CooldownGroup::from_category(category);
+                let previous = bounty_cooldown::last_of_group(&history, group);
                 let verdict =
                     bounty_cooldown::evaluate(&history, category, bbq, &policy, MyTime::now());
                 if let Some(ends_at) = verdict.ends_at() {
-                    return Err(MyErr::Custom(format!(
-                        "{} is still on cooldown until <t:{}:R>",
-                        us.to_string(),
-                        ends_at
-                    )));
+                    let hours = previous
+                        .as_ref()
+                        .map(|p| policy.hours_for(group, &p.category, &p.bbq, category, bbq))
+                        .unwrap_or(0);
+                    return Err(MyErr::Custom(
+                        super::bounty_notice::blocked_submission(&[
+                            super::bounty_notice::Block::Cooldown {
+                                user: us.to_string(),
+                                ends_at,
+                                group,
+                                hours,
+                                previous: previous.map(|p| (p.category, p.bbq)),
+                            },
+                        ])
+                        .to_plain_text(),
+                    ));
                 }
-                let sub = bbq.encode();
-                if !category.check_rank(&event, sub) {
-                    return Err(MyErr::Custom(format!(
-                        "{} cannot take a BBQ higher than {} for the {} category",
-                        us.to_string(),
-                        BBQ::new(category.rank(&event) as u8)?.name(),
-                        category.name()
-                    )));
+                if !category.check_rank(&event, bbq.encode()) {
+                    let allowed = u8::try_from(category.rank(&event).clamp(1, 25)).unwrap_or(1);
+                    return Err(MyErr::Custom(
+                        super::bounty_notice::blocked_submission(&[
+                            super::bounty_notice::Block::Rank {
+                                user: us.to_string(),
+                                category: category.clone(),
+                                allowed,
+                                wanted: bbq.encode(),
+                                have: category.counter(&event),
+                                need: bbq.encode().saturating_sub(1),
+                            },
+                        ])
+                        .to_plain_text(),
+                    ));
                 }
             }
 

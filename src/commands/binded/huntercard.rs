@@ -3,6 +3,7 @@ use serenity::all::*;
 use crate::{Reg, SlashBundle, MyErr};
 use crate::reusable::image_edit::huntercard::{HunterCardEngine, RoleRenderData};
 use crate::reusable::component::sightengine;
+use crate::reusable::component::notices;
 use image::Rgba;
 use tokio::{fs, sync::Mutex};
 use std::{
@@ -114,7 +115,7 @@ pub async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
     bnd.cmd.defer(&bnd.ctx.http).await.map_err(MyErr::from)?;
 
     let subcommand = bnd.cmd.data.options.first()
-        .ok_or_else(|| MyErr::Custom("Missing subcommand option".into()))?;
+        .ok_or_else(|| MyErr::from(notices::missing_subcommand()))?;
     let sub_name = subcommand.name.as_str();
     let sub_opts = if let CommandDataOptionValue::SubCommand(opts) = &subcommand.value {
         opts.clone()
@@ -123,7 +124,7 @@ pub async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
     };
 
     let storage_dir = Path::new(".").join("static").join("huntercards");
-    fs::create_dir_all(&storage_dir).await.map_err(|e| MyErr::Custom(format!("Failed to create storage directory: {e}")))?;
+    fs::create_dir_all(&storage_dir).await.map_err(|e| MyErr::from(notices::huntercard_storage_failed(&e.to_string())))?;
 
     match sub_name {
         "edit" => handle_edit_subcommand(bnd, reg, &storage_dir, &sub_opts).await,
@@ -181,7 +182,7 @@ async fn handle_edit_subcommand(bnd: &SlashBundle<'_>, reg: &Reg<'_>, storage_di
                 if let CommandDataOptionValue::String(s) = &opt.value {
                     let words: Vec<&str> = s.split_whitespace().collect();
                     if words.len() > 3 {
-                        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("❌ Failed: Hunter Title is limited to maximum 3 words.")).await.ok();
+                        bnd.cmd.edit_response(&bnd.ctx.http, notices::huntercard_title_too_long(words.len(), 3).to_edit_response()).await.ok();
                         return Ok(());
                     }
                     let file_path = storage_dir.join(format!("{}_title.txt", reg.cid));
@@ -218,7 +219,7 @@ async fn handle_show_subcommand(bnd: &SlashBundle<'_>, reg: &Reg<'_>, storage_di
                         user_roles = member.roles.iter().map(|r| r.get()).collect();
                     }
                 } else {
-                    bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content(format!("❌ User <@{}> is not a registered Hunter.", uid.get()))).await.ok();
+                    bnd.cmd.edit_response(&bnd.ctx.http, notices::target_not_registered().to_edit_response()).await.ok();
                     return Ok(());
                 }
             }
@@ -273,7 +274,7 @@ async fn handle_show_subcommand(bnd: &SlashBundle<'_>, reg: &Reg<'_>, storage_di
         }
         Err(e) => {
             warn!(cid = target_id, error = %e, "HunterCard render engine failed");
-            bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content(format!("❌ Render Engine Failure: {e}"))).await.ok();
+            bnd.cmd.edit_response(&bnd.ctx.http, notices::huntercard_render_failed(&e.to_string()).to_edit_response()).await.ok();
         }
     }
 

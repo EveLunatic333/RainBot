@@ -6,6 +6,8 @@ use serenity::futures::StreamExt;
 use crate::{MyErr, SlashBundle, PgConn, Components, ComponentBundle};
 use crate::reusable::component::bounty::{Methode, BBQ, Category, BountySubmit, Bounty, BountyTitle, BountyRefresh};
 use crate::reusable::component::bounty_cooldown;
+use crate::reusable::component::bounty_notice::{self, Block};
+use crate::reusable::component::notices;
 use serenity::all::{CommandInteraction, Context, Message};
 use crate::reusable::component::shutdown::Shutdown;
 use tracing::{warn, error};
@@ -253,7 +255,7 @@ async fn submission_flow(bnd: &SlashBundle<'_>, attachment_urls: Vec<String>, me
         return final_result;
     } else {
         if let Some(state) = BountySubmit::open(&user_id_str).await { state.delete().await; }
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("⏳ **Cancelled:** Selection timed out or was aborted. Your pending status has been cleared.").components(vec![])).await?;
+        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_form_timed_out().to_edit_response()).await?;
         Ok(())
     }
 }
@@ -265,71 +267,92 @@ async fn handle_final_submission(bnd: &SlashBundle<'_>, urls: &[String], mention
     let bounty_data = Box::new(Bounty::new(&category).await?);
     let mut cooldown_config = Box::new(BountyRefresh::new(true).await?);
     let member = bnd.cmd.member.clone().ok_or_else(|| MyErr::Custom("Guild member data unavailable".into()))?;
-    let mut cooldown_violations = Vec::new();
+    let mut blocks: Vec<Block> = Vec::new();
     let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init.bounty.cooldown_hours);
     let tier = BountyTitle::progression_tier().await;
     for uid in target_users {
         let pg_temp = PgConn::create(bnd.init, uid.to_string()).await?;
-        if let Ok(event) = pg_temp.get_event().await {
-            // Progression is walked in order; report the first unmet tier before
-            // bothering the player about a cooldown.
-            let title_bits = crate::reusable::component::bounty::Title::new(
-                u8::try_from(event.title).unwrap_or(0),
-            );
-            if let bounty_cooldown::ProgressionGate::Blocked {
-                required,
-                need,
-                have,
-            } = bounty_cooldown::progression_gate(
-                event.bronze,
-                event.silver,
-                title_bits.bounty_bronze,
-                title_bits.bounty_silver,
-                &category,
-                &tier,
-                bnd.init.bounty.progression_gate,
-            )
-            {
-                cooldown_violations.push(format!(
-                    "- <@{}> must finish {} {} first (progress {}/{}).",
-                    uid,
-                    required.name(),
-                    BBQ::new(need)?.name(),
-                    have,
-                    need
-                ));
-                continue;
-            }
+        let Ok(event) = pg_temp.get_event().await else { continue };
+        let who = format!("<@{}>", uid);
+        // Progression is walked in order; report the first unmet tier before
+        // bothering the player about a cooldown.
+        let title_bits = crate::reusable::component::bounty::Title::new(
+            u8::try_from(event.title).unwrap_or(0),
+        );
+        if let bounty_cooldown::ProgressionGate::Blocked {
+            required,
+            need,
+            have,
+        } = bounty_cooldown::progression_gate(
+            event.bronze,
+            event.silver,
+            title_bits.bounty_bronze,
+            title_bits.bounty_silver,
+            &category,
+            &tier,
+            bnd.init.bounty.progression_gate,
+        ) {
+            blocks.push(Block::Progression { user: who.clone(), required, need, have });
+            continue;
+        }
 
-            let rows = match crate::reusable::postgress::gacha::group_history(
-                pg_temp.pool(),
-                &uid.to_string(),
-            )
-            .await
-            {
-                Ok(rows) => rows
-                    .iter()
-                    .map(|r| (r.group_id, r.category, r.bbq, r.completed_at))
-                    .collect::<Vec<_>>(),
-                Err(_) => Vec::new(),
-            };
-            let history = bounty_cooldown::history_from_rows(&rows);
-            let verdict = bounty_cooldown::evaluate(
-                &history,
-                &category,
-                &bbq_type,
-                &policy,
-                crate::reusable::utils::MyTime::now(),
-            );
-            if let Some(ends_at) = verdict.ends_at() {
-                cooldown_violations.push(format!(
-                    "- <@{}> is still on cooldown until <t:{}:R>.",
-                    uid, ends_at
-                ));
-            }
+        // The rank limit was checked only at the very end, inside `Hunter::new`,
+        // after the player had already filled in the whole form. Checking it here
+        // reports the same limit while the choice is still on screen.
+        if !category.check_rank(&event, bbq_type.encode()) {
+            let allowed = u8::try_from(category.rank(&event).clamp(1, 25)).unwrap_or(1);
+            // `rank` is `counter + 1`, so `wanted` needs `wanted - 1` completions.
+            let need = bbq_type.encode().saturating_sub(1);
+            blocks.push(Block::Rank {
+                user: who.clone(),
+                category: category.clone(),
+                allowed,
+                wanted: bbq_type.encode(),
+                have: category.counter(&event),
+                need,
+            });
+            continue;
+        }
+
+        let rows = match crate::reusable::postgress::gacha::group_history(
+            pg_temp.pool(),
+            &uid.to_string(),
+        )
+        .await
+        {
+            Ok(rows) => rows
+                .iter()
+                .map(|r| (r.group_id, r.category, r.bbq, r.completed_at))
+                .collect::<Vec<_>>(),
+            Err(_) => Vec::new(),
+        };
+        let history = bounty_cooldown::history_from_rows(&rows);
+        let group = bounty_cooldown::CooldownGroup::from_category(&category);
+        let previous = bounty_cooldown::last_of_group(&history, group);
+        let verdict = bounty_cooldown::evaluate(
+            &history,
+            &category,
+            &bbq_type,
+            &policy,
+            crate::reusable::utils::MyTime::now(),
+        );
+        if let Some(ends_at) = verdict.ends_at() {
+            let hours = previous
+                .as_ref()
+                .map(|p| {
+                    policy.hours_for(group, &p.category, &p.bbq, &category, &bbq_type)
+                })
+                .unwrap_or(0);
+            blocks.push(Block::Cooldown {
+                user: who,
+                ends_at,
+                group,
+                hours,
+                previous: previous.map(|p| (p.category, p.bbq)),
+            });
         }
     }
-    let is_free_cooldown = if category == Category::Free {
+    if category == Category::Free {
         let cooldown_value = match bbq_type {
             BBQ::BBQ01 => cooldown_config.bbq1, BBQ::BBQ02 => cooldown_config.bbq2, BBQ::BBQ03 => cooldown_config.bbq3,
             BBQ::BBQ04 => cooldown_config.bbq4, BBQ::BBQ05 => cooldown_config.bbq5, BBQ::BBQ06 => cooldown_config.bbq6,
@@ -341,21 +364,30 @@ async fn handle_final_submission(bnd: &SlashBundle<'_>, urls: &[String], mention
             BBQ::BBQ22 => cooldown_config.bbq22, BBQ::BBQ23 => cooldown_config.bbq23, BBQ::BBQ24 => cooldown_config.bbq24,
             BBQ::BBQ25 => cooldown_config.bbq25,
         };
-        cooldown_value == 0
-    } else {
-        false
-    };
-    if is_free_cooldown { cooldown_violations.push("- This Free Bounty category is currently on global server cooldown.".to_string()); }
-    if !cooldown_violations.is_empty() {
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content(format!("❌ **Cooldown Detected!**\nSubmission blocked due to:\n{}", cooldown_violations.join("\n"))).components(vec![])).await?;
+        if cooldown_value == 0 {
+            blocks.push(Block::SlotClosed { category: category.clone(), bbq: bbq_type.clone() });
+        }
+    }
+    if !blocks.is_empty() {
+        let notice = bounty_notice::blocked_submission(&blocks);
+        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new()
+            .embed(notice.to_embed())
+            .components(vec![])).await?;
         return Ok(());
     }
     let primary_url = urls.first().ok_or_else(|| MyErr::Custom("No attachment URL available".into()))?;
-    let mut submission = BountySubmit::new(bnd, false, *member, mentions.to_vec(), &mut pg, &bounty_data, primary_url, Methode::new(method_val), bbq_type, category.clone()).await?;
+    let mut submission = BountySubmit::new(bnd, false, *member, mentions.to_vec(), &mut pg, &bounty_data, primary_url, Methode::new(method_val), bbq_type.clone(), category.clone()).await?;
     if !submission.cooldown(&mut cooldown_config).await.unwrap_or(false) {
         submission.delete().await;
-        error!(user_id = %bnd.cmd.user.id, "Final cooldown verification failed during bounty submission");
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("❌ **Submission Error:** Cooldown verification failed at the final step.").components(vec![])).await?;
+        // The per-slot cooldown table says this BBQ is closed, but the checks
+        // above already passed — so say which slot closed, not "verification
+        // failed", which left the player with nothing actionable.
+        error!(user_id = %bnd.cmd.user.id, bbq = %bbq_type.name(), category = %category.name(),
+            "Final cooldown verification failed during bounty submission");
+        let notice = bounty_notice::blocked_submission(&[Block::SlotClosed { category: category.clone(), bbq: bbq_type.clone() }]);
+        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new()
+            .embed(notice.to_embed())
+            .components(vec![])).await?;
         return Ok(());
     }
     let all_urls_text = urls.join("\n");
@@ -485,13 +517,13 @@ async fn try_distrib(bnd: &SlashBundle<'_>) -> Result<(), String> {
         bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content(&status_message).components(render_distribution_ui(&all_bbq, current_page, selected_method.is_some(), selected_category.is_some(), selected_bbq.is_some()))).await.map_err(|e| format!("Failed to update UI: {:?}", e))?;
     }
     if cancelled {
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("🛑 **Distribution Cancelled by Admin.**").components(vec![])).await.map_err(|e| format!("Failed to send cancellation message: {:?}", e))?;
+        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_distribution_cancelled().to_edit_response()).await.map_err(|e| format!("Failed to send cancellation message: {:?}", e))?;
         return Ok(());
     }
     if let (Some(method_val), Some(cat_val), Some(bbq_val)) = (selected_method, selected_category, selected_bbq) {
         execute_distribution(bnd, &target_users, method_val, cat_val, bbq_val).await
     } else {
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("⏳ **Cancelled:** Selection timed out without completing all required fields.").components(vec![])).await.map_err(|e| format!("Failed to send timeout message: {:?}", e))?;
+        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_form_timed_out().to_edit_response()).await.map_err(|e| format!("Failed to send timeout message: {:?}", e))?;
         Ok(())
     }
 }
@@ -554,7 +586,7 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
     let mut submission = match BountySubmit::open(user_id).await {
         Some(data) => data,
         None => {
-            let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(CreateInteractionResponseMessage::new().content("❌ Submission data has expired or been processed.").ephemeral(true))).await;
+            let _ = bnd.cmd.create_response(&bnd.ctx.http, notices::bounty_submission_expired().to_interaction_response(true)).await;
             return Ok(());
         }
     };
@@ -594,7 +626,7 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
                 final_components.push(CreateActionRow::Buttons(vec![CreateButton::new_link(url).label("View Submission").emoji('🔗')]));
             }
             if state == "rm5" {
-                bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("🔄 **Review Cancelled.**").components(final_components)).await?;
+                bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response()).await?;
                 return Ok(());
             }
             let mut reason = match state {
@@ -611,12 +643,12 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
                     let typed_reason = reply.content.trim().to_string();
                     let _ = reply.delete(&bnd.ctx.http).await;
                     if typed_reason.to_lowercase() == "cancel" {
-                        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("🔄 **Review Cancelled.**").components(final_components)).await?;
+                        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response()).await?;
                         return Ok(());
                     }
                     reason = typed_reason;
                 } else {
-                    bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("⏳ **Input Timeout.** Rejection cancelled.").components(final_components)).await?;
+                    bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_rejection_timed_out().to_edit_response()).await?;
                     return Ok(());
                 }
             }

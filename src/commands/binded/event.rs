@@ -1,5 +1,6 @@
 
 use crate::event::interaction::Mybundle;
+use crate::reusable::component::notices;
 use crate::{Reg, SlashBundle, MyErr};
 use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
 
@@ -35,7 +36,7 @@ async fn userr(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
 
     let user = bnd.cmd.data.resolved.users.iter().next()
         .map(|(_, u)| u)
-        .ok_or_else(|| MyErr::Custom("No user detected.".to_string()))?;
+        .ok_or_else(|| MyErr::from(notices::no_target_user()))?;
 
     let mut reg = Reg::check(bnd, user).await?;
     let event = reg.pg.get_event().await?;

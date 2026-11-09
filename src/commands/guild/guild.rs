@@ -1,5 +1,6 @@
 use serenity::all::*;
 use crate::{MyErr, SlashBundle, Components, Reg, PgConn};
+use crate::reusable::component::notices;
 use tracing::{warn, info, error};
 
 const MAX_AUTOCOMPLETE_RESULTS: usize = 25;
@@ -98,11 +99,11 @@ async fn join(bnd: &SlashBundle<'_>, reg: &Reg<'_>, guild_id: i64) -> Result<(),
 async fn leave(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
     let current_guild_id = reg.pg.guild_id(reg.cid).await?;
     if current_guild_id == 0 {
-        return Components::response(bnd, "⚠️ **System Alert:** You are not currently a member of any guild.", true).await;
+        return Components::notice(bnd, &notices::guild_not_a_member(), true).await;
     }
     if let Err(e) = reg.pg.guild_leave(reg.cid).await {
         error!(error = %e, char_id = reg.cid, guild_id = current_guild_id, "Failed to leave guild via database");
-        return Components::response(bnd, "❌ **Critical Failure:** Could not process guild withdrawal due to database error.", true).await;
+        return Components::notice(bnd, &notices::guild_withdraw_failed(), true).await;
     }
     info!(char_id = reg.cid, guild_id = current_guild_id, "User left guild successfully");
     Components::response(bnd, "✅ **Mission Accomplished:** You have successfully left your guild.", true).await?;
@@ -118,12 +119,12 @@ async fn clear_app(bnd: &SlashBundle<'_>, reg: &Reg<'_>, target_user: Option<Use
 
     let target_uid = match target_user {
         Some(uid) => uid,
-        None => return Components::response(bnd, "❌ **Error:** Target user is invalid or not specified.", true).await,
+        None => return Components::notice(bnd, &notices::guild_invalid_target(), true).await,
     };
 
     let target_char_id = match reg.pg.get_char_id_by_discord(target_uid.get()).await {
         Ok(cid) => cid,
-        Err(_) => return Components::response(bnd, "❌ **Failed:** This user is not registered in the Rain Server database.", true).await,
+        Err(_) => return Components::notice(bnd, &notices::guild_target_not_registered(), true).await,
     };
 
     match reg.pg.clear_guild_application(target_char_id).await {
@@ -133,7 +134,7 @@ async fn clear_app(bnd: &SlashBundle<'_>, reg: &Reg<'_>, target_user: Option<Use
         }
         Err(e) => {
             error!(error = %e, admin = %bnd.cmd.user.id, target = %target_uid, "Failed to manually clear guild_applications");
-            Components::response(bnd, "❌ **Failed:** An error occurred while accessing the database. Please report this to technical support!", true).await?;
+            Components::notice(bnd, &notices::guild_withdraw_failed(), true).await?;
         }
     }
     Ok(())

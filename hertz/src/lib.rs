@@ -39,8 +39,23 @@ fn create_wrapper(item: TokenStream, prefix: &str, is_reg: bool, bundle_type: &s
             let err_msg_str = format!("{:?}", why);
             println!("❌ ERROR on command [{}]: {}", stringify!(#orig_name), err_msg_str);
             let err_user = crate::event::interaction::Mybundle::user(bnd);
+            // A refusal that already knows how it should read is rendered as its
+            // own embed; everything else falls back to the generic error screen.
+            if let crate::reusable::component::MyErr::Notice(ref notice) = why {
+                let res = bnd.cmd.create_response(&bnd.ctx.http, notice.to_interaction_response(false)).await;
+                if res.is_err() {
+                    let _ = bnd.cmd.edit_response(&bnd.ctx.http, notice.to_edit_response()).await;
+                }
+                return;
+            }
+            // Name the command the player actually typed. `stringify!(#orig_name)`
+            // is the handler's own function name (`slash`, `button`), which is not
+            // a command and used to appear on every error screen as "/slash".
+            let err_on = crate::event::interaction::Mybundle::command_label(bnd).unwrap_or_default();
             let mut err_log = crate::reusable::component::error::ErrorLog::new(bnd.ctx, bnd.init, &err_user).await;
-            err_log.change_error(err_msg_str, stringify!(#orig_name).to_string(), String::new());
+            // `fill_log` also supplies the recommended action, which this path
+            // previously dropped by passing an empty string.
+            why.fill_log(&mut err_log, &err_on);
             let res = bnd.cmd.create_response(&bnd.ctx.http, err_log.interaction_response(false, true)).await;
             if res.is_err() {
                 let _ = bnd.cmd.edit_response(&bnd.ctx.http, err_log.defer_response(true)).await;

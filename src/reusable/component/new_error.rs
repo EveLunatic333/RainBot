@@ -6,6 +6,7 @@ impl MyErr {
     pub(super) fn get(&self) -> String {
         match self {
             MyErr::Custom(x) => format!("Custom(\"{}\")", x),
+            MyErr::Notice(x) => (*x.clone()).to_plain_text(),
             MyErr::ByteWise(x) => {
                 let msg = x.to_string();
                 if msg.contains("duplicate key") || msg.contains("23505") {
@@ -28,6 +29,9 @@ impl MyErr {
     pub(super) fn severity(&self) -> bool {
         match self {
             MyErr::Custom(_) => false,
+            // A notice already chose its own presentation; the wrapper renders
+            // the embed, so this path is only a fallback.
+            MyErr::Notice(x) => !matches!(x.severity, super::notice::Severity::Info),
             MyErr::ByteWise(_) => true,
             MyErr::Utf8(_) => false,
             MyErr::Tokio(_) => true,
@@ -51,6 +55,7 @@ impl MyErr {
                     "An operation failed. Please read the error message carefully. If this is a bug, report it to the admin.".to_string()
                 }
             }
+            MyErr::Notice(x) => x.action.clone(),
             MyErr::ByteWise(_) => {
                 "Database connection error or duplicate data format. Please check your inputs.".to_string()
             }
@@ -96,6 +101,15 @@ impl MyErr {
         {
             MyErr::from(why).log_channel(err).await
         }
+    }
+
+    /// Fills an [`ErrorLog`] with this error's reason and recommended action.
+    ///
+    /// Public because the `hertz` macro expands inside the command modules, where
+    /// the crate-private `get`/`advice` helpers are out of reach. Callers outside
+    /// this module use this instead of reaching for the internals.
+    pub fn fill_log(&self, err: &mut ErrorLog<'_>, on: &str) {
+        err.change_error(self.get(), on.to_owned(), self.advice());
     }
 
     pub async fn log_defer<T: Mytrait>(&self, cmd: &T, on: &str, err: &mut ErrorLog<'_>) {

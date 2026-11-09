@@ -40,6 +40,15 @@ pub trait Mybundle {
     fn user(&self) -> User;
     fn cmd<'a>(&'a self) -> &'a Self::Cmd;
     fn name(&self) -> String;
+    /// The slash command a player actually typed, when this bundle has one.
+    ///
+    /// `name()` is the right key for cooldown bookkeeping, but for components it
+    /// is a `custom_id` that no player ever types. Error screens name the command
+    /// they failed on, so they need this instead: `Some("submit")` rather than
+    /// `Some("bounty_c_123")`, and `None` when there is nothing honest to show.
+    fn command_label(&self) -> Option<String> {
+        None
+    }
     async fn cd_check(&self, cd_seconds: i64) -> Result<(), MyErr>;
     async fn cooldown(&self, cd_seconds: i64);
 }
@@ -72,6 +81,7 @@ impl Mybundle for SlashBundle<'_> {
     fn user(&self) -> User { self.cmd.user.clone() }
     fn cmd<'a>(&'a self) -> &'a Self::Cmd { self.cmd }
     fn name(&self) -> String { self.cmd.data.name.clone() }
+    fn command_label(&self) -> Option<String> { Some(self.cmd.data.name.clone()) }
     async fn cd_check(&self, time: i64) -> Result<(), MyErr> { 
         check_cooldown_global(&make_cooldown_key(&self.name(), self.user().id.get()), time).await 
     }
