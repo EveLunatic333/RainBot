@@ -15,8 +15,8 @@
 //! description and fields without depending on serenity's builder internals.
 
 use serenity::builder::{
-    CreateEmbed, CreateEmbedFooter, CreateInteractionResponse, CreateInteractionResponseMessage,
-    EditInteractionResponse,
+    CreateActionRow, CreateEmbed, CreateEmbedFooter, CreateInteractionResponse,
+    CreateInteractionResponseMessage, EditInteractionResponse,
 };
 use serenity::all::Colour;
 
@@ -323,6 +323,18 @@ impl Notice {
             .components(Vec::new())
     }
 
+    /// Replacement that keeps working buttons on the message.
+    ///
+    /// Used by flows where the notice is only a status line and the judge is
+    /// expected to act on the original buttons afterwards — Cancel / timeout in
+    /// the bounty review, where the Approve/Reject/Check row must survive or the
+    /// pending submission becomes unreviewable.
+    pub fn to_edit_response_with(&self, components: Vec<CreateActionRow>) -> EditInteractionResponse {
+        EditInteractionResponse::new()
+            .embed(self.to_embed())
+            .components(components)
+    }
+
     /// A one-paragraph version for paths that can only return an error string.
     ///
     /// `Hunter::new` reports its refusals through `MyErr::Custom`, which the
@@ -596,5 +608,16 @@ mod tests {
 
         let as_footer = Notice::new("A", "x").footer("Party button").view();
         assert_eq!(as_footer.footer.as_deref(), Some("Party button"));
+    }
+
+    #[test]
+    fn the_with_variant_accepts_rows_without_losing_the_embed() {
+        // The Cancel path in the bounty review depends on this contract: the
+        // notice travels as the embed while the Approve/Reject/Check row stays
+        // attached. Both builders must accept the same notice unchanged.
+        let notice = Notice::new("Review Cancelled", "Nothing was decided.");
+        let plain = notice.to_edit_response();
+        let with_rows = notice.to_edit_response_with(Vec::new());
+        let _ = (plain, with_rows);
     }
 }

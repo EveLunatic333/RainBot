@@ -626,7 +626,11 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
                 final_components.push(CreateActionRow::Buttons(vec![CreateButton::new_link(url).label("View Submission").emoji('🔗')]));
             }
             if state == "rm5" {
-                bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response()).await?;
+                // Cancel keeps the submission pending and the judge in control,
+                // so the Approve/Reject/Check row must survive the edit. Clearing
+                // it (as a plain notice would) leaves the submission stuck with
+                // no way to review it.
+                bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response_with(final_components)).await?;
                 return Ok(());
             }
             let mut reason = match state {
@@ -643,12 +647,12 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
                     let typed_reason = reply.content.trim().to_string();
                     let _ = reply.delete(&bnd.ctx.http).await;
                     if typed_reason.to_lowercase() == "cancel" {
-                        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response()).await?;
+                        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response_with(final_components)).await?;
                         return Ok(());
                     }
                     reason = typed_reason;
                 } else {
-                    bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_rejection_timed_out().to_edit_response()).await?;
+                    bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_rejection_timed_out().to_edit_response_with(final_components)).await?;
                     return Ok(());
                 }
             }
