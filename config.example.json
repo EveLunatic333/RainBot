@@ -43,11 +43,11 @@
     "receptionist_ch": 0,
     "judge_ch": 0,
 
-    "_cooldown_comment": "Per-group bounty cooldown, in HOURS. Bronze/Silver/Gold/Free share ONE timer (the standard group); Event has its own. 'same' applies when the same category AND the same BBQ number are repeated; 'different' applies when either one changes; 'event' is the Event group's own wait; an explicit 0 disables the check for it. The standard group is still driven by discord.latest_bounty_time, so an operator can move or clear it with plain SQL. Omit the whole block to keep 40/20/20.",
+    "_cooldown_comment": "Per-group bounty cooldown, in HOURS. Bronze/Silver/Gold/Free share ONE timer (the standard group); Event has its own. 'same' applies when the same category AND the same BBQ number are repeated; 'different' applies when either one changes; 'event' is the Event group's own wait and ignores 'same'/'different'; an explicit 0 disables the check for it. The standard group is still driven by discord.latest_bounty_time, so an operator can move or clear it with plain SQL. Omit the whole block to keep 40/20/40.",
     "cooldown_hours": {
       "same": 40,
       "different": 20,
-      "event": 20
+      "event": 40
     },
 
     "_progression_gate_comment": "What the Bronze -> Silver -> Gold gate requires. 'counter' (default) needs only the completed-bounty counter, which is the trustworthy record. 'either' accepts the counter OR the achievement bit. 'both' requires the counter AND the bit, and will block players whose achievement role was never granted -- check with audit_achievement_roles.py before choosing it.",

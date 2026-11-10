@@ -41,7 +41,13 @@ pub const DEFAULT_DIFF_HOURS: i64 = 20;
 /// close: a `0` here means an Event approval can be repeated with no wait at all.
 /// The default is therefore a real wait, and an operator who genuinely wants no
 /// Event cooldown has to configure `event: 0` explicitly.
-pub const DEFAULT_EVENT_HOURS: i64 = 20;
+///
+/// It ships at 40 hours to match `same`, which is the wait Event had in practice
+/// before this module existed: the old single timestamp charged 40 hours when the
+/// category and the BBQ repeated, and an Event queue is normally the same bounty
+/// over and over. `same` and `different` do not apply to Event — this constant is
+/// the whole rule for that group.
+pub const DEFAULT_EVENT_HOURS: i64 = 40;
 
 /// The cooldown ladder a category belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -848,7 +854,7 @@ mod tests {
     #[test]
     fn event_is_free_only_when_zero_is_configured_explicitly() {
         // `0` is no longer the default, but an operator may still ask for it. The
-        // evaluator must honour that literally rather than falling back to 20.
+        // evaluator must honour that literally rather than falling back to 40.
         let hist = history_of(Category::Event, BBQ::BBQ01, T0);
         let no_wait = CooldownPolicy {
             event: 0,
@@ -897,19 +903,83 @@ mod tests {
     fn the_shipped_default_gives_event_a_real_wait() {
         // The bug being fixed: an Event approval must not be repeatable instantly
         // by default. This pins the shipped default, not just the mechanics.
-        assert_eq!(DEFAULT_EVENT_HOURS, 20);
+        assert_eq!(DEFAULT_EVENT_HOURS, 40);
 
         let hist = history_of(Category::Event, BBQ::BBQ01, T0);
         assert_eq!(
-            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy(), T0 + 19 * HOUR),
+            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy(), T0 + 39 * HOUR),
             CooldownVerdict::Blocked {
-                ends_at: T0 + 20 * HOUR
+                ends_at: T0 + 40 * HOUR
             }
         );
         assert_eq!(
-            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy(), T0 + 20 * HOUR),
+            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy(), T0 + 40 * HOUR),
             CooldownVerdict::Allowed
         );
+    }
+
+    #[test]
+    fn event_ignores_the_same_and_different_settings() {
+        // `event` is the whole rule for that group. A repeat and a change both
+        // wait 40 hours on the shipped default, so an operator changing `same` or
+        // `different` cannot silently move the Event wait.
+        let hist = history_of(Category::Event, BBQ::BBQ01, T0);
+
+        // Same category and BBQ: would be 40 under `same`, and it is.
+        assert_eq!(
+            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy(), T0 + 39 * HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 40 * HOUR
+            }
+        );
+        // Different BBQ: `different` is 20, but Event must still wait 40.
+        assert_eq!(
+            evaluate(&hist, &Category::Event, &BBQ::BBQ09, &policy(), T0 + 25 * HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 40 * HOUR
+            }
+        );
+
+        // Changing `same` / `different` must not move the Event wait at all.
+        let tweaked = CooldownPolicy {
+            same: 1,
+            different: 2,
+            ..CooldownPolicy::default()
+        };
+        assert_eq!(
+            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &tweaked, T0 + 39 * HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 40 * HOUR
+            }
+        );
+    }
+
+    #[test]
+    fn the_event_default_survives_a_config_without_the_key() {
+        // `serde(default)` means an existing config.json that predates the key
+        // picks up the new default rather than silently keeping the old wait.
+        let parsed: crate::reusable::config::CooldownHours =
+            serde_json::from_str(r#"{"same": 40, "different": 20}"#).expect("config should parse");
+        assert_eq!(parsed.event, DEFAULT_EVENT_HOURS);
+        assert_eq!(parsed.event, 40);
+
+        let policy = CooldownPolicy::from(&parsed);
+        let hist = history_of(Category::Event, BBQ::BBQ01, T0);
+        assert_eq!(
+            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy, T0 + 39 * HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 40 * HOUR
+            }
+        );
+    }
+
+    #[test]
+    fn the_whole_cooldown_block_can_be_omitted() {
+        let parsed: crate::reusable::config::CooldownHours =
+            serde_json::from_str("{}").expect("an empty block should parse");
+        assert_eq!(parsed.same, DEFAULT_SAME_HOURS);
+        assert_eq!(parsed.different, DEFAULT_DIFF_HOURS);
+        assert_eq!(parsed.event, DEFAULT_EVENT_HOURS);
     }
 
     #[test]

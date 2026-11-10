@@ -243,7 +243,7 @@ pub struct CooldownHours {
     #[serde(default = "default_diff")]
     pub different: i64,
     /// Wait for the Event category. An explicit `0` disables the check, which is
-    /// how the old build behaved; the shipped default is a real wait.
+    /// how the old build behaved; the shipped default is a real wait of 40 hours.
     #[serde(default = "default_event")]
     pub event: i64,
 }
@@ -260,7 +260,7 @@ fn default_event() -> i64 {
     // Kept in step with `bounty_cooldown::DEFAULT_EVENT_HOURS`. `0` used to mean
     // "no Event cooldown at all", which let an Event run be repeated instantly;
     // that is the behaviour the per-group cooldown removed.
-    20
+    40
 }
 
 impl Default for CooldownHours {
