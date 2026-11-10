@@ -22,10 +22,14 @@ fn make_button() -> CreateActionRow {
 
 /// The cooldown block for one group, as shown on the player card.
 ///
-/// The old build printed "Different Bounty CD" and "Same Bounty CD" so a player
-/// knew when each kind of bounty opened again. The per-group card had replaced
-/// that with a bare "Ready" or a single countdown, which lost the distinction.
-/// Both waits are printed again, each only while it is actually running.
+/// The old build printed "Different Bounty CD" and "Same Bounty CD", but those
+/// words alone never said *which* bounty the repeat referred to. Both lines now
+/// name the reference bounty, so a player can tell what "same" means:
+///
+/// ```text
+/// 🔁 Repeat Gold BBQ07: ⏳ in 21 hours
+/// 🔀 Any other bounty: ⏳ in 42 minutes
+/// ```
 ///
 /// Kept free of Discord types so the exact wording can be unit-tested.
 fn cooldown_lines(
@@ -40,21 +44,29 @@ fn cooldown_lines(
         return "✅ Ready".to_string();
     };
 
+    // Name the run both waits are measured from, otherwise "repeat" is ambiguous.
+    let reference = format!("{} {}", windows.last_category.name(), windows.last_bbq.name());
+
     let mut parts: Vec<String> = Vec::new();
     // Only print a line whose wait is still running: a countdown the player
     // cannot act on reads as if that bounty were still locked.
-    if let CooldownVerdict::Blocked { ends_at } = windows.change {
-        parts.push(format!("Different Bounty CD: ⏳ <t:{ends_at}:R>"));
+    match windows.repeat {
+        CooldownVerdict::Blocked { ends_at } => {
+            parts.push(format!("🔁 **Repeat** {reference}: ⏳ <t:{ends_at}:R>"));
+        }
+        CooldownVerdict::Allowed => {
+            // The exact bounty is open again, so saying nothing about it would
+            // leave the player guessing whether "Ready" means this one too.
+            parts.push(format!("🔁 **Repeat** {reference}: ✅ open now"));
+        }
     }
-    if let CooldownVerdict::Blocked { ends_at } = windows.repeat {
-        parts.push(format!("Same Bounty CD: ⏳ <t:{ends_at}:R>"));
+    if let CooldownVerdict::Blocked { ends_at } = windows.change {
+        parts.push(format!("🔀 **Any other bounty**: ⏳ <t:{ends_at}:R>"));
+    } else {
+        parts.push("🔀 **Any other bounty**: ✅ open now".to_string());
     }
 
-    if parts.is_empty() {
-        "✅ Ready".to_string()
-    } else {
-        parts.join("\n")
-    }
+    parts.join("\n")
 }
 
 impl Card {
@@ -318,13 +330,10 @@ mod tests {
         // The regression: the new card printed a bare "Ready" with no countdown.
         let hist = history(Category::Gold, BBQ::BBQ07, T0);
         let out = cooldown_lines(&hist, &Category::Bronze, &CooldownPolicy::default(), T0 + HOUR);
+        assert!(out.contains("Repeat"), "missing the repeat countdown: {out}");
         assert!(
-            out.contains("Different Bounty CD"),
-            "missing the different-bounty countdown: {out}"
-        );
-        assert!(
-            out.contains("Same Bounty CD"),
-            "missing the same-bounty countdown: {out}"
+            out.contains("Any other bounty"),
+            "missing the other-bounty countdown: {out}"
         );
         // 20 h for a different BBQ, 40 h for the exact repeat.
         assert!(out.contains(&format!("<t:{}:R>", T0 + 20 * HOUR)), "got {out}");
@@ -332,21 +341,35 @@ mod tests {
     }
 
     #[test]
-    fn the_different_line_comes_before_the_same_line() {
+    fn each_line_names_the_bounty_it_is_measured_against() {
+        // The question this answers: "same as what?". "Different" and "same" are
+        // meaningless unless the card says which bounty the repeat refers to.
         let hist = history(Category::Gold, BBQ::BBQ07, T0);
-        let out = cooldown_lines(&hist, &Category::Gold, &CooldownPolicy::default(), T0 + HOUR);
-        let different = out.find("Different Bounty CD").expect("different line");
-        let same = out.find("Same Bounty CD").expect("same line");
-        assert!(different < same, "order should match the old build: {out}");
+        let out = cooldown_lines(&hist, &Category::Bronze, &CooldownPolicy::default(), T0 + HOUR);
+        assert!(
+            out.contains("Repeat** Gold BBQ07"),
+            "the repeat line must name the reference bounty: {out}"
+        );
     }
 
     #[test]
-    fn only_the_running_wait_is_shown() {
-        // 25 hours in, any other bounty is open but the exact repeat is not.
+    fn the_repeat_line_comes_before_the_other_line() {
+        let hist = history(Category::Gold, BBQ::BBQ07, T0);
+        let out = cooldown_lines(&hist, &Category::Gold, &CooldownPolicy::default(), T0 + HOUR);
+        let repeat = out.find("Repeat").expect("repeat line");
+        let other = out.find("Any other bounty").expect("other line");
+        assert!(repeat < other, "the exact bounty should be listed first: {out}");
+    }
+
+    #[test]
+    fn a_repeat_that_is_open_says_open_rather_than_disappearing() {
+        // 25 hours in the exact repeat is still locked, but a change is open. The
+        // gone line must still say so, otherwise the reader cannot tell whether
+        // "Ready" covered it.
         let hist = history(Category::Gold, BBQ::BBQ07, T0);
         let out = cooldown_lines(&hist, &Category::Gold, &CooldownPolicy::default(), T0 + 25 * HOUR);
-        assert!(!out.contains("Different Bounty CD"), "should be open: {out}");
-        assert!(out.contains("Same Bounty CD"), "should still be locked: {out}");
+        assert!(out.contains("Any other bounty**: ✅ open now"), "got {out}");
+        assert!(out.contains("Repeat** Gold BBQ07: ⏳"), "got {out}");
         assert!(out.contains(&format!("<t:{}:R>", T0 + 40 * HOUR)), "got {out}");
     }
 
@@ -381,6 +404,7 @@ mod tests {
             2,
             "both lines should use the 40 hour default: {out}"
         );
+        assert!(out.contains("Repeat** Event BBQ01"), "got {out}");
     }
 
     #[test]
@@ -398,11 +422,11 @@ mod tests {
     #[test]
     fn a_sql_planted_cooldown_reaches_the_card() {
         // The card folds the legacy column in before rendering, so an operator's
-        // UPDATE must be visible to the player.
+        // UPDATE must be visible to the player, including which bounty it names.
         let hist = crate::reusable::component::bounty_cooldown::history_with_legacy(&[], "2_7", T0);
         let out = cooldown_lines(&hist, &Category::Bronze, &CooldownPolicy::default(), T0 + HOUR);
-        assert!(out.contains("Different Bounty CD"), "got {out}");
-        assert!(out.contains("Same Bounty CD"), "got {out}");
+        assert!(out.contains("Repeat** Gold BBQ07"), "got {out}");
+        assert!(out.contains("Any other bounty"), "got {out}");
         assert!(out.contains(&format!("<t:{}:R>", T0 + 20 * HOUR)), "got {out}");
         assert!(out.contains(&format!("<t:{}:R>", T0 + 40 * HOUR)), "got {out}");
     }

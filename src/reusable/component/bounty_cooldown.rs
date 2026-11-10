@@ -412,12 +412,32 @@ pub fn earliest_reopen(
 /// group). A *repeat* is the same category **and** the same BBQ; it waits `same`,
 /// except for Event, where `event` is the whole rule and a repeat costs the same
 /// as a change.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+///
+/// `last_category` / `last_bbq` name the bounty both waits are measured against.
+/// Without them "different" and "same" mean nothing to a reader: the card has to
+/// say *which* bounty the repeat refers to.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReopenWindows {
+    /// Category of the run the waits are measured from.
+    pub last_category: Category,
+    /// BBQ number of the run the waits are measured from.
+    pub last_bbq: BBQ,
     /// Shortest wait: pick a different category or BBQ number.
     pub change: CooldownVerdict,
     /// Wait before the exact same category and BBQ can be submitted again.
     pub repeat: CooldownVerdict,
+}
+
+impl ReopenWindows {
+    /// Whether the same category and BBQ may be repeated right now.
+    pub fn repeat_is_open(&self) -> bool {
+        self.repeat.is_allowed()
+    }
+
+    /// Whether some other bounty in the group may be taken right now.
+    pub fn change_is_open(&self) -> bool {
+        self.change.is_allowed()
+    }
 }
 
 /// Both reopen windows for `category`'s group.
@@ -462,7 +482,12 @@ pub fn reopen_windows(
     if repeat.is_allowed() && change.is_allowed() {
         return None;
     }
-    Some(ReopenWindows { change, repeat })
+    Some(ReopenWindows {
+        last_category: previous.category,
+        last_bbq: previous.bbq,
+        change,
+        repeat,
+    })
 }
 
 /// A BBQ number that is never equal to `bbq`, so a probe submission counts as a
@@ -712,6 +737,8 @@ mod tests {
         assert_eq!(
             reopen_windows(&hist, &Category::Bronze, &policy(), T0 + HOUR),
             Some(ReopenWindows {
+                last_category: Category::Gold,
+                last_bbq: BBQ::BBQ07,
                 change: CooldownVerdict::Blocked {
                     ends_at: T0 + 20 * HOUR
                 },
@@ -740,6 +767,8 @@ mod tests {
         assert_eq!(
             reopen_windows(&hist, &Category::Gold, &policy(), T0 + 25 * HOUR),
             Some(ReopenWindows {
+                last_category: Category::Gold,
+                last_bbq: BBQ::BBQ07,
                 change: CooldownVerdict::Allowed,
                 repeat: CooldownVerdict::Blocked {
                     ends_at: T0 + 40 * HOUR
@@ -756,6 +785,8 @@ mod tests {
         assert_eq!(
             reopen_windows(&hist, &Category::Event, &policy(), T0 + HOUR),
             Some(ReopenWindows {
+                last_category: Category::Event,
+                last_bbq: BBQ::BBQ01,
                 change: CooldownVerdict::Blocked {
                     ends_at: T0 + 40 * HOUR
                 },
@@ -776,6 +807,8 @@ mod tests {
         assert_eq!(
             reopen_windows(&hist, &Category::Event, &configured, T0 + HOUR),
             Some(ReopenWindows {
+                last_category: Category::Event,
+                last_bbq: BBQ::BBQ01,
                 change: CooldownVerdict::Blocked {
                     ends_at: T0 + 6 * HOUR
                 },
@@ -818,6 +851,8 @@ mod tests {
         assert_eq!(
             reopen_windows(&hist, &Category::Bronze, &policy(), T0 + HOUR),
             Some(ReopenWindows {
+                last_category: Category::Gold,
+                last_bbq: BBQ::BBQ07,
                 change: CooldownVerdict::Blocked {
                     ends_at: T0 + 20 * HOUR
                 },
@@ -826,6 +861,27 @@ mod tests {
                 },
             })
         );
+    }
+
+    #[test]
+    fn the_windows_name_the_bounty_they_are_measured_from() {
+        // The card prints this, so a wrong reference would tell the player to
+        // wait for a bounty they never did.
+        let hist = history_of(Category::Free, BBQ::BBQ12, T0);
+        let windows = reopen_windows(&hist, &Category::Bronze, &policy(), T0 + HOUR)
+            .expect("fresh run should have windows");
+        assert_eq!(windows.last_category, Category::Free);
+        assert_eq!(windows.last_bbq, BBQ::BBQ12);
+    }
+
+    #[test]
+    fn the_open_helpers_agree_with_the_verdicts() {
+        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        // 25 hours in: a change is open, the exact repeat is not.
+        let windows = reopen_windows(&hist, &Category::Gold, &policy(), T0 + 25 * HOUR)
+            .expect("repeat wait still running");
+        assert!(windows.change_is_open());
+        assert!(!windows.repeat_is_open());
     }
 
     #[test]
