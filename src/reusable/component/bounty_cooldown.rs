@@ -399,6 +399,79 @@ pub fn earliest_reopen(
     }
 }
 
+/// When a player may repeat their last bounty unchanged, and when they may take
+/// a different one.
+///
+/// The card used to print only "Ready" or a single countdown, which left players
+/// asking when a specific bounty opened again. The old build printed both waits
+/// ("Different Bounty CD" and "Same Bounty CD"), and that is the pair this
+/// restores.
+///
+/// A *change* is a different category in the same group, or the same category
+/// with a different BBQ number; it waits `different` (`event` for the Event
+/// group). A *repeat* is the same category **and** the same BBQ; it waits `same`,
+/// except for Event, where `event` is the whole rule and a repeat costs the same
+/// as a change.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReopenWindows {
+    /// Shortest wait: pick a different category or BBQ number.
+    pub change: CooldownVerdict,
+    /// Wait before the exact same category and BBQ can be submitted again.
+    pub repeat: CooldownVerdict,
+}
+
+/// Both reopen windows for `category`'s group.
+///
+/// Returns `None` when the group has no history, the recorded run is corrupt, or
+/// both waits are configured to zero: there is nothing for the card to count down.
+pub fn reopen_windows(
+    history: &[GroupHistory],
+    category: &Category,
+    policy: &CooldownPolicy,
+    now: i64,
+) -> Option<ReopenWindows> {
+    let group = CooldownGroup::from_category(category);
+    let previous = last_of_group(history, group)?;
+
+    // Same guard as `evaluate`: a corrupt future timestamp must not paint a
+    // multi-year countdown on the card.
+    if !is_plausible(previous.completed_at, now) {
+        return None;
+    }
+
+    // Ask the evaluator itself rather than re-deriving the hours, so the card
+    // cannot drift from what the submit flow enforces. `previous.category` and
+    // `previous.bbq` are exactly what an unchanged repeat would submit.
+    let repeat = evaluate(
+        history,
+        &previous.category,
+        &previous.bbq,
+        policy,
+        now,
+    );
+    let change = match group {
+        // Event ignores `same`/`different`, so a change waits the same amount.
+        CooldownGroup::Event => repeat,
+        // A change from the last run, with a BBQ that is guaranteed to differ.
+        _ => {
+            let other = different_bbq(&previous.bbq);
+            evaluate(history, &previous.category, &other, policy, now)
+        }
+    };
+
+    if repeat.is_allowed() && change.is_allowed() {
+        return None;
+    }
+    Some(ReopenWindows { change, repeat })
+}
+
+/// A BBQ number that is never equal to `bbq`, so a probe submission counts as a
+/// change rather than a repeat.
+fn different_bbq(bbq: &BBQ) -> BBQ {
+    let code = bbq.encode();
+    BBQ::new(if code == 1 { 2 } else { 1 }).unwrap_or(BBQ::BBQ01)
+}
+
 /// Builds the policy from `config.json`, so the waits are operator settings.
 impl From<&super::super::config::CooldownHours> for CooldownPolicy {
     fn from(c: &super::super::config::CooldownHours) -> Self {
@@ -605,6 +678,153 @@ mod tests {
         assert_eq!(
             earliest_reopen(&hist, &Category::Event, &configured, T0),
             CooldownVerdict::Allowed
+        );
+        // The card must not print a nine-year countdown either.
+        assert_eq!(
+            reopen_windows(&hist, &Category::Event, &configured, T0),
+            None
+        );
+    }
+
+    // ------------------------------------------------------------- reopen windows
+
+    #[test]
+    fn no_history_means_no_countdown_to_show() {
+        assert_eq!(reopen_windows(&[], &Category::Gold, &policy(), T0), None);
+    }
+
+    #[test]
+    fn both_windows_expired_means_no_countdown_to_show() {
+        // 41 hours after a run the 20 h and 40 h waits have both ended, so the
+        // card must say Ready rather than print two stale times.
+        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        assert_eq!(
+            reopen_windows(&hist, &Category::Gold, &policy(), T0 + 41 * HOUR),
+            None
+        );
+    }
+
+    #[test]
+    fn a_fresh_standard_run_reports_both_waits() {
+        // 20 hours for a different BBQ, 40 hours for the exact same one. This is
+        // the pair the old card printed and the new one had lost.
+        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        assert_eq!(
+            reopen_windows(&hist, &Category::Bronze, &policy(), T0 + HOUR),
+            Some(ReopenWindows {
+                change: CooldownVerdict::Blocked {
+                    ends_at: T0 + 20 * HOUR
+                },
+                repeat: CooldownVerdict::Blocked {
+                    ends_at: T0 + 40 * HOUR
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn the_group_is_what_selects_the_window_not_the_asked_category() {
+        // Asking about Bronze after a Gold run reads the standard row, so the
+        // countdown is the same one Gold would report.
+        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        let asked_bronze = reopen_windows(&hist, &Category::Bronze, &policy(), T0 + HOUR);
+        let asked_gold = reopen_windows(&hist, &Category::Gold, &policy(), T0 + HOUR);
+        assert_eq!(asked_bronze, asked_gold);
+    }
+
+    #[test]
+    fn the_change_window_closes_before_the_repeat_window() {
+        // 25 hours in: any different bounty is open again, but the exact repeat
+        // still has 15 hours to go. The card must show one line, not zero or two.
+        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        assert_eq!(
+            reopen_windows(&hist, &Category::Gold, &policy(), T0 + 25 * HOUR),
+            Some(ReopenWindows {
+                change: CooldownVerdict::Allowed,
+                repeat: CooldownVerdict::Blocked {
+                    ends_at: T0 + 40 * HOUR
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn event_reports_the_same_wait_for_change_and_repeat() {
+        // `event` is the whole rule for that group: a different BBQ costs exactly
+        // the same as the exact repeat, so both windows share one time.
+        let hist = history_of(Category::Event, BBQ::BBQ01, T0);
+        assert_eq!(
+            reopen_windows(&hist, &Category::Event, &policy(), T0 + HOUR),
+            Some(ReopenWindows {
+                change: CooldownVerdict::Blocked {
+                    ends_at: T0 + 40 * HOUR
+                },
+                repeat: CooldownVerdict::Blocked {
+                    ends_at: T0 + 40 * HOUR
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn the_event_window_follows_the_configured_value() {
+        let configured = CooldownPolicy {
+            event: 6,
+            ..CooldownPolicy::default()
+        };
+        let hist = history_of(Category::Event, BBQ::BBQ01, T0);
+        assert_eq!(
+            reopen_windows(&hist, &Category::Event, &configured, T0 + HOUR),
+            Some(ReopenWindows {
+                change: CooldownVerdict::Blocked {
+                    ends_at: T0 + 6 * HOUR
+                },
+                repeat: CooldownVerdict::Blocked {
+                    ends_at: T0 + 6 * HOUR
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn a_zero_wait_leaves_nothing_to_count_down() {
+        // An operator who configures `event: 0` must get a plain Ready card.
+        let no_wait = CooldownPolicy {
+            event: 0,
+            ..CooldownPolicy::default()
+        };
+        let hist = history_of(Category::Event, BBQ::BBQ01, T0);
+        assert_eq!(reopen_windows(&hist, &Category::Event, &no_wait, T0), None);
+    }
+
+    #[test]
+    fn the_probe_bbq_always_differs_for_a_repeat_check() {
+        // The change window is measured with a BBQ that is guaranteed different,
+        // otherwise BBQ01 would collapse into the repeat branch.
+        assert_eq!(different_bbq(&BBQ::BBQ01), BBQ::BBQ02);
+        assert_eq!(different_bbq(&BBQ::BBQ02), BBQ::BBQ01);
+        assert_eq!(different_bbq(&BBQ::BBQ25), BBQ::BBQ01);
+        for code in 1..=25u8 {
+            let bbq = BBQ::new(code).expect("valid bbq");
+            assert_ne!(different_bbq(&bbq), bbq, "bbq {code} must change");
+        }
+    }
+
+    #[test]
+    fn the_windows_still_work_when_the_run_came_from_the_legacy_column() {
+        // The card folds the legacy column in before calling this, so the windows
+        // must honour an SQL-planted cooldown too.
+        let hist = history_with_legacy(&[], "2_7", T0);
+        assert_eq!(
+            reopen_windows(&hist, &Category::Bronze, &policy(), T0 + HOUR),
+            Some(ReopenWindows {
+                change: CooldownVerdict::Blocked {
+                    ends_at: T0 + 20 * HOUR
+                },
+                repeat: CooldownVerdict::Blocked {
+                    ends_at: T0 + 40 * HOUR
+                },
+            })
         );
     }
 
@@ -971,6 +1191,37 @@ mod tests {
                 ends_at: T0 + 40 * HOUR
             }
         );
+    }
+
+    #[test]
+    fn an_explicit_config_value_overrides_the_event_default() {
+        // The other half of the rule: a config.json that names `event` wins over
+        // the compiled default, in both directions. This is why an operator can
+        // shorten Event without rebuilding.
+        for (configured, expected) in [(6_i64, 6_i64), (40, 40), (1, 1), (0, 0)] {
+            let json = format!(r#"{{"same": 40, "different": 20, "event": {configured}}}"#);
+            let parsed: crate::reusable::config::CooldownHours =
+                serde_json::from_str(&json).expect("config should parse");
+            assert_eq!(
+                parsed.event, configured,
+                "config value {configured} must not be replaced by the default"
+            );
+
+            let policy = CooldownPolicy::from(&parsed);
+            let hist = history_of(Category::Event, BBQ::BBQ01, T0);
+            let verdict = evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy, T0);
+            if expected == 0 {
+                assert_eq!(verdict, CooldownVerdict::Allowed, "event 0 means no wait");
+            } else {
+                assert_eq!(
+                    verdict,
+                    CooldownVerdict::Blocked {
+                        ends_at: T0 + expected * HOUR
+                    },
+                    "event {configured} must gate for exactly that long"
+                );
+            }
+        }
     }
 
     #[test]
