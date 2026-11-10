@@ -91,9 +91,9 @@ async fn main() {
         .await
         .expect("Critical: Database pool initialization failed");
 
-    // Bounty cooldown is tracked per group (Progression / Free / Event) so one
-    // ladder shares a single timer: a Gold run locks Bronze and Silver too, while
-    // Free and Event stay independent.
+    // Bounty cooldown is tracked per group (Standard / Event). Bronze, Silver,
+    // Gold and Free share one timer, so a Gold run also locks Bronze, Silver and
+    // Free; Event keeps a timer of its own.
     let pool = reusable::postgress::get_pool();
     match reusable::postgress::gacha::ensure_bounty_cooldown_group_table(pool).await {
         Ok(()) => {
@@ -110,6 +110,18 @@ async fn main() {
                 }
                 Ok(_) => {}
                 Err(e) => tracing::error!(error = %e, "Cannot migrate per-category cooldown rows"),
+            }
+            // Runs last so a row written by any of the steps above is folded too.
+            match reusable::postgress::gacha::merge_free_into_standard(pool).await {
+                Ok((folded, deleted)) if folded > 0 || deleted > 0 => {
+                    tracing::info!(
+                        folded = folded,
+                        deleted = deleted,
+                        "Merged the Free cooldown rows into the standard group"
+                    )
+                }
+                Ok(_) => {}
+                Err(e) => tracing::error!(error = %e, "Cannot merge the Free cooldown rows"),
             }
         }
         Err(e) => tracing::error!(error = %e, "Cannot create the bounty_cooldown_group table"),

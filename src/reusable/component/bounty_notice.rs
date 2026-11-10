@@ -210,7 +210,7 @@ mod tests {
         Block::Cooldown {
             user: "<@1>".to_string(),
             ends_at: 1_760_000_000,
-            group: CooldownGroup::Progression,
+            group: CooldownGroup::Standard,
             hours: 20,
             previous: Some((Category::Gold, BBQ::BBQ07)),
         }
@@ -253,6 +253,30 @@ mod tests {
         assert!(details.contains("20-hour"), "got {details}");
         assert!(details.contains("after Gold BBQ07"), "got {details}");
         assert_eq!(view.field("⏳ Opens"), Some("<t:1760000000:R>  ·  <t:1760000000:f>"));
+    }
+
+    #[test]
+    fn a_standard_cooldown_names_the_group_the_player_is_actually_in() {
+        // The wait covers Bronze/Silver/Gold/Free, so naming it after one category
+        // would mislead the player about what is locked.
+        let view = blocked_submission(&[cooldown()]).view();
+        let details = view.field("📋 Details").expect("details field");
+        assert!(details.contains("Standard cooldown"), "got {details}");
+    }
+
+    #[test]
+    fn an_event_cooldown_names_event_rather_than_the_shared_group() {
+        let event = Block::Cooldown {
+            user: "<@4>".to_string(),
+            ends_at: 1_760_000_000,
+            group: CooldownGroup::Event,
+            hours: 6,
+            previous: Some((Category::Event, BBQ::BBQ01)),
+        };
+        let view = blocked_submission(&[event]).view();
+        let details = view.field("📋 Details").expect("details field");
+        assert!(details.contains("6-hour Event cooldown"), "got {details}");
+        assert!(!details.contains("Standard"), "got {details}");
     }
 
     #[test]
@@ -308,7 +332,7 @@ mod tests {
         let later = Block::Cooldown {
             user: "<@3>".to_string(),
             ends_at: 1_900_000_000,
-            group: CooldownGroup::Free,
+            group: CooldownGroup::Event,
             hours: 40,
             previous: None,
         };

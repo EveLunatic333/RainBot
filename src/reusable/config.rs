@@ -231,8 +231,9 @@ impl Default for ProgressionGateMode {
 ///
 /// The bot used to hold one global timer per user, and the Event category
 /// bypassed it entirely. That let an Event approval overwrite the timestamp of a
-/// Gold/Bronze/Silver run, shortening the user's real cooldown. These settings
-/// give every category its own wait instead.
+/// Gold/Bronze/Silver run, shortening the user's real cooldown. The cooldown is
+/// now tracked per group, so `same` and `different` apply to the shared standard
+/// group (Bronze, Silver, Gold and Free) and `event` applies to Event alone.
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct CooldownHours {
     /// Wait after the same category and the same BBQ number.

@@ -8,16 +8,17 @@
 //!
 //! Cooldown is tracked **per group**, not per category:
 //!
-//! | Group       | Categories              | Wait                          |
-//! |-------------|-------------------------|-------------------------------|
-//! | Progression | Bronze, Silver, Gold    | `same` / `different` from config |
-//! | Free        | Free                    | `same` / `different` from config |
-//! | Event       | Event                   | `event` from config           |
+//! | Group    | Categories                    | Wait                             |
+//! |----------|-------------------------------|----------------------------------|
+//! | Standard | Bronze, Silver, Gold, Free    | `same` / `different` from config |
+//! | Event    | Event                         | `event` from config              |
 //!
-//! One row per group means a Gold run locks Bronze and Silver too (they are the
-//! same progression ladder), while Free and Event stay independent. Tracking each
-//! of the five categories separately used to let a player chain
-//! Gold -> Silver -> Bronze with no wait at all.
+//! One row per group means a Gold run locks Bronze, Silver and Free too. Tracking
+//! each of the five categories separately used to let a player chain
+//! Gold -> Silver -> Bronze with no wait at all. Free used to have a timer of its
+//! own, which let one player take a Bronze/Silver/Gold bounty and a Free bounty
+//! back to back; folding it into the same timer caps a player at one standard
+//! bounty plus one Event per cooldown window.
 
 use super::bounty::{BBQ, Category};
 
@@ -39,26 +40,28 @@ pub const DEFAULT_EVENT_HOURS: i64 = 20;
 /// The cooldown ladder a category belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CooldownGroup {
-    /// Bronze, Silver and Gold share one timer: they are one progression ladder.
-    Progression,
-    Free,
+    /// Bronze, Silver, Gold and Free share one timer.
+    Standard,
+    /// Event has a timer of its own, because it is not part of the ladder.
     Event,
 }
 
 impl CooldownGroup {
     pub fn from_category(category: &Category) -> Self {
         match category {
-            Category::Bronze | Category::Silver | Category::Gold => Self::Progression,
-            Category::Free => Self::Free,
+            Category::Bronze | Category::Silver | Category::Gold | Category::Free => Self::Standard,
             Category::Event => Self::Event,
         }
     }
 
     /// Stable number used as the database key. Never renumber: existing rows use it.
+    ///
+    /// `1` used to mean "Free" and is retired, but it is still *decoded* as
+    /// `Standard` so a row written by the previous build keeps its meaning even if
+    /// the merge migration did not get to run.
     pub fn encode(self) -> i16 {
         match self {
-            Self::Progression => 0,
-            Self::Free => 1,
+            Self::Standard => 0,
             Self::Event => 2,
         }
     }
@@ -67,12 +70,13 @@ impl CooldownGroup {
     ///
     /// The backfill builds its SQL from `encode()` values, which keeps the
     /// database keys and this enum from drifting apart.
-    pub const ALL: [CooldownGroup; 3] = [Self::Progression, Self::Free, Self::Event];
+    pub const ALL: [CooldownGroup; 2] = [Self::Standard, Self::Event];
 
     pub fn decode(value: i16) -> Option<Self> {
         match value {
-            0 => Some(Self::Progression),
-            1 => Some(Self::Free),
+            0 => Some(Self::Standard),
+            // Retired key for the old Free group, folded into Standard at startup.
+            1 => Some(Self::Standard),
             2 => Some(Self::Event),
             _ => None,
         }
@@ -80,8 +84,7 @@ impl CooldownGroup {
 
     pub fn name(self) -> &'static str {
         match self {
-            Self::Progression => "Progression",
-            Self::Free => "Free",
+            Self::Standard => "Standard",
             Self::Event => "Event",
         }
     }
@@ -164,8 +167,8 @@ impl CooldownVerdict {
 
 /// The most recent recorded completion of `group`.
 ///
-/// Only rows of that group are considered, which is what keeps the three ladders
-/// independent: a Free run cannot shorten a Progression wait because they are
+/// Only rows of that group are considered, which is what keeps the two ladders
+/// independent: an Event run cannot shorten a Standard wait because they are
 /// different rows.
 pub fn last_of_group(history: &[GroupHistory], group: CooldownGroup) -> Option<GroupHistory> {
     history
@@ -635,32 +638,52 @@ mod tests {
     // ----------------------------------------------------- groups are independent
 
     #[test]
-    fn progression_and_free_have_separate_timers() {
-        // A fresh Progression run must not block Free...
+    fn free_and_progression_share_one_timer() {
+        // The merge: a Free run and a Bronze/Silver/Gold run are the same wait, so
+        // one player cannot take both back to back.
         let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
         assert_eq!(
-            evaluate(&hist, &Category::Free, &BBQ::BBQ03, &policy(), T0),
-            CooldownVerdict::Allowed
+            evaluate(&hist, &Category::Free, &BBQ::BBQ03, &policy(), T0 + HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 20 * HOUR
+            }
         );
 
-        // ...and a fresh Free run must not block Progression.
+        // ...and the other way around.
         let hist = history_of(Category::Free, BBQ::BBQ03, T0);
         assert_eq!(
-            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy(), T0),
-            CooldownVerdict::Allowed
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy(), T0 + HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 20 * HOUR
+            }
         );
     }
 
     #[test]
-    fn event_and_progression_have_separate_timers() {
+    fn free_repeated_waits_forty_hours() {
+        // Free is a normal member of the standard group, so a repeat follows the
+        // `same` branch and not a separate Free setting.
+        let hist = history_of(Category::Free, BBQ::BBQ03, T0);
+        assert_eq!(
+            evaluate(&hist, &Category::Free, &BBQ::BBQ03, &policy(), T0 + HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 40 * HOUR
+            }
+        );
+    }
+
+    #[test]
+    fn event_and_standard_have_separate_timers() {
         let hist = history_of(Category::Event, BBQ::BBQ01, T0);
+        // A fresh Event run must not block the ladder.
         assert_eq!(
             evaluate(&hist, &Category::Gold, &BBQ::BBQ07, &policy(), T0),
             CooldownVerdict::Allowed
         );
 
         let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
-        // Event waits whatever is configured; the default is 0 = free.
+        // A standard run must not block Event either: Event only answers to its
+        // own row, which is why an Event repeat can be gated without gating Gold.
         assert_eq!(
             evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy(), T0),
             CooldownVerdict::Allowed
@@ -753,12 +776,32 @@ mod tests {
         // The backfill builds its SQL from these numbers. A duplicated key would
         // silently collapse two timers into one row, so pin them here.
         let keys: Vec<i16> = CooldownGroup::ALL.iter().map(|g| g.encode()).collect();
-        assert_eq!(keys, vec![0, 1, 2]);
-        assert_eq!(CooldownGroup::ALL.len(), 3);
+        assert_eq!(keys, vec![0, 2]);
+        assert_eq!(CooldownGroup::ALL.len(), 2);
 
         for group in CooldownGroup::ALL {
             assert_eq!(CooldownGroup::decode(group.encode()), Some(group));
         }
+    }
+
+    #[test]
+    fn the_retired_free_key_still_decodes_as_standard() {
+        // Rows written by the previous build carry group 1 for Free. If the merge
+        // migration has not run yet they must still gate the standard timer rather
+        // than being dropped, which would hand those players a free submission.
+        assert_eq!(CooldownGroup::decode(1), Some(CooldownGroup::Standard));
+        assert_eq!(CooldownGroup::Standard.encode(), 0);
+        assert_eq!(CooldownGroup::Event.encode(), 2);
+
+        let rows = vec![(1_i16, 3_i16, 5_i16, T0)];
+        let hist = history_from_rows(&rows);
+        assert_eq!(hist, vec![entry(Category::Free, BBQ::BBQ05, T0)]);
+    }
+
+    #[test]
+    fn an_unknown_group_key_is_skipped() {
+        let rows = vec![(7_i16, 0_i16, 1_i16, T0)];
+        assert!(history_from_rows(&rows).is_empty());
     }
 
     #[test]

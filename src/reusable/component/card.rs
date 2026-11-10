@@ -191,20 +191,19 @@ impl Event {
             Market::currency(self.bounty as i64), self.gacha, self.gacha_premium
         );
 
-        // Cooldown is per group, so the card lists groups rather than the old
-        // "same / different" pair, which no longer maps to anything real.
+        // Cooldown is per group, so the card lists the two groups rather than the
+        // old per-category split, which no longer maps to anything real.
+        // `status(Bronze)` is the shared group: the evaluator maps every standard
+        // category onto the same row, so asking about Free separately would always
+        // print the same answer twice.
         let cooldown_desc = format!(
-            "🥇 **Progression:** {}\n🎁 **Free:** {}\n⭐ **Event:** {}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
+            "🎯 **Standard:** {} (Bronze / Silver / Gold / Free)\n⭐ **Event:** {}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
             status(Category::Bronze),
-            status(Category::Free),
             status(Category::Event),
             BBQ::name_encode(self.bronze as u8),
             BBQ::name_encode(self.silver as u8),
             BBQ::name_encode(self.gold as u8)
         );
-
-        // Naming the groups explicitly keeps the embed readable when a player only
-        // cares about one ladder.
 
         let event_desc = format!(
             "🕜 **Latest Bounty:** {latest}\n🕒 **Time Completed:** {time_completed}\n🍽️ **Restaurant Buff:** {}\n\n{}",

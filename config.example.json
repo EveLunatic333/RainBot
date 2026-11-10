@@ -43,7 +43,7 @@
     "receptionist_ch": 0,
     "judge_ch": 0,
 
-    "_cooldown_comment": "Per-group bounty cooldown, in HOURS. Bronze/Silver/Gold share ONE timer (the progression ladder); Free and Event each have their own. 'same' applies when the same category AND the same BBQ number are repeated; 'different' applies when either one changes; 'event' is the Event group's own wait; an explicit 0 disables the check for it. Omit the whole block to keep 40/20/20.",
+    "_cooldown_comment": "Per-group bounty cooldown, in HOURS. Bronze/Silver/Gold/Free share ONE timer (the standard group); Event has its own. 'same' applies when the same category AND the same BBQ number are repeated; 'different' applies when either one changes; 'event' is the Event group's own wait; an explicit 0 disables the check for it. The standard group is still driven by discord.latest_bounty_time, so an operator can move or clear it with plain SQL. Omit the whole block to keep 40/20/20.",
     "cooldown_hours": {
       "same": 40,
       "different": 20,

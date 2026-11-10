@@ -309,9 +309,8 @@ pub async fn bounty_event_tx(
 
 /// Creates the per-group cooldown table if it does not exist yet.
 ///
-/// One row per (user, group), so a Progression run locks Bronze, Silver and Gold
-/// together while Free and Event keep their own timers. `category` and `bbq` are
-/// kept to tell a repeat (40 h) from a change (20 h).
+/// One row per (user, group). `category` and `bbq` are kept to tell a repeat
+/// (40 h) from a change (20 h).
 pub async fn ensure_bounty_cooldown_group_table(pool: &sqlx::PgPool) -> Result<(), sqlx::Error> {
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS bounty_cooldown_group (
@@ -365,7 +364,7 @@ pub struct GroupCooldownRow {
     pub completed_at: i64,
 }
 
-/// Reads every stored per-group completion for one user (at most three rows).
+/// Reads every stored per-group completion for one user (at most two rows).
 pub async fn group_history(
     pool: &sqlx::PgPool,
     did: &str,
@@ -403,6 +402,59 @@ pub async fn clear_cooldown_history(
     Ok(())
 }
 
+/// Folds the retired Free cooldown row into the shared standard row.
+///
+/// Free used to have a group of its own (database key `1`), which let one player
+/// take a Bronze/Silver/Gold bounty and a Free bounty in the same window. The two
+/// are now one group, so the newest of the two rows is moved onto the standard key
+/// (`0`) and the retired row is deleted.
+///
+/// Runs in one transaction, so an interrupted start cannot leave a player with
+/// both the old and the new row. `ON CONFLICT ... WHERE EXCLUDED.completed_at >
+/// bounty_cooldown_group.completed_at` only ever moves a newer timestamp onto the
+/// standard row, so a real standard completion is never rolled back by a stale
+/// Free row.
+///
+/// A row is kept if the migration has not run yet: `CooldownGroup::decode` maps
+/// the retired key `1` onto `Standard`, so a leftover row still gates the timer
+/// instead of unlocking it.
+pub async fn merge_free_into_standard(pool: &sqlx::PgPool) -> Result<(u64, u64), sqlx::Error> {
+    use crate::reusable::component::bounty_cooldown::CooldownGroup;
+
+    let standard = CooldownGroup::Standard.encode();
+    // The retired key, spelled out rather than decoded: `decode` now maps it onto
+    // the standard group, so it cannot be recovered from the enum any more.
+    const RETIRED_FREE_KEY: i16 = 1;
+
+    let mut tx = pool.begin().await?;
+
+    let folded = sqlx::query(
+        "INSERT INTO bounty_cooldown_group (discord_id, group_id, category, bbq, completed_at)
+         SELECT DISTINCT ON (discord_id)
+                discord_id, $1, category, bbq, completed_at
+         FROM bounty_cooldown_group
+         WHERE group_id IN ($1, $2)
+         ORDER BY discord_id, completed_at DESC
+         ON CONFLICT (discord_id, group_id) DO UPDATE
+         SET category = EXCLUDED.category,
+             bbq = EXCLUDED.bbq,
+             completed_at = EXCLUDED.completed_at
+         WHERE EXCLUDED.completed_at > bounty_cooldown_group.completed_at",
+    )
+    .bind(standard)
+    .bind(RETIRED_FREE_KEY)
+    .execute(&mut *tx)
+    .await?;
+
+    let deleted = sqlx::query("DELETE FROM bounty_cooldown_group WHERE group_id = $1")
+        .bind(RETIRED_FREE_KEY)
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+    Ok((folded.rows_affected(), deleted.rows_affected()))
+}
+
 /// Carries the legacy single-row cooldown over into the group table.
 ///
 /// Before any cooldown table existed the last completion lived in
@@ -411,18 +463,18 @@ pub async fn clear_cooldown_history(
 /// `time > now && category != Event`, with 40 h on an exact (category, BBQ)
 /// repeat and 20 h otherwise. There was no per-group split at all.
 ///
-/// So one legacy timestamp is evidence for **more than one group**:
+/// So one legacy timestamp is evidence for **both** surviving groups:
 ///
-/// * Progression and Free were both gated by it, whatever the stored category
-///   was. A player whose last run was an Event was still blocked from taking a
-///   Gold for 20 h. Writing only the stored category's group would therefore
-///   unlock the other two groups and let those players submit immediately.
+/// * The standard group was gated by it, whatever the stored category was. A
+///   player whose last run was an Event was still blocked from taking a Gold for
+///   20 h. Writing only the stored category's group would therefore unlock the
+///   ladder and let those players submit immediately.
 /// * Event was exempt under the old rule, so a legacy Event timestamp is **not**
 ///   evidence that Event should be blocked. Event now has its own timer, and it
 ///   measures the wait between Events; seeding it from a Free or Bronze run would
 ///   invent a restriction the old build never applied.
 ///
-/// The migration writes the timestamp into Progression and Free unconditionally,
+/// The migration writes the timestamp into the standard group unconditionally,
 /// and into Event only when the stored category already was Event.
 ///
 /// Rows are skipped when the legacy value cannot be read — a malformed
@@ -473,8 +525,10 @@ pub async fn backfill_cooldown_history(pool: &sqlx::PgPool) -> Result<u64, sqlx:
 ///
 /// The previous design stored one row per category, which let a player chain
 /// Bronze/Silver/Gold with no wait. For each (user, group) the most recent row is
-/// kept, because an older one would already be expired. If the old table does not
-/// exist this is a no-op, so it is safe to call on every start.
+/// kept, because an older one would already be expired. Category `4` (Event) is
+/// the only one that keeps a group of its own; everything else lands on the
+/// shared standard row. If the old table does not exist this is a no-op, so it is
+/// safe to call on every start.
 pub async fn migrate_category_cooldown_to_group(pool: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
     let exists: Option<String> = sqlx::query_scalar(
         "SELECT to_regclass('public.bounty_cooldown')::text",
@@ -491,7 +545,7 @@ pub async fn migrate_category_cooldown_to_group(pool: &sqlx::PgPool) -> Result<u
                 discord_id, group_id, category, bbq, completed_at
          FROM (
              SELECT discord_id,
-                    CASE WHEN category = 3 THEN 1 WHEN category = 4 THEN 2 ELSE 0 END AS group_id,
+                    CASE WHEN category = 4 THEN 2 ELSE 0 END AS group_id,
                     category,
                     bbq,
                     completed_at
