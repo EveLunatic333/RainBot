@@ -19,8 +19,14 @@
 //! own, which let one player take a Bronze/Silver/Gold bounty and a Free bounty
 //! back to back; folding it into the same timer caps a player at one standard
 //! bounty plus one Event per cooldown window.
+//!
+//! The operator switch for the standard timer is still `discord.latest_bounty_time`,
+//! the column the old build used. [`history_with_legacy`] folds that column over the
+//! stored rows so a plain `UPDATE discord SET latest_bounty_time = ...` keeps
+//! working. Event is never driven by that column: it was exempt under the old rule,
+//! and it now has a timer of its own.
 
-use super::bounty::{BBQ, Category};
+use super::bounty::{BBQ, BountyTitle, Category};
 
 /// Default wait, in hours, when the same category and BBQ are repeated.
 pub const DEFAULT_SAME_HOURS: i64 = 40;
@@ -423,6 +429,89 @@ pub fn history_from_rows(rows: &[(i16, i16, i16, i64)]) -> Vec<GroupHistory> {
         });
     }
     out
+}
+
+/// What the legacy `discord.latest_bounty_time` column says about the standard
+/// timer.
+///
+/// The old build kept one timestamp per player and gated every non-Event
+/// submission on it, so an operator could move a cooldown with a single
+/// `UPDATE discord SET latest_bounty_time = ...`. That habit is kept: the column
+/// stays authoritative for [`CooldownGroup::Standard`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LegacyStandard {
+    /// The column is zero (or negative): the operator cleared the timer.
+    Cleared,
+    /// The column holds a readable, non-Event completion.
+    Entry(GroupHistory),
+    /// The column cannot drive the standard timer: it does not decrypt, or the
+    /// last bounty was an Event.
+    Unusable,
+}
+
+/// Reads the legacy column for the standard timer.
+///
+/// A zero means "no cooldown", which is exactly how the old build read it, so an
+/// operator clearing the column still clears the wait. An unreadable
+/// `latest_bounty` is ignored rather than treated as a permanent block: the old
+/// build could not decrypt those rows either and fell through to no history.
+pub fn legacy_entry(latest_bounty: &str, latest_bounty_time: i64) -> LegacyStandard {
+    if latest_bounty_time <= 0 {
+        return LegacyStandard::Cleared;
+    }
+    let Some((category, bbq)) = BountyTitle::decrypt(latest_bounty) else {
+        return LegacyStandard::Unusable;
+    };
+    // Event never drove the standard timer: it was exempt under the old rule and
+    // it has its own row now.
+    if category == Category::Event {
+        return LegacyStandard::Unusable;
+    }
+    LegacyStandard::Entry(GroupHistory {
+        group: CooldownGroup::Standard,
+        category,
+        bbq,
+        completed_at: latest_bounty_time,
+    })
+}
+
+/// Folds the legacy column over the stored rows.
+///
+/// Only the standard group is affected. `Cleared` drops the stored standard row
+/// so a zeroed column really means "no wait"; `Entry` replaces it, which lets an
+/// operator both shorten and extend a cooldown with SQL; `Unusable` leaves the
+/// history untouched, so the stored row still speaks for a player whose last
+/// bounty was an Event.
+pub fn apply_legacy(history: &[GroupHistory], legacy: LegacyStandard) -> Vec<GroupHistory> {
+    match legacy {
+        LegacyStandard::Unusable => history.to_vec(),
+        LegacyStandard::Cleared => history
+            .iter()
+            .filter(|h| h.group != CooldownGroup::Standard)
+            .cloned()
+            .collect(),
+        LegacyStandard::Entry(entry) => {
+            let mut out: Vec<GroupHistory> = history
+                .iter()
+                .filter(|h| h.group != CooldownGroup::Standard)
+                .cloned()
+                .collect();
+            out.push(entry);
+            out
+        }
+    }
+}
+
+/// History the evaluator should see: stored rows with the legacy column applied.
+///
+/// Every caller goes through this so the submit pre-check, `Hunter::new` and the
+/// player card cannot disagree about a cooldown.
+pub fn history_with_legacy(
+    history: &[GroupHistory],
+    latest_bounty: &str,
+    latest_bounty_time: i64,
+) -> Vec<GroupHistory> {
+    apply_legacy(history, legacy_entry(latest_bounty, latest_bounty_time))
 }
 
 #[cfg(test)]
@@ -1067,5 +1156,176 @@ mod tests {
                 mode
             );
         }
+    }
+
+    // ------------------------------------------------- legacy column compatibility
+
+    /// The column the old build used, spelled the way `BountyTitle::encrypt`
+    /// writes it: `"<category>_<bbq>"`.
+    fn code(category: &Category, bbq: &BBQ) -> String {
+        format!("{}_{}", category.encode(), bbq.encode())
+    }
+
+    #[test]
+    fn a_zeroed_legacy_column_clears_the_standard_timer() {
+        // The old reset: `UPDATE discord SET latest_bounty_time = 0`.
+        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        let legacy = legacy_entry("0_1", 0);
+        assert_eq!(legacy, LegacyStandard::Cleared);
+        let cleared = apply_legacy(&hist, legacy);
+        assert_eq!(cleared, vec![]);
+        assert_eq!(
+            evaluate(&cleared, &Category::Bronze, &BBQ::BBQ01, &policy(), T0 + HOUR),
+            CooldownVerdict::Allowed
+        );
+    }
+
+    #[test]
+    fn a_negative_legacy_timestamp_also_clears() {
+        assert_eq!(legacy_entry("2_7", -1), LegacyStandard::Cleared);
+        assert_eq!(legacy_entry("2_7", i64::MIN), LegacyStandard::Cleared);
+    }
+
+    #[test]
+    fn a_legacy_standard_entry_drives_the_standard_timer() {
+        // `UPDATE discord SET latest_bounty='2_7', latest_bounty_time = <now>`.
+        let legacy = legacy_entry(&code(&Category::Gold, &BBQ::BBQ07), T0);
+        let hist = apply_legacy(&[], legacy);
+        assert_eq!(hist, vec![entry(Category::Gold, BBQ::BBQ07, T0)]);
+        assert_eq!(
+            evaluate(&hist, &Category::Free, &BBQ::BBQ03, &policy(), T0 + HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 20 * HOUR
+            }
+        );
+    }
+
+    #[test]
+    fn the_legacy_entry_overrides_a_stored_standard_row() {
+        // An operator shortening a wait: the stored row says 20 hours from now, the
+        // column says 30 hours ago. The column wins, so the wait is already over.
+        let stored = history_of(Category::Gold, BBQ::BBQ07, T0 + 20 * HOUR);
+        let legacy = legacy_entry(&code(&Category::Free, &BBQ::BBQ03), T0 - 30 * HOUR);
+        let hist = apply_legacy(&stored, legacy);
+        assert_eq!(hist.len(), 1);
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy(), T0),
+            CooldownVerdict::Allowed
+        );
+    }
+
+    #[test]
+    fn the_legacy_entry_also_extends_a_stored_row() {
+        // The other direction: the stored row is old, the column is fresh.
+        let stored = history_of(Category::Gold, BBQ::BBQ07, T0 - 100 * HOUR);
+        let legacy = legacy_entry(&code(&Category::Silver, &BBQ::BBQ09), T0);
+        let hist = apply_legacy(&stored, legacy);
+        assert_eq!(hist.len(), 1);
+        assert_eq!(
+            evaluate(&hist, &Category::Gold, &BBQ::BBQ07, &policy(), T0 + HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 20 * HOUR
+            }
+        );
+    }
+
+    #[test]
+    fn the_legacy_entry_never_touches_the_event_row() {
+        // A stored Event row must survive a legacy standard entry, otherwise an
+        // operator editing the standard timer would hand out a free Event repeat.
+        let stored = history_of(Category::Event, BBQ::BBQ01, T0);
+        let legacy = legacy_entry(&code(&Category::Gold, &BBQ::BBQ07), T0);
+        let hist = apply_legacy(&stored, legacy);
+        assert!(hist.iter().any(|h| h.group == CooldownGroup::Event));
+
+        let configured = CooldownPolicy {
+            event: 6,
+            ..CooldownPolicy::default()
+        };
+        assert_eq!(
+            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &configured, T0 + HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 6 * HOUR
+            }
+        );
+    }
+
+    #[test]
+    fn a_zeroed_column_also_leaves_the_event_row_alone() {
+        let stored = vec![
+            entry(Category::Gold, BBQ::BBQ07, T0),
+            entry(Category::Event, BBQ::BBQ01, T0),
+        ];
+        let hist = apply_legacy(&stored, LegacyStandard::Cleared);
+        assert_eq!(hist, vec![entry(Category::Event, BBQ::BBQ01, T0)]);
+    }
+
+    #[test]
+    fn a_legacy_event_last_bounty_does_not_gate_the_standard_timer() {
+        // The old build exempted Event, so the column cannot mean "wait" here. If
+        // it did, a player whose last bounty was an Event would lose 20 hours of
+        // ladder access that the old build never took away.
+        let legacy = legacy_entry(&code(&Category::Event, &BBQ::BBQ01), T0);
+        assert_eq!(legacy, LegacyStandard::Unusable);
+
+        let stored = history_of(Category::Gold, BBQ::BBQ07, T0 - 100 * HOUR);
+        let hist = apply_legacy(&stored, legacy);
+        assert_eq!(hist, stored);
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy(), T0),
+            CooldownVerdict::Allowed
+        );
+    }
+
+    #[test]
+    fn an_unreadable_legacy_column_falls_back_to_the_stored_row() {
+        // Live data still holds malformed values. They must not block forever and
+        // must not erase a real cooldown either.
+        for broken in ["", "gold_7", "2", "2_", "_", "2_99", "9_1", "0_0"] {
+            assert_eq!(
+                legacy_entry(broken, T0),
+                LegacyStandard::Unusable,
+                "input {broken:?}"
+            );
+        }
+
+        let stored = history_of(Category::Gold, BBQ::BBQ07, T0);
+        let hist = apply_legacy(&stored, legacy_entry("gold_7", T0));
+        assert_eq!(hist, stored);
+    }
+
+    #[test]
+    fn history_with_legacy_is_what_the_callers_use() {
+        let rows = vec![
+            (2_i16, 4_i16, 1_i16, T0),
+            (0_i16, 2_i16, 7_i16, T0 - 100 * HOUR),
+        ];
+        let stored = history_from_rows(&rows);
+
+        // The column clears the standard wait but keeps the Event wait.
+        let hist = history_with_legacy(&stored, "0_1", 0);
+        assert_eq!(hist, vec![entry(Category::Event, BBQ::BBQ01, T0)]);
+
+        // The column sets a fresh standard wait on top of the stored Event row.
+        let hist = history_with_legacy(&stored, &code(&Category::Gold, &BBQ::BBQ07), T0);
+        assert_eq!(
+            hist,
+            vec![
+                entry(Category::Event, BBQ::BBQ01, T0),
+                entry(Category::Gold, BBQ::BBQ07, T0),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_corrupt_legacy_future_timestamp_is_still_ignored() {
+        // The plausibility guard has to work on the legacy path too, otherwise a
+        // hand-edited 2035 row would paint a nine-year cooldown.
+        let year_2035 = 2_069_445_092;
+        let hist = history_with_legacy(&[], &code(&Category::Gold, &BBQ::BBQ07), year_2035);
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy(), T0),
+            CooldownVerdict::Allowed
+        );
     }
 }

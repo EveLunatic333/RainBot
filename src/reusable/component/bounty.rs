@@ -499,7 +499,11 @@ impl Hunter {
                             .collect::<Vec<_>>()
                     })
                     .unwrap_or_default();
-                let history = bounty_cooldown::history_from_rows(&rows);
+                let history = bounty_cooldown::history_with_legacy(
+                    &bounty_cooldown::history_from_rows(&rows),
+                    &event.latest_bounty,
+                    event.latest_bounty_time,
+                );
                 let group = bounty_cooldown::CooldownGroup::from_category(category);
                 let previous = bounty_cooldown::last_of_group(&history, group);
                 let verdict =

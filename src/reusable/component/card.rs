@@ -221,9 +221,9 @@ impl Event {
     pub async fn response<T: Mybundle>(&self, user: &User, bnd: &T) -> Result<(), MyErr> {
         let policy = super::bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty.cooldown_hours);
 
-        // One query for at most three rows; no per-category round trips.
+        // One query for at most two rows; no per-category round trips.
         let did = user.id.to_string();
-        let history = match crate::reusable::postgress::gacha::group_history(
+        let stored = match crate::reusable::postgress::gacha::group_history(
             crate::reusable::postgress::get_pool(),
             &did,
         )
@@ -236,13 +236,17 @@ impl Event {
                     .collect();
                 super::bounty_cooldown::history_from_rows(&flat)
             }
-            // Falls back to the legacy single timestamp so the card still says
-            // something sensible if the new table is unavailable.
-            Err(_) => self
-                .legacy_history()
-                .map(|h| vec![h])
-                .unwrap_or_default(),
+            // The legacy column is folded in below either way, so a missing table
+            // still leaves the standard timer readable.
+            Err(_) => Vec::new(),
         };
+        // Same fold the submit flow applies, so the card cannot promise a slot the
+        // bot will then refuse (or hide one that is open).
+        let history = super::bounty_cooldown::history_with_legacy(
+            &stored,
+            &self.latest_bounty,
+            self.latest_bounty_time,
+        );
 
         Ok(Components::response_adv(
             bnd,
@@ -250,23 +254,5 @@ impl Event {
                 CreateInteractionResponseMessage::new().embed(self.embed(user, &history, &policy)?),
             ),
         ).await?)
-    }
-
-    /// Builds a Progression history entry from the legacy `latest_bounty_time`.
-    ///
-    /// Used only when the cooldown table cannot be read, so an operator sees a
-    /// roughly correct countdown instead of an empty card.
-    fn legacy_history(&self) -> Option<super::bounty_cooldown::GroupHistory> {
-        if self.latest_bounty_time <= 0 {
-            return None;
-        }
-        let (category, bbq) = super::bounty::BountyTitle::decrypt(&self.latest_bounty)?;
-        let group = super::bounty_cooldown::CooldownGroup::from_category(&category);
-        Some(super::bounty_cooldown::GroupHistory {
-            group,
-            category,
-            bbq,
-            completed_at: self.latest_bounty_time,
-        })
     }
 }

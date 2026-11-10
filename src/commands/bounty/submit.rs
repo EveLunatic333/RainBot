@@ -326,7 +326,13 @@ async fn handle_final_submission(bnd: &SlashBundle<'_>, urls: &[String], mention
                 .collect::<Vec<_>>(),
             Err(_) => Vec::new(),
         };
-        let history = bounty_cooldown::history_from_rows(&rows);
+        // The legacy column stays the operator switch for the standard timer, so it
+        // is folded over the stored rows before anything is decided.
+        let history = bounty_cooldown::history_with_legacy(
+            &bounty_cooldown::history_from_rows(&rows),
+            &event.latest_bounty,
+            event.latest_bounty_time,
+        );
         let group = bounty_cooldown::CooldownGroup::from_category(&category);
         let previous = bounty_cooldown::last_of_group(&history, group);
         let verdict = bounty_cooldown::evaluate(
