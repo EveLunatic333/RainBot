@@ -7,7 +7,53 @@ use crate::commands;
 use crate::Init;
 use crate::reusable::component::bounty::BountyTitle;
 use crate::reusable::component::shutdown::Shutdown;
-use tracing::{info, error};
+use tracing::{info, warn, error};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Guards against two shutdown paths racing (e.g. SIGTERM and then Ctrl-C).
+static SHUTDOWN_STARTED: AtomicBool = AtomicBool::new(false);
+
+/// Saves the CACHE once, then exits. Safe to call from more than one place.
+async fn shutdown_now() {
+    if SHUTDOWN_STARTED.swap(true, Ordering::SeqCst) {
+        warn!("Shutdown already in progress; ignoring the second signal");
+        return;
+    }
+    info!("Trying to Shutdown Gracefully");
+    if let Err(why) = Shutdown::save().await {
+        error!("Cannot save cache object: {}", why);
+    }
+    std::process::exit(0);
+}
+
+/// Waits for whichever stop signal arrives first, then saves and exits.
+///
+/// On unix both SIGINT (Ctrl-C) and SIGTERM are handled: `systemctl stop|restart`
+/// and `pkill` deliver SIGTERM, and the old Ctrl-C-only handler skipped the save
+/// for those paths. Other platforms only have Ctrl-C, which is all the CI and
+/// development host needs.
+async fn wait_for_stop_signal() {
+    #[cfg(unix)]
+    {
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut sigterm) => {
+                tokio::select! {
+                    _ = tokio::signal::ctrl_c() => info!("Ctrl-C received"),
+                    _ = sigterm.recv() => info!("SIGTERM received"),
+                }
+            }
+            Err(e) => {
+                // Saving on Ctrl-C only is better than never saving at all.
+                error!("Cannot install the SIGTERM handler: {}", e);
+                let _ = tokio::signal::ctrl_c().await;
+            }
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+    }
+}
 
 pub async fn ready(ctx: &Context, ready: Ready, init: &Init) {
     let user = UserId::new(init.discord.author_id).to_user(&ctx.http).await.unwrap_or_default();
@@ -15,13 +61,14 @@ pub async fn ready(ctx: &Context, ready: Ready, init: &Init) {
         error!("Cannot load cached file: {}", why);
     }
 
+    // Save the CACHE on every ordinary way a service stops, not only on Ctrl-C.
+    //
+    // The old handler listened for `ctrl_c` alone. `systemctl stop|restart` and
+    // `pkill` deliver SIGTERM, which skipped the handler entirely, so pending
+    // bounty submissions were lost unless the caller happened to send Ctrl-C.
     tokio::spawn(async move {
-        tokio::signal::ctrl_c().await.unwrap();
-        info!("Trying to Shutdown Gracefully");
-        if let Err(why) = Shutdown::save().await {
-            error!("Cannot save cache object: {}", why);
-        }
-        std::process::exit(0);
+        wait_for_stop_signal().await;
+        shutdown_now().await;
     });
 
     info!("----------------------------------------------------------------");
