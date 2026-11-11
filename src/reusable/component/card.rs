@@ -22,14 +22,18 @@ fn make_button() -> CreateActionRow {
 
 /// The cooldown block for one group, as shown on the player card.
 ///
-/// The old build printed "Different Bounty CD" and "Same Bounty CD", but those
-/// words alone never said *which* bounty the repeat referred to. Both lines now
-/// name the reference bounty, so a player can tell what "same" means:
+/// Uses the same wording the old build used, so players who learned to read the
+/// card keep the same vocabulary, and the reference bounty is named so "same"
+/// and "different" are never ambiguous:
 ///
 /// ```text
-/// 🔁 Repeat Gold BBQ07: ⏳ in 21 hours
-/// 🔀 Any other bounty: ⏳ in 42 minutes
+/// 👨‍🌾 **Different Bounty CD:** ⏳ in 42 minutes
+/// 👩‍🌾 **Same Bounty CD:** ⏳ in 21 hours (Gold BBQ07)
 /// ```
+///
+/// The emoji and the "You can do it now" wording are taken from the old card
+/// (`bad9a96`), including the man-farmer for Different and the woman-farmer for
+/// Same.
 ///
 /// Kept free of Discord types so the exact wording can be unit-tested.
 fn cooldown_lines(
@@ -44,29 +48,25 @@ fn cooldown_lines(
         return "✅ Ready".to_string();
     };
 
-    // Name the run both waits are measured from, otherwise "repeat" is ambiguous.
+    // The wait is measured from the player's last run, so name it: without an
+    // anchor, "same" and "different" mean nothing to the reader.
     let reference = format!("{} {}", windows.last_category.name(), windows.last_bbq.name());
 
-    let mut parts: Vec<String> = Vec::new();
-    // Only print a line whose wait is still running: a countdown the player
-    // cannot act on reads as if that bounty were still locked.
-    match windows.repeat {
-        CooldownVerdict::Blocked { ends_at } => {
-            parts.push(format!("🔁 **Repeat** {reference}: ⏳ <t:{ends_at}:R>"));
+    // `cd` mirrors the old build's helper: a running wait counts down, an
+    // expired one says so in words instead of showing a past timestamp.
+    let cd = |verdict: CooldownVerdict| -> String {
+        match verdict {
+            CooldownVerdict::Blocked { ends_at } => format!("⏳ <t:{ends_at}:R>"),
+            CooldownVerdict::Allowed => "You can do it now".to_string(),
         }
-        CooldownVerdict::Allowed => {
-            // The exact bounty is open again, so saying nothing about it would
-            // leave the player guessing whether "Ready" means this one too.
-            parts.push(format!("🔁 **Repeat** {reference}: ✅ open now"));
-        }
-    }
-    if let CooldownVerdict::Blocked { ends_at } = windows.change {
-        parts.push(format!("🔀 **Any other bounty**: ⏳ <t:{ends_at}:R>"));
-    } else {
-        parts.push("🔀 **Any other bounty**: ✅ open now".to_string());
-    }
+    };
 
-    parts.join("\n")
+    format!(
+        "👨‍🌾 **Different Bounty CD:** {}\n👩‍🌾 **Same Bounty CD:** {} ({})",
+        cd(windows.change),
+        cd(windows.repeat),
+        reference
+    )
 }
 
 impl Card {
@@ -330,10 +330,13 @@ mod tests {
         // The regression: the new card printed a bare "Ready" with no countdown.
         let hist = history(Category::Gold, BBQ::BBQ07, T0);
         let out = cooldown_lines(&hist, &Category::Bronze, &CooldownPolicy::default(), T0 + HOUR);
-        assert!(out.contains("Repeat"), "missing the repeat countdown: {out}");
         assert!(
-            out.contains("Any other bounty"),
-            "missing the other-bounty countdown: {out}"
+            out.contains("Different Bounty CD"),
+            "missing the different-bounty countdown: {out}"
+        );
+        assert!(
+            out.contains("Same Bounty CD"),
+            "missing the same-bounty countdown: {out}"
         );
         // 20 h for a different BBQ, 40 h for the exact repeat.
         assert!(out.contains(&format!("<t:{}:R>", T0 + 20 * HOUR)), "got {out}");
@@ -341,35 +344,61 @@ mod tests {
     }
 
     #[test]
-    fn each_line_names_the_bounty_it_is_measured_against() {
-        // The question this answers: "same as what?". "Different" and "same" are
-        // meaningless unless the card says which bounty the repeat refers to.
+    fn the_labels_match_the_old_build_byte_for_byte() {
+        // The old card used U+1F468 ZWJ U+1F33E for Different and U+1F469 ZWJ
+        // U+1F33E for Same. Pinning the escapes stops an editor from swapping the
+        // two look-alike emoji or dropping the zero-width joiner.
         let hist = history(Category::Gold, BBQ::BBQ07, T0);
-        let out = cooldown_lines(&hist, &Category::Bronze, &CooldownPolicy::default(), T0 + HOUR);
+        let out = cooldown_lines(&hist, &Category::Gold, &CooldownPolicy::default(), T0 + HOUR);
         assert!(
-            out.contains("Repeat** Gold BBQ07"),
-            "the repeat line must name the reference bounty: {out}"
+            out.contains("\u{1F468}\u{200D}\u{1F33E} **Different Bounty CD:**"),
+            "Different must use the man farmer, as before: {out}"
+        );
+        assert!(
+            out.contains("\u{1F469}\u{200D}\u{1F33E} **Same Bounty CD:**"),
+            "Same must use the woman farmer, as before: {out}"
         );
     }
 
     #[test]
-    fn the_repeat_line_comes_before_the_other_line() {
+    fn the_different_line_comes_before_the_same_line() {
         let hist = history(Category::Gold, BBQ::BBQ07, T0);
         let out = cooldown_lines(&hist, &Category::Gold, &CooldownPolicy::default(), T0 + HOUR);
-        let repeat = out.find("Repeat").expect("repeat line");
-        let other = out.find("Any other bounty").expect("other line");
-        assert!(repeat < other, "the exact bounty should be listed first: {out}");
+        let different = out.find("Different Bounty CD").expect("different line");
+        let same = out.find("Same Bounty CD").expect("same line");
+        assert!(different < same, "order must match the old build: {out}");
     }
 
     #[test]
-    fn a_repeat_that_is_open_says_open_rather_than_disappearing() {
-        // 25 hours in the exact repeat is still locked, but a change is open. The
-        // gone line must still say so, otherwise the reader cannot tell whether
-        // "Ready" covered it.
+    fn each_line_names_the_bounty_it_is_measured_against() {
+        // The question this answers: "same as what?". The label alone is
+        // ambiguous, so the reference bounty rides along with the Same line.
+        let hist = history(Category::Gold, BBQ::BBQ07, T0);
+        let out = cooldown_lines(&hist, &Category::Bronze, &CooldownPolicy::default(), T0 + HOUR);
+        assert!(
+            out.contains("Same Bounty CD:**"),
+            "the same line must be present: {out}"
+        );
+        assert!(
+            out.contains("(Gold BBQ07)"),
+            "the same line must name the reference bounty: {out}"
+        );
+    }
+
+    #[test]
+    fn an_expired_wait_says_you_can_do_it_now() {
+        // The old build's wording for a wait that has ended: the line stays, with
+        // words instead of a timestamp in the past.
         let hist = history(Category::Gold, BBQ::BBQ07, T0);
         let out = cooldown_lines(&hist, &Category::Gold, &CooldownPolicy::default(), T0 + 25 * HOUR);
-        assert!(out.contains("Any other bounty**: ✅ open now"), "got {out}");
-        assert!(out.contains("Repeat** Gold BBQ07: ⏳"), "got {out}");
+        assert!(
+            out.contains("Different Bounty CD:** You can do it now"),
+            "the 20 hour wait is over: {out}"
+        );
+        assert!(
+            out.contains("Same Bounty CD:** ⏳"),
+            "the 40 hour wait is still running: {out}"
+        );
         assert!(out.contains(&format!("<t:{}:R>", T0 + 40 * HOUR)), "got {out}");
     }
 
@@ -404,7 +433,7 @@ mod tests {
             2,
             "both lines should use the 40 hour default: {out}"
         );
-        assert!(out.contains("Repeat** Event BBQ01"), "got {out}");
+        assert!(out.contains("(Event BBQ01)"), "got {out}");
     }
 
     #[test]
@@ -425,8 +454,9 @@ mod tests {
         // UPDATE must be visible to the player, including which bounty it names.
         let hist = crate::reusable::component::bounty_cooldown::history_with_legacy(&[], "2_7", T0);
         let out = cooldown_lines(&hist, &Category::Bronze, &CooldownPolicy::default(), T0 + HOUR);
-        assert!(out.contains("Repeat** Gold BBQ07"), "got {out}");
-        assert!(out.contains("Any other bounty"), "got {out}");
+        assert!(out.contains("Different Bounty CD"), "got {out}");
+        assert!(out.contains("Same Bounty CD"), "got {out}");
+        assert!(out.contains("(Gold BBQ07)"), "got {out}");
         assert!(out.contains(&format!("<t:{}:R>", T0 + 20 * HOUR)), "got {out}");
         assert!(out.contains(&format!("<t:{}:R>", T0 + 40 * HOUR)), "got {out}");
     }
