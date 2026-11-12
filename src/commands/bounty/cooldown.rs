@@ -59,10 +59,62 @@ async fn interface(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
 async fn refresh(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     let refresh = BountyRefresh::new(false).await?;
     refresh.save(true).await?;
-    
-    Components::response(bnd, "✅ **Cooldown interface refreshed successfully!**", true).await?;
+
+    // Answer the interaction before touching the board: Discord gives three
+    // seconds, and the board edit below is a separate HTTP round trip that can
+    // outlast it.
+    //
+    // Point the operator at the board being refreshed. The message id comes from
+    // config, because the board is a fixed message edited in place.
+    let board_url = board_link(bnd);
+    let content = match &board_url {
+        Some(url) => format!(
+            "✅ **Cooldown interface refreshed successfully!**\n\n\
+             🔗 **Board:** [Jump to the cooldown board]({})\n\
+             The board was updated in place; this link opens it directly.",
+            url
+        ),
+        None => "✅ **Cooldown interface refreshed successfully!**".to_owned(),
+    };
+
+    let mut message = CreateInteractionResponseMessage::new()
+        .content(content)
+        .ephemeral(true);
+    if let Some(url) = &board_url {
+        message = message.components(vec![CreateActionRow::Buttons(vec![
+            CreateButton::new_link(url)
+                .label("Open Cooldown Board")
+                .emoji('🔗'),
+        ])]);
+    }
+    Components::response_adv(bnd, CreateInteractionResponse::Message(message)).await?;
+
     refresh.cooldown(bnd).await?;
     Ok(())
+}
+
+/// The jump link Discord expects for one message.
+///
+/// `None` when no board has been spawned yet: `cooldown_msg: 0` would produce a
+/// `/channels/<g>/<c>/0` link that opens nothing.
+fn board_url_for(guild: u64, channel: u64, message: u64) -> Option<String> {
+    if message == 0 {
+        return None;
+    }
+    Some(format!(
+        "https://discord.com/channels/{}/{}/{}",
+        guild, channel, message
+    ))
+}
+
+/// A clickable link to the configured cooldown board message, if one can be
+/// built from what this interaction knows.
+fn board_link(bnd: &SlashBundle<'_>) -> Option<String> {
+    board_url_for(
+        bnd.cmd.guild_id?.get(),
+        bnd.init.bounty.cooldown_ch,
+        bnd.init.bounty.cooldown_msg,
+    )
 }
 
 async fn bounty(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
@@ -116,5 +168,30 @@ impl PgConn<'_> {
         let mut conn = self.pool.acquire().await?;
         crate::reusable::postgress::gacha::clear_cooldown_history(&mut conn, &self.did).await?;
         Ok(())
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_board_link_has_the_jump_url_shape() {
+        let url = board_url_for(1565626318626889779, 1565638194786074744, 1570450649110417410)
+            .expect("a configured board must produce a link");
+        assert_eq!(
+            url,
+            "https://discord.com/channels/1565626318626889779/1565638194786074744/1570450649110417410"
+        );
+        assert_eq!(url.split('/').count(), 7, "host + channels + guild/channel/message");
+    }
+
+    #[test]
+    fn an_unconfigured_board_id_produces_no_link() {
+        assert!(board_url_for(1, 2, 0).is_none());
+    }
+
+    #[test]
+    fn a_configured_board_id_produces_a_link() {
+        assert!(board_url_for(1, 2, 3).is_some());
     }
 }
