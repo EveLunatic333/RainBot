@@ -9,6 +9,7 @@ pub mod new_error;
 pub mod bounty;
 pub mod bounty_cooldown;
 pub mod bounty_notice;
+pub mod cooldown_board;
 pub mod notice;
 pub mod notices;
 pub mod gacha;

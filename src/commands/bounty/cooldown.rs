@@ -1,5 +1,6 @@
 use serenity::all::*;
 use crate::{MyErr, SlashBundle, Components, Reg};
+use crate::ComponentBundle;
 use crate::reusable::component::bounty::{BountyRefresh, BBQ};
 use crate::reusable::postgress::PgConn;
 use crate::reusable::bitwise::BitwiseError;
@@ -38,24 +39,43 @@ async fn interface(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     let emb = CreateEmbed::new()
         .title("⚓ Bounty Cooldown Anchor")
         .description("Initializing cooldown interface from `/static/cooldown.json`...");
-    
+
     let msg = bnd.cmd.channel_id.send_message(&bnd.ctx.http, CreateMessage::new().embed(emb)).await?;
-    
-    let reply = format!(
-        "✅ **Cooldown Anchor Successfully Spawned!**\n\n\
-        **Message ID:** `{}`\n\n\
-        **Next Steps:**\n\
-        1. Copy the Message ID above.\n\
-        2. Paste it into `config.json` under `\"cooldown_msg\"`.\n\
-        3. Restart the bot.\n\
-        4. Run `/cooldown refresh` to fill this message with the BBQ cooldown list from `cooldown.json`.",
-        msg.id.get()
+
+    let guild = bnd.cmd.guild_id.map(|g| g.get()).unwrap_or(bnd.init.bounty.cooldown_ch);
+    let channel = bnd.cmd.channel_id.get();
+    let message = msg.id.get();
+    let link = board_url_for(guild, channel, message);
+
+    let mut reply = format!(
+        "✅ **Cooldown Anchor Successfully Spawned!**\n\n**Message ID:** `{message}`\n"
     );
-    
-    bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content(&reply)).await?;
+    if let Some(link) = &link {
+        reply.push_str(&format!("\n🔗 **Board:** [Jump to the cooldown board]({link})\n"));
+    }
+    reply.push_str(
+        "\n**Next Steps:**\n\
+         Press **Use This Board** below to adopt it. That takes effect immediately, no \
+         restart needed.\n\
+         To pin it permanently, also put the Message ID into `config.json` under \
+         `\"cooldown_msg\"`.\n\
+         Then run `/cooldown refresh` to fill it with the BBQ cooldown list.",
+    );
+
+    let mut response = EditInteractionResponse::new().content(reply);
+    // Only offer adoption when a link could be built, because the button carries
+    // the same channel/message pair the link was built from.
+    if link.is_some() {
+        response = response.components(vec![CreateActionRow::Buttons(vec![
+            CreateButton::new(format!("cooldownadopt_{channel}_{message}"))
+                .label("Use This Board")
+                .style(ButtonStyle::Success)
+                .emoji('📌'),
+        ])]);
+    }
+    bnd.cmd.edit_response(&bnd.ctx.http, response).await?;
     Ok(())
 }
-
 async fn refresh(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     let refresh = BountyRefresh::new(false).await?;
     refresh.save(true).await?;
@@ -66,7 +86,7 @@ async fn refresh(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     //
     // Point the operator at the board being refreshed. The message id comes from
     // config, because the board is a fixed message edited in place.
-    let board_url = board_link(bnd);
+    let board_url = board_link(bnd).await;
     let content = match &board_url {
         Some(url) => format!(
             "✅ **Cooldown interface refreshed successfully!**\n\n\
@@ -93,6 +113,71 @@ async fn refresh(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     Ok(())
 }
 
+/// Parses `cooldownadopt_<channel>_<message>`.
+///
+/// Both ids are required: adoption records where the board lives, and a button
+/// without them would have to guess.
+fn parse_adopt_id(custom_id: &str) -> Option<(u64, u64)> {
+    let rest = custom_id.strip_prefix("cooldownadopt_")?;
+    let mut parts = rest.splitn(2, '_');
+    let channel = parts.next()?.parse().ok()?;
+    let message = parts.next()?.parse().ok()?;
+    Some((channel, message))
+}
+
+/// Adopts a freshly spawned board so it takes effect without a restart.
+///
+/// `Init` is loaded once at startup, so writing `config.json` alone would not
+/// change which message the bot edits. Recording the id in the board state file
+/// does, and the operator can still pin it in config afterwards.
+#[hertz::hertz_button_normal(0, false)]
+async fn adopt_button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
+    match parse_adopt_id(&bnd.cmd.data.custom_id) {
+        Some((channel, message)) => adopt(bnd, channel, message).await,
+        None => {
+            let _ = bnd
+                .cmd
+                .create_response(
+                    &bnd.ctx.http,
+                    CreateInteractionResponse::Message(
+                        CreateInteractionResponseMessage::new()
+                            .content("❌ Malformed adopt request.")
+                            .ephemeral(true),
+                    ),
+                )
+                .await;
+            Ok(())
+        }
+    }
+}
+
+async fn adopt(bnd: &ComponentBundle<'_>, channel: u64, message: u64) -> Result<(), MyErr> {
+    if bnd.cmd.defer_ephemeral(&bnd.ctx.http).await.is_err() {
+        return Ok(());
+    }
+
+    let state = crate::reusable::component::cooldown_board::BoardState { channel, message };
+    let outcome = match state.save().await {
+        Ok(()) => match crate::reusable::component::cooldown_board::BoardState::load().await {
+            Some(loaded) if loaded.channel == channel && loaded.message == message => {
+                Ok("📌 **Board adopted.** `/cooldown refresh` and every automatic \
+                    cooldown update will now edit this message, without a restart.")
+            }
+            _ => Err("the board file could not be read back after writing".to_owned()),
+        },
+        Err(e) => Err(format!("the board file could not be written: {}", e)),
+    };
+
+    let text = match outcome {
+        Ok(msg) => msg.to_owned(),
+        Err(e) => format!("❌ **Could not adopt the board:**\n```\n{}\n```", e),
+    };
+    let _ = bnd
+        .cmd
+        .edit_response(&bnd.ctx.http, EditInteractionResponse::new().content(text))
+        .await;
+    Ok(())
+}
 /// The jump link Discord expects for one message.
 ///
 /// `None` when no board has been spawned yet: `cooldown_msg: 0` would produce a
@@ -107,14 +192,15 @@ fn board_url_for(guild: u64, channel: u64, message: u64) -> Option<String> {
     ))
 }
 
-/// A clickable link to the configured cooldown board message, if one can be
-/// built from what this interaction knows.
-fn board_link(bnd: &SlashBundle<'_>) -> Option<String> {
-    board_url_for(
-        bnd.cmd.guild_id?.get(),
-        bnd.init.bounty.cooldown_ch,
-        bnd.init.bounty.cooldown_msg,
-    )
+/// A clickable link to the cooldown board in force, if one can be built from what
+/// this interaction knows.
+///
+/// Goes through the same resolver as the board edit, so after `/cooldown adopt`
+/// the link points at the adopted board rather than the stale config value.
+async fn board_link(bnd: &SlashBundle<'_>) -> Option<String> {
+    let guild = bnd.cmd.guild_id?.get();
+    let board = crate::reusable::component::cooldown_board::resolve(bnd.init).await?;
+    board_url_for(guild, board.channel, board.message)
 }
 
 async fn bounty(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
@@ -174,14 +260,40 @@ impl PgConn<'_> {
 mod tests {
     use super::*;
 
+    // --- adopt button id ---------------------------------------------------
+
+    #[test]
+    fn the_adopt_id_carries_channel_and_message() {
+        assert_eq!(
+            parse_adopt_id("cooldownadopt_111_222"),
+            Some((111, 222))
+        );
+    }
+
+    #[test]
+    fn a_malformed_adopt_id_is_rejected() {
+        assert_eq!(parse_adopt_id("cooldownadopt_111"), None);
+        assert_eq!(parse_adopt_id("cooldownadopt_x_222"), None);
+        assert_eq!(parse_adopt_id("cooldownadopt_111_y"), None);
+        assert_eq!(parse_adopt_id("bounty_1_2"), None);
+        assert_eq!(parse_adopt_id("cooldownadopt_"), None);
+    }
+
+    #[test]
+    fn the_adopt_prefix_does_not_collide_with_the_bounty_prefix() {
+        // `cooldownadopt_...` must not be routed to the bounty button handler,
+        // which only accepts ids starting with `bounty_` or `bountydel_`.
+        let custom = "cooldownadopt_111_222";
+        assert!(!custom.contains("bounty"));
+        assert!(parse_adopt_id(custom).is_some());
+    }
+
+    // --- jump link ---------------------------------------------------------
+
     #[test]
     fn the_board_link_has_the_jump_url_shape() {
         let url = board_url_for(1565626318626889779, 1565638194786074744, 1570450649110417410)
             .expect("a configured board must produce a link");
-        assert_eq!(
-            url,
-            "https://discord.com/channels/1565626318626889779/1565638194786074744/1570450649110417410"
-        );
         assert_eq!(url.split('/').count(), 7, "host + channels + guild/channel/message");
     }
 

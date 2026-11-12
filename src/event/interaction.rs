@@ -224,6 +224,9 @@ async fn route_slash_command(bnd: &SlashBundle<'_>) {
 
 async fn route_component_interaction(bnd: &ComponentBundle<'_>) {
     let code = bnd.cmd.data.custom_id.as_str();
+    if code.starts_with("cooldownadopt_") {
+        return commands::bounty::cooldown::discordadopt_button(bnd).await;
+    }
     if code.contains("save") { return commands::binded::transfer::discordbutton(bnd).await; }
     if code.contains("bounty") { return commands::bounty::submit::discordbutton(bnd).await; }
     if code.contains("chat") { return commands::misc::gpt::discordbutton(bnd).await; }

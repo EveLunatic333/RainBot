@@ -965,11 +965,16 @@ impl BountyRefresh {
     /// Updates the cooldown board message directly from context and config.
     /// Used by background tasks that do not have an interaction bundle.
     pub async fn cooldown_board(&self, ctx: &Context, init: &crate::Init) -> Result<(), MyErr> {
-        let mut msg = ChannelId::new(init.bounty.cooldown_ch)
-            .message(
-                &ctx.http,
-                MessageId::new(init.bounty.cooldown_msg),
-            )
+        let board = super::cooldown_board::resolve(init).await;
+        let Some(board) = board else {
+            // No board has been spawned or adopted yet. Nothing to edit; the
+            // caller logs what it can act on.
+            return Err(MyErr::Custom(
+                "no cooldown board is configured; run /cooldown interface or /cooldown adopt".to_owned(),
+            ));
+        };
+        let mut msg = ChannelId::new(board.channel)
+            .message(&ctx.http, MessageId::new(board.message))
             .await?;
         msg.edit(
             &ctx.http,
