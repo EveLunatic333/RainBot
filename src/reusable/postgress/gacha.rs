@@ -565,3 +565,293 @@ pub async fn migrate_category_cooldown_to_group(pool: &sqlx::PgPool) -> Result<u
     .await?;
     Ok(result.rows_affected())
 }
+#[cfg(test)]
+mod event_sharing_db_tests {
+    //! End-to-end check of `event_shares_standard` against a real database.
+    //!
+    //! These are `#[ignore]`d because they need a live PostgreSQL with the bounty
+    //! tables, which the normal unit-test run does not have. Run them on the dev
+    //! host with:
+    //!
+    //! ```text
+    //! RAINBOT_TEST_DATABASE_URL=postgres://user:pass@host:port/db \
+    //!     cargo test event_sharing_db -- --ignored --nocapture
+    //! ```
+    //!
+    //! Each test writes rows for a throwaway discord id and deletes them again, so
+    //! real player data is never touched.
+
+    use super::*;
+    use crate::reusable::component::bounty::{BBQ, Category};
+    use crate::reusable::component::bounty_cooldown::{
+        self, CooldownPolicy, CooldownVerdict,
+    };
+
+    /// Throwaway ids. `999...` cannot collide with a real Discord snowflake.
+    const USER_A: &str = "999000000000009001";
+    const USER_B: &str = "999000000000009002";
+
+    async fn pool() -> sqlx::PgPool {
+        let url = std::env::var("RAINBOT_TEST_DATABASE_URL").expect(
+            "set RAINBOT_TEST_DATABASE_URL to run the database-backed tests",
+        );
+        sqlx::postgres::PgPoolOptions::new()
+            .max_connections(2)
+            .connect(&url)
+            .await
+            .expect("cannot connect to the test database")
+    }
+
+    async fn cleanup(pool: &sqlx::PgPool) {
+        for user in [USER_A, USER_B] {
+            let _ = sqlx::query("DELETE FROM bounty_cooldown_group WHERE discord_id = $1")
+                .bind(user)
+                .execute(pool)
+                .await;
+        }
+    }
+
+    async fn rows_of(pool: &sqlx::PgPool, user: &str) -> Vec<(i16, i16, i16, i64)> {
+        group_history(pool, user)
+            .await
+            .expect("group_history must work")
+            .into_iter()
+            .map(|r| (r.group_id, r.category, r.bbq, r.completed_at))
+            .collect()
+    }
+
+    /// What the submit pre-check does, in the same order.
+    ///
+    /// `legacy` is the `(latest_bounty, latest_bounty_time)` pair the reward flow
+    /// writes to the `discord` row. Passing it explicitly matters: a zero time
+    /// means "the operator cleared the timer", which deliberately drops the
+    /// standard rows, so a test that passed 0 would measure something else than a
+    /// real completion.
+    async fn verdict_for(
+        pool: &sqlx::PgPool,
+        user: &str,
+        category: Category,
+        bbq: BBQ,
+        policy: &CooldownPolicy,
+        legacy: (&str, i64),
+        now: i64,
+    ) -> CooldownVerdict {
+        let history = bounty_cooldown::history_with_legacy_and_policy(
+            &bounty_cooldown::history_from_rows(&rows_of(pool, user).await),
+            legacy.0,
+            legacy.1,
+            policy,
+        );
+        bounty_cooldown::evaluate(&history, &category, &bbq, policy, now)
+    }
+
+    /// The `latest_bounty` string the reward flow stores for a completion.
+    ///
+    /// `BountyTitle::encrypt` is the private `<category>_<bbq>` formatter, so this
+    /// mirrors it. `BountyTitle::decrypt` is the public reader, and the round trip
+    /// is asserted below so the mirror cannot drift unnoticed.
+    fn legacy_code(category: Category, bbq: BBQ) -> String {
+        format!("{}_{}", category.encode(), bbq.encode())
+    }
+
+    fn now() -> i64 {
+        crate::reusable::utils::MyTime::now()
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn an_event_completion_is_written_to_the_shared_row_when_enabled() {
+        let pool = pool().await;
+        cleanup(&pool).await;
+
+        // The exact expression `send_reward` uses for the database key.
+        let on = CooldownPolicy::default().with_event_sharing(true);
+        let off = CooldownPolicy::default().with_event_sharing(false);
+        assert_eq!(on.group_of(&Category::Event).encode(), 0);
+        assert_eq!(off.group_of(&Category::Event).encode(), 2);
+
+        // Write an Event completion the way the reward flow would, with sharing on.
+        record_group_completion_tx(
+            &mut pool.acquire().await.unwrap(),
+            USER_A,
+            on.group_of(&Category::Event).encode(),
+            Category::Event.encode() as i16,
+            BBQ::BBQ01.encode() as i16,
+            now(),
+        )
+        .await
+        .expect("the completion must be recorded");
+
+        let rows = rows_of(&pool, USER_A).await;
+        assert_eq!(rows.len(), 1, "one row expected: {rows:?}");
+        assert_eq!(rows[0].0, 0, "the row must be the standard group key");
+        assert_eq!(rows[0].1, Category::Event.encode() as i16);
+
+        cleanup(&pool).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn a_real_event_row_blocks_the_ladder_only_when_enabled() {
+        let pool = pool().await;
+        cleanup(&pool).await;
+
+        // An Event completion stored under the Event key, as the current build
+        // writes it. This is the data that already exists on a live server.
+        record_group_completion_tx(
+            &mut pool.acquire().await.unwrap(),
+            USER_A,
+            2,
+            Category::Event.encode() as i16,
+            BBQ::BBQ01.encode() as i16,
+            now(),
+        )
+        .await
+        .expect("the completion must be recorded");
+
+        // The legacy column as the reward flow leaves it after an Event run. An
+        // Event value reports `Unusable`, so it neither adds nor removes rows.
+        let legacy = (legacy_code(Category::Event, BBQ::BBQ01), now());
+
+        // Off: the ladder is untouched, which is the behaviour that must survive.
+        assert_eq!(
+            verdict_for(
+                &pool,
+                USER_A,
+                Category::Bronze,
+                BBQ::BBQ02,
+                &CooldownPolicy::default(),
+                (&legacy.0, legacy.1),
+                now(),
+            )
+            .await,
+            CooldownVerdict::Allowed,
+            "with sharing off an Event row must not lock Bronze"
+        );
+
+        // On: the same stored row now gates the ladder.
+        let on = CooldownPolicy::default().with_event_sharing(true);
+        match verdict_for(&pool, USER_A, Category::Bronze, BBQ::BBQ02, &on, (&legacy.0, legacy.1), now()).await {
+            CooldownVerdict::Blocked { ends_at } => {
+                assert!(ends_at > now(), "ends_at must be in the future");
+            }
+            other => panic!("expected Blocked, got {other:?}"),
+        }
+
+        cleanup(&pool).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn a_real_standard_row_blocks_event_only_when_enabled() {
+        let pool = pool().await;
+        cleanup(&pool).await;
+
+        record_group_completion_tx(
+            &mut pool.acquire().await.unwrap(),
+            USER_B,
+            0,
+            Category::Gold.encode() as i16,
+            BBQ::BBQ03.encode() as i16,
+            now(),
+        )
+        .await
+        .expect("the completion must be recorded");
+
+        // A real Gold completion stamps the legacy column with the Gold run.
+        let legacy = (legacy_code(Category::Gold, BBQ::BBQ03), now());
+
+        assert_eq!(
+            verdict_for(
+                &pool,
+                USER_B,
+                Category::Event,
+                BBQ::BBQ01,
+                &CooldownPolicy::default(),
+                (&legacy.0, legacy.1),
+                now(),
+            )
+            .await,
+            CooldownVerdict::Allowed,
+            "with sharing off a Gold row must not lock Event"
+        );
+
+        let on = CooldownPolicy::default().with_event_sharing(true);
+        match verdict_for(&pool, USER_B, Category::Event, BBQ::BBQ01, &on, (&legacy.0, legacy.1), now()).await {
+            CooldownVerdict::Blocked { .. } => {}
+            other => panic!("expected Blocked, got {other:?}"),
+        }
+
+        cleanup(&pool).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn turning_the_option_off_recovers_the_event_timer_from_storage() {
+        let pool = pool().await;
+        cleanup(&pool).await;
+
+        // Stored the way the shipped build writes it.
+        record_group_completion_tx(
+            &mut pool.acquire().await.unwrap(),
+            USER_A,
+            2,
+            Category::Event.encode() as i16,
+            BBQ::BBQ01.encode() as i16,
+            now(),
+        )
+        .await
+        .expect("the completion must be recorded");
+
+        // Flip the option on and back off without writing anything in between:
+        // the stored key is never destroyed, so the Event timer must return.
+        let legacy = (legacy_code(Category::Event, BBQ::BBQ01), now());
+
+        let on = CooldownPolicy::default().with_event_sharing(true);
+        let _ = verdict_for(&pool, USER_A, Category::Event, BBQ::BBQ01, &on, (&legacy.0, legacy.1), now()).await;
+
+        let off = CooldownPolicy::default().with_event_sharing(false);
+        match verdict_for(&pool, USER_A, Category::Event, BBQ::BBQ01, &off, (&legacy.0, legacy.1), now()).await {
+            CooldownVerdict::Blocked { ends_at } => {
+                // Same category and BBQ is a repeat, so it waits `same`.
+                let expected = now() + bounty_cooldown::DEFAULT_SAME_HOURS * 3600;
+                assert!(
+                    (ends_at - expected).abs() <= 5,
+                    "expected about {expected}, got {ends_at}"
+                );
+            }
+            other => panic!("expected Blocked after turning the option off, got {other:?}"),
+        }
+
+        cleanup(&pool).await;
+    }
+
+    #[test]
+    fn the_legacy_code_matches_what_the_reader_expects() {
+        // Cheap guard against the mirrored formatter drifting from the real one.
+        assert_eq!(
+            crate::reusable::component::bounty::BountyTitle::decrypt(
+                &legacy_code(Category::Event, BBQ::BBQ01)
+            ),
+            Some((Category::Event, BBQ::BBQ01))
+        );
+        assert_eq!(
+            crate::reusable::component::bounty::BountyTitle::decrypt(
+                &legacy_code(Category::Gold, BBQ::BBQ03)
+            ),
+            Some((Category::Gold, BBQ::BBQ03))
+        );
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn both_modes_leave_no_residue_behind() {
+        let pool = pool().await;
+        cleanup(&pool).await;
+
+        // Nothing is left for either throwaway user, so the tests above cannot
+        // have polluted the table.
+        assert!(rows_of(&pool, USER_A).await.is_empty());
+        assert!(rows_of(&pool, USER_B).await.is_empty());
+    }
+}
