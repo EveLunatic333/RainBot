@@ -2301,6 +2301,71 @@ mod tests {
     }
 
     #[test]
+    fn the_progression_wait_is_set_from_config_json() {
+        // The operator-facing promise: putting `progression` in `config.json` decides
+        // how long the ladder waits. This goes through the real deserialisation path
+        // rather than constructing a policy by hand, so a renamed key or a dropped
+        // `serde` default would fail here.
+        let configured = |hours: i64| -> i64 {
+            let bounty: super::super::super::config::Bounty = serde_json::from_value(
+                serde_json::json!({
+                    "board_ch": 0, "conquered_ch": 0, "receptionist_ch": 0,
+                    "promotion_ch": 0, "cooldown_ch": 0, "cooldown_msg": 0, "judge_ch": 0,
+                    "cooldown_hours": { "progression": hours }
+                }),
+            )
+            .expect("a bounty block with progression hours must parse");
+            CooldownPolicy::from(&bounty).progression
+        };
+
+        // The example the operator asked for: 40 hours shortened to 20.
+        assert_eq!(configured(40), 40);
+        assert_eq!(configured(20), 20);
+        // Omitted keys inside the block fall back to their documented defaults.
+        assert_eq!(configured(0), 0);
+
+        // And the configured value is what the evaluator actually waits.
+        let bounty: super::super::super::config::Bounty = serde_json::from_value(
+            serde_json::json!({
+                "board_ch": 0, "conquered_ch": 0, "receptionist_ch": 0,
+                "promotion_ch": 0, "cooldown_ch": 0, "cooldown_msg": 0, "judge_ch": 0,
+                "cooldown_hours": { "progression": 20 }
+            }),
+        )
+        .expect("the block must parse");
+        let policy = CooldownPolicy::from(&bounty);
+
+        let hist = history_of(Category::Bronze, BBQ::BBQ01, T0);
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ02, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 20 * HOUR },
+            "a 20 hour setting must produce a 20 hour wait"
+        );
+        // 20 hours in, the ladder is open again.
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ02, &policy, T0 + 20 * HOUR),
+            CooldownVerdict::Allowed
+        );
+    }
+
+    #[test]
+    fn a_missing_progression_key_defaults_to_forty_hours() {
+        // A config written before the ladder had its own timer has no `progression`
+        // key at all. It must keep working, and get the documented 40 hour default.
+        let bounty: super::super::super::config::Bounty = serde_json::from_value(
+            serde_json::json!({
+                "board_ch": 0, "conquered_ch": 0, "receptionist_ch": 0,
+                "promotion_ch": 0, "cooldown_ch": 0, "cooldown_msg": 0, "judge_ch": 0,
+                "cooldown_hours": { "same": 40, "different": 20, "event": 40 }
+            }),
+        )
+        .expect("a pre-ladder hours block must parse");
+        let policy = CooldownPolicy::from(&bounty);
+        assert_eq!(policy.progression, 40);
+        assert_eq!(policy.progression, DEFAULT_PROGRESSION_HOURS);
+    }
+
+    #[test]
     fn the_progression_hours_are_their_own_setting() {
         // The ladder must read `progression`, not `same`/`different`/`event`.
         let policy = CooldownPolicy {
