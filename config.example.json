@@ -43,15 +43,19 @@
     "receptionist_ch": 0,
     "judge_ch": 0,
 
-    "_cooldown_comment": "Per-group bounty cooldown, in HOURS. Bronze/Silver/Gold/Free share ONE timer (the standard group); Event has its own unless 'event_shares_standard' is turned on. 'same' applies when the same category AND the same BBQ number are repeated; 'different' applies when either one changes; 'event' is the Event group's own wait and ignores 'same'/'different'; an explicit 0 disables the check for it. The standard group is still driven by discord.latest_bounty_time, so an operator can move or clear it with plain SQL. Omit the whole block to keep 40/20/40.",
+    "_cooldown_comment": "Per-group bounty cooldown, in HOURS, with THREE independent timers. The progression ladder (Bronze/Silver/Gold) uses 'progression'. Free uses 'same'/'different': 'same' when the same BBQ is repeated, 'different' when it changes. Event uses 'event' unless 'event_shares_standard' pairs it with Free. 'progression' and 'event' are one value each and ignore 'same'/'different'; an explicit 0 disables that timer. The Free timer is still driven by discord.latest_bounty_time, so an operator can move or clear it with plain SQL. Omit the whole block to keep 40/20/40/40.",
     "cooldown_hours": {
       "same": 40,
       "different": 20,
-      "event": 40
+      "event": 40,
+      "progression": 40
     },
 
-    "_event_shares_standard_comment": "When true, Event shares the standard timer: an Event run locks Bronze/Silver/Gold/Free and the other way round, and Event repeats obey 'same'/'different' -- the 'event' value is then ignored. When false (the default) Event keeps its own timer of 'event' hours. Defaults to false so upgrading an existing server never changes live cooldown behaviour.",
+    "_event_shares_standard_comment": "When true, Event shares the timer with FREE only: an Event run locks Free and the other way round, and Event repeats obey 'same'/'different' -- the 'event' value is then ignored. The progression ladder has its own timer and is never affected. When false (the default) Event keeps its own timer of 'event' hours.",
     "event_shares_standard": false,
+
+    "_progression_no_repeat_comment": "When true (the default) a progression bounty that was already cleared cannot be submitted again: the ladder must move up. Bronze BBQ03 cleared means the next submission has to be BBQ04; the category closes once all 25 are done. When false the old behaviour returns and any BBQ up to the current rank may be repeated. Free and Event are never affected.",
+    "progression_no_repeat": true,
 
     "_progression_gate_comment": "What the Bronze -> Silver -> Gold gate requires. 'counter' (default) needs only the completed-bounty counter, which is the trustworthy record. 'either' accepts the counter OR the achievement bit. 'both' requires the counter AND the bit, and will block players whose achievement role was never granted -- check with audit_achievement_roles.py before choosing it.",
     "progression_gate": "counter"

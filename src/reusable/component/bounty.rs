@@ -543,6 +543,41 @@ impl Hunter {
                         .to_plain_text(),
                     ));
                 }
+                // Final enforcement of the no-repeat rule. The pre-check reports it
+                // early; this makes it impossible to bypass by any other path.
+                if matches!(category, Category::Bronze | Category::Silver | Category::Gold) {
+                    match bounty_cooldown::progression_repeat(
+                        category.counter(&event),
+                        bbq.encode(),
+                        bnd.init().bounty.progression_no_repeat,
+                    ) {
+                        bounty_cooldown::ProgressionRepeat::Allowed => {}
+                        bounty_cooldown::ProgressionRepeat::AlreadyCleared { bbq: done, next } => {
+                            return Err(MyErr::Custom(
+                                super::bounty_notice::blocked_submission(&[
+                                    super::bounty_notice::Block::ProgressionRepeat {
+                                        user: us.to_string(),
+                                        category: category.clone(),
+                                        bbq: done,
+                                        next,
+                                    },
+                                ])
+                                .to_plain_text(),
+                            ));
+                        }
+                        bounty_cooldown::ProgressionRepeat::LadderFinished => {
+                            return Err(MyErr::Custom(
+                                super::bounty_notice::blocked_submission(&[
+                                    super::bounty_notice::Block::LadderFinished {
+                                        user: us.to_string(),
+                                        category: category.clone(),
+                                    },
+                                ])
+                                .to_plain_text(),
+                            ));
+                        }
+                    }
+                }
             }
 
             hunter.push(Hunter {

@@ -493,18 +493,25 @@ pub async fn backfill_cooldown_history(pool: &sqlx::PgPool) -> Result<u64, sqlx:
     use crate::reusable::component::bounty::Category;
     use crate::reusable::component::bounty_cooldown::CooldownGroup;
 
-    // Built from the enums so the database keys can never drift from the code.
-    let groups = CooldownGroup::ALL
-        .iter()
-        .map(|g| format!("({}::smallint)", g.encode()))
-        .collect::<Vec<_>>()
-        .join(", ");
+    let progression_group = CooldownGroup::Progression.encode();
+    let standard_group = CooldownGroup::Standard.encode();
     let event_group = CooldownGroup::Event.encode();
+    let bronze = i16::from(Category::Bronze.encode());
+    let gold = i16::from(Category::Gold.encode());
     let event_category = i16::from(Category::Event.encode());
 
+    // One row, one group: the legacy column is a single timestamp, so it can only
+    // seed the group its own category belongs to. This used to CROSS JOIN every
+    // group, which was right when there were two groups (one shared timer plus
+    // Event). With three groups that would seed both the Free and the progression
+    // timer from the same run, inventing a cooldown the player never earned.
     let result = sqlx::query(&format!(
         "INSERT INTO bounty_cooldown_group (discord_id, group_id, category, bbq, completed_at)
-         SELECT d.discord_id, g.group_id, d.c, d.bbq, d.latest_bounty_time
+         SELECT d.discord_id,
+                CASE WHEN d.c BETWEEN {bronze} AND {gold} THEN $1::smallint
+                     WHEN d.c = {event_category} THEN $2::smallint
+                     ELSE $3::smallint END,
+                d.c, d.bbq, d.latest_bounty_time
          FROM (
              SELECT discord_id,
                     split_part(latest_bounty, '_', 1)::smallint AS c,
@@ -516,15 +523,66 @@ pub async fn backfill_cooldown_history(pool: &sqlx::PgPool) -> Result<u64, sqlx:
                AND split_part(latest_bounty, '_', 1)::smallint BETWEEN 0 AND 4
                AND split_part(latest_bounty, '_', 2)::smallint BETWEEN 1 AND 25
          ) d
-         CROSS JOIN (VALUES {groups}) AS g(group_id)
-         WHERE g.group_id <> $1 OR d.c = $2
          ON CONFLICT (discord_id, group_id) DO NOTHING"
     ))
+    .bind(progression_group)
     .bind(event_group)
-    .bind(event_category)
+    .bind(standard_group)
     .execute(pool)
     .await?;
     Ok(result.rows_affected())
+}
+
+/// Moves ladder rows off the old shared group key and onto the progression key.
+///
+/// Before the ladder had a timer of its own, its rows were written with the group
+/// key Free still uses (`0`). The ladder now reads `3`, so a row left on `0` would
+/// stop gating anything and every player would look freshly unlocked.
+///
+/// This is idempotent: it only matches rows whose category belongs to the ladder,
+/// and `ON CONFLICT DO UPDATE ... WHERE EXCLUDED.completed_at > ...` keeps the
+/// newer of the two timestamps. Running it on every start is therefore safe, and
+/// running it twice changes nothing the second time.
+///
+/// It is **not** wired into startup yet: the production table still mixes Free and
+/// ladder rows from the previous build, and moving them during an unattended
+/// upgrade would change live cooldowns without the operator seeing the result
+/// first. Call it explicitly after taking a backup.
+pub async fn regroup_ladder_rows_into_progression(pool: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
+    use crate::reusable::component::bounty::Category;
+    use crate::reusable::component::bounty_cooldown::CooldownGroup;
+
+    let standard = CooldownGroup::Standard.encode();
+    let progression = CooldownGroup::Progression.encode();
+    let bronze = i16::from(Category::Bronze.encode());
+    let gold = i16::from(Category::Gold.encode());
+
+    let result = sqlx::query(&format!(
+        "INSERT INTO bounty_cooldown_group (discord_id, group_id, category, bbq, completed_at)
+         SELECT discord_id, {progression}::smallint, category, bbq, completed_at
+         FROM bounty_cooldown_group
+         WHERE group_id = $1 AND category BETWEEN {bronze} AND {gold}
+         ON CONFLICT (discord_id, group_id) DO UPDATE
+         SET category = EXCLUDED.category,
+             bbq = EXCLUDED.bbq,
+             completed_at = EXCLUDED.completed_at
+         WHERE EXCLUDED.completed_at > bounty_cooldown_group.completed_at"
+    ))
+    .bind(standard)
+    .execute(pool)
+    .await?;
+    let moved = result.rows_affected();
+
+    // The source rows are removed so the ladder cannot be gated by a stale copy.
+    // Only ladder categories are touched, so a genuine Free row survives.
+    let deleted = sqlx::query(&format!(
+        "DELETE FROM bounty_cooldown_group
+         WHERE group_id = $1 AND category BETWEEN {bronze} AND {gold}"
+    ))
+    .bind(standard)
+    .execute(pool)
+    .await?;
+    Ok(moved.max(deleted.rows_affected()))
 }
 
 /// Migrates the superseded per-category table into the per-group table.
@@ -551,7 +609,9 @@ pub async fn migrate_category_cooldown_to_group(pool: &sqlx::PgPool) -> Result<u
                 discord_id, group_id, category, bbq, completed_at
          FROM (
              SELECT discord_id,
-                    CASE WHEN category = 4 THEN 2 ELSE 0 END AS group_id,
+                    CASE WHEN category = 4 THEN 2
+                          WHEN category IN (0, 1, 2) THEN 3
+                          ELSE 0 END AS group_id,
                     category,
                     bbq,
                     completed_at

@@ -211,6 +211,21 @@ pub struct Bounty {
     /// server's cooldown behaviour; the operator has to opt in.
     #[serde(default)]
     pub event_shares_standard: bool,
+    /// Whether a progression bounty that was already cleared may be repeated.
+    ///
+    /// The ladder is walked in order: the counter only rises when the submitted
+    /// BBQ is exactly the next one, so `bronze = N` means Bronze BBQ01..BBQ_N are
+    /// done. `true` (the default) enforces that meaning and refuses a repeat, so
+    /// the player has to move up. `false` restores the old behaviour, where any
+    /// BBQ up to the current rank may be submitted again.
+    ///
+    /// Free and Event are never affected.
+    #[serde(default = "default_progression_no_repeat")]
+    pub progression_no_repeat: bool,
+}
+
+fn default_progression_no_repeat() -> bool {
+    true
 }
 
 /// What must be true before the next progression category opens.
@@ -243,8 +258,8 @@ impl Default for ProgressionGateMode {
 /// The bot used to hold one global timer per user, and the Event category
 /// bypassed it entirely. That let an Event approval overwrite the timestamp of a
 /// Gold/Bronze/Silver run, shortening the user's real cooldown. The cooldown is
-/// now tracked per group, so `same` and `different` apply to the shared standard
-/// group (Bronze, Silver, Gold and Free) and `event` applies to Event alone.
+/// now tracked per group: `progression` applies to the Bronze/Silver/Gold ladder,
+/// `same`/`different` apply to Free, and `event` applies to Event.
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct CooldownHours {
     /// Wait after the same category and the same BBQ number.
@@ -257,6 +272,13 @@ pub struct CooldownHours {
     /// how the old build behaved; the shipped default is a real wait of 40 hours.
     #[serde(default = "default_event")]
     pub event: i64,
+    /// Wait for the Bronze/Silver/Gold progression ladder.
+    ///
+    /// One value for the whole group, the way `event` is: a progression run is
+    /// always the next BBQ in the ladder, so a `same`/`different` split would never
+    /// be asked for. `0` disables the progression cooldown.
+    #[serde(default = "default_progression")]
+    pub progression: i64,
 }
 
 fn default_same() -> i64 {
@@ -274,12 +296,20 @@ fn default_event() -> i64 {
     40
 }
 
+fn default_progression() -> i64 {
+    // Kept in step with `bounty_cooldown::DEFAULT_PROGRESSION_HOURS`. The ladder
+    // shared the standard timer before it had one of its own, and 40 hours was the
+    // wait in practice, so that is the shipped value.
+    40
+}
+
 impl Default for CooldownHours {
     fn default() -> Self {
         Self {
             same: default_same(),
             different: default_diff(),
             event: default_event(),
+            progression: default_progression(),
         }
     }
 }

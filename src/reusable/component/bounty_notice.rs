@@ -47,6 +47,16 @@ pub enum Block {
     },
     /// The administrator closed this bounty slot.
     SlotClosed { category: Category, bbq: BBQ },
+    /// The player already cleared this progression bounty and must move up.
+    ProgressionRepeat {
+        user: String,
+        category: Category,
+        bbq: u8,
+        /// The BBQ that is open now, if any.
+        next: Option<u8>,
+    },
+    /// Every bounty in this progression category is done.
+    LadderFinished { user: String, category: Category },
 }
 
 impl Block {
@@ -75,6 +85,20 @@ impl Block {
                 category.name(),
                 BBQ::new(*wanted).map(|b| b.name()).unwrap_or_else(|_| format!("BBQ{wanted}")),
                 BBQ::new(*allowed).map(|b| b.name()).unwrap_or_else(|_| format!("BBQ{allowed}"))
+            ),
+            Self::ProgressionRepeat { user, category, bbq, next } => match next {
+                Some(next) => format!(
+                    "{user} already cleared {} BBQ{bbq:02}; the next one is BBQ{next:02}.",
+                    category.name()
+                ),
+                None => format!(
+                    "{user} already cleared {} BBQ{bbq:02}.",
+                    category.name()
+                ),
+            },
+            Self::LadderFinished { user, category } => format!(
+                "{user} has cleared every {} bounty, so there is nothing left to submit.",
+                category.name()
             ),
             Self::SlotClosed { category, bbq } => format!(
                 "{} {} is closed for submission right now.",

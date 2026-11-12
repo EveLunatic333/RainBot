@@ -234,34 +234,36 @@ impl Event {
             Market::currency(self.bounty as i64), self.gacha, self.gacha_premium
         );
 
-        // Cooldown is per group, so the card lists the groups rather than the old
-        // per-category split, which no longer maps to anything real.
-        // `status(Bronze)` is the shared group: the evaluator maps every standard
-        // category onto the same row, so asking about Free separately would always
-        // print the same answer twice.
+        // Cooldown is per group and there are three of them, so the card lists one
+        // block per timer. The ladder has its own timer now, which is why it is no
+        // longer folded into the Free line.
         //
-        // When Event shares the standard timer there is only one group to report,
-        // and printing it twice would show the same countdown under two headings.
-        let cooldown_desc = if policy.event_shares_standard() {
+        // `event_shares_standard` pairs Event with Free only: the ladder is out of
+        // that switch's reach, so Free is what shares, never the progression block.
+        let ladder_block = format!(
+            "🏅 **Progression** (Bronze / Silver / Gold)\n{}",
+            status(Category::Bronze)
+        );
+        let free_block = if policy.event_shares_standard() {
+            // One timer, so printing it twice would show the same countdown under
+            // two headings.
             format!(
-                "🎯 **Standard** (Bronze / Silver / Gold / Free / Event)\n{}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
-                status(Category::Bronze),
-                BBQ::name_encode(self.bronze as u8),
-                BBQ::name_encode(self.silver as u8),
-                BBQ::name_encode(self.gold as u8)
+                "🎯 **Standard** (Free / Event)\n{}",
+                status(Category::Free)
             )
         } else {
-            // Each group gets its own block so the two countdowns are never read
-            // as belonging to the other group.
             format!(
-                "🎯 **Standard** (Bronze / Silver / Gold / Free)\n{}\n\n⭐ **Event**\n{}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
-                status(Category::Bronze),
-                status(Category::Event),
-                BBQ::name_encode(self.bronze as u8),
-                BBQ::name_encode(self.silver as u8),
-                BBQ::name_encode(self.gold as u8)
+                "🎯 **Standard** (Free)\n{}\n\n⭐ **Event**\n{}",
+                status(Category::Free),
+                status(Category::Event)
             )
         };
+        let cooldown_desc = format!(
+            "{ladder_block}\n\n{free_block}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
+            BBQ::name_encode(self.bronze as u8),
+            BBQ::name_encode(self.silver as u8),
+            BBQ::name_encode(self.gold as u8)
+        );
 
         let event_desc = format!(
             "🕜 **Latest Bounty:** {latest}\n🕒 **Time Completed:** {time_completed}\n🍽️ **Restaurant Buff:** {}\n\n{}",
@@ -341,8 +343,9 @@ mod tests {
     #[test]
     fn a_fresh_run_shows_both_bounty_cooldowns() {
         // The regression: the new card printed a bare "Ready" with no countdown.
-        let hist = history(Category::Gold, BBQ::BBQ07, T0);
-        let out = cooldown_lines(&hist, &Category::Bronze, &CooldownPolicy::default(), T0 + HOUR);
+        // Free is the category that still uses the same/different pair.
+        let hist = history(Category::Free, BBQ::BBQ07, T0);
+        let out = cooldown_lines(&hist, &Category::Free, &CooldownPolicy::default(), T0 + HOUR);
         assert!(
             out.contains("Different Bounty CD"),
             "missing the different-bounty countdown: {out}"
@@ -353,6 +356,19 @@ mod tests {
         );
         // 20 h for a different BBQ, 40 h for the exact repeat.
         assert!(out.contains(&format!("<t:{}:R>", T0 + 20 * HOUR)), "got {out}");
+        assert!(out.contains(&format!("<t:{}:R>", T0 + 40 * HOUR)), "got {out}");
+    }
+
+    #[test]
+    fn a_ladder_run_shows_the_one_progression_wait_twice() {
+        // One value governs the ladder, so both lines carry the same countdown.
+        let hist = history(Category::Gold, BBQ::BBQ07, T0);
+        let out = cooldown_lines(&hist, &Category::Bronze, &CooldownPolicy::default(), T0 + HOUR);
+        assert!(out.contains("Different Bounty CD"), "got {out}");
+        assert!(out.contains("Same Bounty CD"), "got {out}");
+        assert!(out.contains("(Gold BBQ07)"), "the anchor must name the run: {out}");
+        // Both lines point at the same 40-hour mark, not a 20-hour shorter one.
+        assert!(!out.contains(&format!("<t:{}:R>", T0 + 20 * HOUR)), "no 20h line: {out}");
         assert!(out.contains(&format!("<t:{}:R>", T0 + 40 * HOUR)), "got {out}");
     }
 
@@ -402,8 +418,8 @@ mod tests {
     fn an_expired_wait_says_you_can_do_it_now() {
         // The old build's wording for a wait that has ended: the line stays, with
         // words instead of a timestamp in the past.
-        let hist = history(Category::Gold, BBQ::BBQ07, T0);
-        let out = cooldown_lines(&hist, &Category::Gold, &CooldownPolicy::default(), T0 + 25 * HOUR);
+        let hist = history(Category::Free, BBQ::BBQ07, T0);
+        let out = cooldown_lines(&hist, &Category::Free, &CooldownPolicy::default(), T0 + 25 * HOUR);
         assert!(
             out.contains("Different Bounty CD:** You can do it now"),
             "the 20 hour wait is over: {out}"
@@ -466,11 +482,11 @@ mod tests {
         // The card folds the legacy column in before rendering, so an operator's
         // UPDATE must be visible to the player, including which bounty it names.
         let hist = crate::reusable::component::bounty_cooldown::history_with_legacy(&[], "2_7", T0);
-        let out = cooldown_lines(&hist, &Category::Bronze, &CooldownPolicy::default(), T0 + HOUR);
+        let out = cooldown_lines(&hist, &Category::Gold, &CooldownPolicy::default(), T0 + HOUR);
         assert!(out.contains("Different Bounty CD"), "got {out}");
         assert!(out.contains("Same Bounty CD"), "got {out}");
         assert!(out.contains("(Gold BBQ07)"), "got {out}");
-        assert!(out.contains(&format!("<t:{}:R>", T0 + 20 * HOUR)), "got {out}");
+        // A Gold legacy entry lands on the progression group, so one value applies.
         assert!(out.contains(&format!("<t:{}:R>", T0 + 40 * HOUR)), "got {out}");
     }
     #[test]
@@ -482,12 +498,11 @@ mod tests {
 
     #[test]
     fn a_shared_event_still_counts_as_the_same_run() {
-        // With sharing on, an Event run is what the ladder waits behind, and the
-        // two labels must still describe one countdown pair rather than two.
+        // Sharing now pairs Event with Free, since the ladder has its own timer.
         let hist = history(Category::Event, BBQ::BBQ02, T0);
         let policy = CooldownPolicy::default().with_event_sharing(true);
         let hist = policy.normalize(&hist);
-        let out = cooldown_lines(&hist, &Category::Bronze, &policy, T0 + HOUR);
+        let out = cooldown_lines(&hist, &Category::Free, &policy, T0 + HOUR);
         assert!(out.contains("Different Bounty CD"), "{out}");
         assert!(out.contains("Event BBQ02"), "the anchor must name the Event run: {out}");
     }

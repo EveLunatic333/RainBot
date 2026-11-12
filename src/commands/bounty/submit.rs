@@ -314,6 +314,35 @@ async fn handle_final_submission(bnd: &SlashBundle<'_>, urls: &[String], mention
             continue;
         }
 
+        // The ladder must move up: a BBQ the player already cleared is refused
+        // here, before the cooldown check, so the reason shown is about the
+        // repetition rather than an unrelated wait.
+        if matches!(category, Category::Bronze | Category::Silver | Category::Gold) {
+            match bounty_cooldown::progression_repeat(
+                category.counter(&event),
+                bbq_type.encode(),
+                bnd.init.bounty.progression_no_repeat,
+            ) {
+                bounty_cooldown::ProgressionRepeat::Allowed => {}
+                bounty_cooldown::ProgressionRepeat::AlreadyCleared { bbq, next } => {
+                    blocks.push(Block::ProgressionRepeat {
+                        user: who.clone(),
+                        category: category.clone(),
+                        bbq,
+                        next,
+                    });
+                    continue;
+                }
+                bounty_cooldown::ProgressionRepeat::LadderFinished => {
+                    blocks.push(Block::LadderFinished {
+                        user: who.clone(),
+                        category: category.clone(),
+                    });
+                    continue;
+                }
+            }
+        }
+
         let rows = match crate::reusable::postgress::gacha::group_history(
             pg_temp.pool(),
             &uid.to_string(),

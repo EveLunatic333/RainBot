@@ -49,32 +49,45 @@ pub const DEFAULT_DIFF_HOURS: i64 = 20;
 /// the whole rule for that group.
 pub const DEFAULT_EVENT_HOURS: i64 = 40;
 
+/// Default wait, in hours, for the Bronze/Silver/Gold progression ladder.
+///
+/// The ladder shared the standard timer before it had one of its own, and 40 hours
+/// was the wait in practice, so that is the shipped value. `0` disables it.
+pub const DEFAULT_PROGRESSION_HOURS: i64 = 40;
+
 /// The cooldown ladder a category belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CooldownGroup {
-    /// Bronze, Silver, Gold and Free share one timer.
+    /// Free. The progression ladder used to share this timer and no longer does.
     Standard,
     /// Event has a timer of its own, because it is not part of the ladder.
     Event,
+    /// The Bronze/Silver/Gold progression ladder, which has its own timer so a
+    /// progression run and a Free run no longer wait on each other.
+    Progression,
 }
 
 impl CooldownGroup {
     pub fn from_category(category: &Category) -> Self {
         match category {
-            Category::Bronze | Category::Silver | Category::Gold | Category::Free => Self::Standard,
+            Category::Bronze | Category::Silver | Category::Gold => Self::Progression,
+            Category::Free => Self::Standard,
             Category::Event => Self::Event,
         }
     }
 
     /// Stable number used as the database key. Never renumber: existing rows use it.
     ///
+    /// `0` used to cover the whole ladder and is now Free alone; rows written by
+    /// the previous build are moved onto `3` by `regroup` so their meaning survives.
     /// `1` used to mean "Free" and is retired, but it is still *decoded* as
-    /// `Standard` so a row written by the previous build keeps its meaning even if
-    /// the merge migration did not get to run.
+    /// `Standard`.
     pub fn encode(self) -> i16 {
         match self {
             Self::Standard => 0,
             Self::Event => 2,
+            // 3 was never used, so an existing deployment has no collision.
+            Self::Progression => 3,
         }
     }
 
@@ -82,7 +95,7 @@ impl CooldownGroup {
     ///
     /// The backfill builds its SQL from `encode()` values, which keeps the
     /// database keys and this enum from drifting apart.
-    pub const ALL: [CooldownGroup; 2] = [Self::Standard, Self::Event];
+    pub const ALL: [CooldownGroup; 3] = [Self::Standard, Self::Event, Self::Progression];
 
     pub fn decode(value: i16) -> Option<Self> {
         match value {
@@ -90,6 +103,7 @@ impl CooldownGroup {
             // Retired key for the old Free group, folded into Standard at startup.
             1 => Some(Self::Standard),
             2 => Some(Self::Event),
+            3 => Some(Self::Progression),
             _ => None,
         }
     }
@@ -98,6 +112,7 @@ impl CooldownGroup {
         match self {
             Self::Standard => "Standard",
             Self::Event => "Event",
+            Self::Progression => "Progression",
         }
     }
 }
@@ -108,6 +123,10 @@ pub struct CooldownPolicy {
     pub same: i64,
     pub different: i64,
     pub event: i64,
+    /// Wait for the progression ladder, in hours. One value for the whole group:
+    /// the next submission is always the next BBQ, so `same`/`different` would
+    /// never be asked for.
+    pub progression: i64,
     /// Whether Event shares the standard timer instead of keeping its own.
     ///
     /// Set from `bounty.event_shares_standard`. When `true`, Event is mapped onto
@@ -123,6 +142,7 @@ impl Default for CooldownPolicy {
             same: DEFAULT_SAME_HOURS,
             different: DEFAULT_DIFF_HOURS,
             event: DEFAULT_EVENT_HOURS,
+            progression: DEFAULT_PROGRESSION_HOURS,
             event_shares_standard: false,
         }
     }
@@ -199,6 +219,9 @@ impl CooldownPolicy {
         // letting `history + negative` unlock submissions in the past.
         let hours = match group {
             CooldownGroup::Event => self.event,
+            // The ladder never asks for same/different: the only valid submission
+            // is the next BBQ, so one value covers every case.
+            CooldownGroup::Progression => self.progression,
             // A repeat means the same category AND the same BBQ. Moving from Gold
             // to Silver counts as a change even when the BBQ number matches.
             _ if previous_category == new_category && previous_bbq == new_bbq => self.same,
@@ -316,6 +339,57 @@ pub fn evaluate(
     } else {
         CooldownVerdict::Allowed
     }
+}
+
+/// The highest BBQ number the progression ladder has, so "finished" is knowable.
+pub const PROGRESSION_MAX_BBQ: u8 = 25;
+
+/// What happens when a player submits a progression bounty.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProgressionRepeat {
+    /// The submission may proceed.
+    Allowed,
+    /// This BBQ was already cleared; the ladder has to move up instead.
+    AlreadyCleared { bbq: u8, next: Option<u8> },
+    /// Every BBQ in the category is done, so nothing is left to submit.
+    LadderFinished,
+}
+
+impl ProgressionRepeat {
+    pub fn is_allowed(&self) -> bool {
+        matches!(self, Self::Allowed)
+    }
+}
+
+/// Refuses a progression bounty the player has already cleared.
+///
+/// The ladder is walked in order: [`super::bounty::Category::change_rank`] only
+/// raises the counter when the submitted BBQ is exactly the next one, so a counter
+/// of `N` means BBQ01..BBQ_N are done. That is what makes this check possible
+/// without a per-BBQ history table.
+///
+/// `enabled == false` restores the old behaviour, where any BBQ up to the current
+/// rank could be submitted again.
+///
+/// Free and Event never reach this function: they have no ladder.
+pub fn progression_repeat(counter: i32, requested: u8, enabled: bool) -> ProgressionRepeat {
+    if !enabled {
+        return ProgressionRepeat::Allowed;
+    }
+    let cleared = counter.max(0) as u8;
+    if cleared >= PROGRESSION_MAX_BBQ {
+        // Nothing above the last BBQ exists, so the category is closed. This is
+        // checked first: with 25 cleared, `requested <= cleared` would otherwise
+        // report "already cleared, next is none", which reads like a bug.
+        return ProgressionRepeat::LadderFinished;
+    }
+    if requested <= cleared {
+        return ProgressionRepeat::AlreadyCleared {
+            bbq: requested,
+            next: Some(cleared + 1),
+        };
+    }
+    ProgressionRepeat::Allowed
 }
 
 /// Counters a player must reach before the next progression category opens.
@@ -446,6 +520,7 @@ pub fn earliest_reopen(
 
     let hours = match group {
         CooldownGroup::Event => policy.event,
+        CooldownGroup::Progression => policy.progression,
         // Treat the next submission as a change, which is the shortest wait.
         _ => policy.different,
     }
@@ -536,6 +611,8 @@ pub fn reopen_windows(
     let change = match group {
         // Event ignores `same`/`different`, so a change waits the same amount.
         CooldownGroup::Event => repeat,
+        // The ladder has one value too, so a change waits the same amount.
+        CooldownGroup::Progression => repeat,
         // A change from the last run, with a BBQ that is guaranteed to differ.
         _ => {
             let other = different_bbq(&previous.bbq);
@@ -568,6 +645,7 @@ impl From<&super::super::config::CooldownHours> for CooldownPolicy {
             same: c.same,
             different: c.different,
             event: c.event,
+            progression: c.progression,
             // The hours block says nothing about sharing; that lives in
             // `bounty.event_shares_standard`. Call sites apply it with
             // `with_event_sharing`, so this conversion stays default-off.
@@ -650,8 +728,11 @@ pub fn legacy_entry(latest_bounty: &str, latest_bounty_time: i64) -> LegacyStand
     if category == Category::Event {
         return LegacyStandard::Unusable;
     }
+    // The group must be the one this category now belongs to, not a fixed
+    // `Standard`: the column used to gate the whole ladder, so a Gold legacy entry
+    // has to seed the progression timer rather than the Free one.
     LegacyStandard::Entry(GroupHistory {
-        group: CooldownGroup::Standard,
+        group: CooldownGroup::from_category(&category),
         category,
         bbq,
         completed_at: latest_bounty_time,
@@ -668,15 +749,20 @@ pub fn legacy_entry(latest_bounty: &str, latest_bounty_time: i64) -> LegacyStand
 pub fn apply_legacy(history: &[GroupHistory], legacy: LegacyStandard) -> Vec<GroupHistory> {
     match legacy {
         LegacyStandard::Unusable => history.to_vec(),
+        // The column used to gate every non-Event category, so a clear removes both
+        // the Free and the progression rows rather than the Free row alone.
         LegacyStandard::Cleared => history
             .iter()
-            .filter(|h| h.group != CooldownGroup::Standard)
+            .filter(|h| h.group == CooldownGroup::Event)
             .cloned()
             .collect(),
         LegacyStandard::Entry(entry) => {
+            // Only the group the entry belongs to is replaced; the other group's
+            // row must survive, or an operator editing the column for Gold would
+            // silently drop the player's Free timer.
             let mut out: Vec<GroupHistory> = history
                 .iter()
-                .filter(|h| h.group != CooldownGroup::Standard)
+                .filter(|h| h.group != entry.group)
                 .cloned()
                 .collect();
             out.push(entry);
@@ -829,9 +915,30 @@ mod tests {
     }
 
     #[test]
-    fn a_fresh_standard_run_reports_both_waits() {
+    fn a_fresh_free_run_reports_both_waits() {
         // 20 hours for a different BBQ, 40 hours for the exact same one. This is
-        // the pair the old card printed and the new one had lost.
+        // the pair the old card printed and the new one had lost. Free is the last
+        // category still on the shared `same`/`different` rule.
+        let hist = history_of(Category::Free, BBQ::BBQ07, T0);
+        assert_eq!(
+            reopen_windows(&hist, &Category::Free, &policy(), T0 + HOUR),
+            Some(ReopenWindows {
+                last_category: Category::Free,
+                last_bbq: BBQ::BBQ07,
+                change: CooldownVerdict::Blocked {
+                    ends_at: T0 + 20 * HOUR
+                },
+                repeat: CooldownVerdict::Blocked {
+                    ends_at: T0 + 40 * HOUR
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn the_ladder_reports_one_wait_for_both_lines() {
+        // The ladder has a single value, so change and repeat are identical. The
+        // card must still print both lines rather than a wrong pair.
         let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
         assert_eq!(
             reopen_windows(&hist, &Category::Bronze, &policy(), T0 + HOUR),
@@ -839,7 +946,7 @@ mod tests {
                 last_category: Category::Gold,
                 last_bbq: BBQ::BBQ07,
                 change: CooldownVerdict::Blocked {
-                    ends_at: T0 + 20 * HOUR
+                    ends_at: T0 + 40 * HOUR
                 },
                 repeat: CooldownVerdict::Blocked {
                     ends_at: T0 + 40 * HOUR
@@ -860,13 +967,13 @@ mod tests {
 
     #[test]
     fn the_change_window_closes_before_the_repeat_window() {
-        // 25 hours in: any different bounty is open again, but the exact repeat
+        // 25 hours in: a different Free bounty is open again, but the exact repeat
         // still has 15 hours to go. The card must show one line, not zero or two.
-        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        let hist = history_of(Category::Free, BBQ::BBQ07, T0);
         assert_eq!(
-            reopen_windows(&hist, &Category::Gold, &policy(), T0 + 25 * HOUR),
+            reopen_windows(&hist, &Category::Free, &policy(), T0 + 25 * HOUR),
             Some(ReopenWindows {
-                last_category: Category::Gold,
+                last_category: Category::Free,
                 last_bbq: BBQ::BBQ07,
                 change: CooldownVerdict::Allowed,
                 repeat: CooldownVerdict::Blocked {
@@ -948,12 +1055,13 @@ mod tests {
         // must honour an SQL-planted cooldown too.
         let hist = history_with_legacy(&[], "2_7", T0);
         assert_eq!(
-            reopen_windows(&hist, &Category::Bronze, &policy(), T0 + HOUR),
+            reopen_windows(&hist, &Category::Gold, &policy(), T0 + HOUR),
             Some(ReopenWindows {
                 last_category: Category::Gold,
                 last_bbq: BBQ::BBQ07,
                 change: CooldownVerdict::Blocked {
-                    ends_at: T0 + 20 * HOUR
+                    // The ladder has one value, so change and repeat agree.
+                    ends_at: T0 + 40 * HOUR
                 },
                 repeat: CooldownVerdict::Blocked {
                     ends_at: T0 + 40 * HOUR
@@ -967,7 +1075,7 @@ mod tests {
         // The card prints this, so a wrong reference would tell the player to
         // wait for a bounty they never did.
         let hist = history_of(Category::Free, BBQ::BBQ12, T0);
-        let windows = reopen_windows(&hist, &Category::Bronze, &policy(), T0 + HOUR)
+        let windows = reopen_windows(&hist, &Category::Free, &policy(), T0 + HOUR)
             .expect("fresh run should have windows");
         assert_eq!(windows.last_category, Category::Free);
         assert_eq!(windows.last_bbq, BBQ::BBQ12);
@@ -975,9 +1083,9 @@ mod tests {
 
     #[test]
     fn the_open_helpers_agree_with_the_verdicts() {
-        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        let hist = history_of(Category::Free, BBQ::BBQ07, T0);
         // 25 hours in: a change is open, the exact repeat is not.
-        let windows = reopen_windows(&hist, &Category::Gold, &policy(), T0 + 25 * HOUR)
+        let windows = reopen_windows(&hist, &Category::Free, &policy(), T0 + 25 * HOUR)
             .expect("repeat wait still running");
         assert!(windows.change_is_open());
         assert!(!windows.repeat_is_open());
@@ -1000,11 +1108,13 @@ mod tests {
 
     #[test]
     fn allows_when_the_cooldown_has_expired() {
-        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        // Free still uses `same`/`different`; the ladder has its own hours now, so
+        // the shared-timer examples in this file use Free.
+        let hist = history_of(Category::Free, BBQ::BBQ07, T0);
         // A change waits 20 hours; one second past that is free.
         let verdict = evaluate(
             &hist,
-            &Category::Silver,
+            &Category::Free,
             &BBQ::BBQ09,
             &policy(),
             T0 + 20 * HOUR + 1,
@@ -1018,10 +1128,10 @@ mod tests {
 
     #[test]
     fn blocks_while_the_cooldown_is_running() {
-        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        let hist = history_of(Category::Free, BBQ::BBQ07, T0);
         let verdict = evaluate(
             &hist,
-            &Category::Silver,
+            &Category::Free,
             &BBQ::BBQ09,
             &policy(),
             T0 + 20 * HOUR - 1,
@@ -1039,10 +1149,10 @@ mod tests {
 
     #[test]
     fn exactly_on_the_boundary_is_allowed() {
-        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        let hist = history_of(Category::Free, BBQ::BBQ07, T0);
         let verdict = evaluate(
             &hist,
-            &Category::Silver,
+            &Category::Free,
             &BBQ::BBQ09,
             &policy(),
             T0 + 20 * HOUR,
@@ -1073,7 +1183,8 @@ mod tests {
         assert_eq!(
             verdict,
             CooldownVerdict::Blocked {
-                ends_at: T0 + 20 * HOUR
+                // The ladder has one `progression` value (40h), not `different`.
+                ends_at: T0 + 40 * HOUR
             }
         );
     }
@@ -1086,14 +1197,15 @@ mod tests {
     }
 
     #[test]
-    fn silver_after_gold_with_the_same_bbq_counts_as_a_change() {
-        // Gold BBQ07 -> Silver BBQ07 is NOT a repeat: the category differs.
+    fn the_ladder_uses_one_value_for_every_change() {
+        // Gold BBQ07 -> Silver BBQ07 still waits the single `progression` value:
+        // the ladder never consults `same` or `different`.
         let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
         let verdict = evaluate(&hist, &Category::Silver, &BBQ::BBQ07, &policy(), T0 + 20 * HOUR - 1);
         assert_eq!(
             verdict,
             CooldownVerdict::Blocked {
-                ends_at: T0 + 20 * HOUR
+                ends_at: T0 + 40 * HOUR
             }
         );
     }
@@ -1108,24 +1220,20 @@ mod tests {
     // ----------------------------------------------------- groups are independent
 
     #[test]
-    fn free_and_progression_share_one_timer() {
-        // The merge: a Free run and a Bronze/Silver/Gold run are the same wait, so
-        // one player cannot take both back to back.
+    fn free_and_progression_have_separate_timers() {
+        // The ladder was split off the shared timer, so a Free run no longer gates
+        // a progression run and the other way round. This is the inverse of the
+        // merge this test used to assert.
         let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
         assert_eq!(
             evaluate(&hist, &Category::Free, &BBQ::BBQ03, &policy(), T0 + HOUR),
-            CooldownVerdict::Blocked {
-                ends_at: T0 + 20 * HOUR
-            }
+            CooldownVerdict::Allowed
         );
 
-        // ...and the other way around.
         let hist = history_of(Category::Free, BBQ::BBQ03, T0);
         assert_eq!(
             evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy(), T0 + HOUR),
-            CooldownVerdict::Blocked {
-                ends_at: T0 + 20 * HOUR
-            }
+            CooldownVerdict::Allowed
         );
     }
 
@@ -1175,18 +1283,18 @@ mod tests {
 
     #[test]
     fn the_latest_run_of_one_group_wins() {
+        // Both rows are in the progression group, so the newer one must gate.
         let hist = vec![
             entry(Category::Gold, BBQ::BBQ07, T0),
             entry(Category::Silver, BBQ::BBQ09, T0 + 50 * HOUR),
         ];
-        // If the older row won, Bronze after BBQ07 would be a 20 hour wait that
-        // ended at T0+20h — already past, so Allowed. Because the newer row wins,
-        // Bronze counts as a change from Silver: 20 hours from T0+50h.
+        // If the older row won the wait would already be over. Because the newer
+        // row wins, the ladder waits `progression` from T0+50h.
         let verdict = evaluate(&hist, &Category::Bronze, &BBQ::BBQ07, &policy(), T0 + 51 * HOUR);
         assert_eq!(
             verdict,
             CooldownVerdict::Blocked {
-                ends_at: T0 + 70 * HOUR
+                ends_at: T0 + 90 * HOUR
             }
         );
     }
@@ -1212,16 +1320,20 @@ mod tests {
     }
 
     #[test]
-    fn same_category_with_a_different_bbq_waits_twenty_hours() {
-        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
-        let verdict = evaluate(
-            &hist,
-            &Category::Gold,
-            &BBQ::BBQ09,
-            &policy(),
-            T0 + 20 * HOUR,
+    fn the_ladder_does_not_use_the_different_wait() {
+        // 20 hours in, a Free change is open but the ladder is not: it waits the
+        // whole `progression` value.
+        let hist = history_of(Category::Free, BBQ::BBQ07, T0);
+        assert_eq!(
+            evaluate(&hist, &Category::Free, &BBQ::BBQ09, &policy(), T0 + 20 * HOUR),
+            CooldownVerdict::Allowed
         );
-        assert_eq!(verdict, CooldownVerdict::Allowed);
+
+        let ladder = history_of(Category::Gold, BBQ::BBQ07, T0);
+        assert_eq!(
+            evaluate(&ladder, &Category::Gold, &BBQ::BBQ09, &policy(), T0 + 20 * HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 40 * HOUR }
+        );
     }
 
     // ------------------------------------------------------------- event configured
@@ -1246,8 +1358,8 @@ mod tests {
         // The backfill builds its SQL from these numbers. A duplicated key would
         // silently collapse two timers into one row, so pin them here.
         let keys: Vec<i16> = CooldownGroup::ALL.iter().map(|g| g.encode()).collect();
-        assert_eq!(keys, vec![0, 2]);
-        assert_eq!(CooldownGroup::ALL.len(), 2);
+        assert_eq!(keys, vec![0, 2, 3]);
+        assert_eq!(CooldownGroup::ALL.len(), 3);
 
         for group in CooldownGroup::ALL {
             assert_eq!(CooldownGroup::decode(group.encode()), Some(group));
@@ -1262,6 +1374,7 @@ mod tests {
         assert_eq!(CooldownGroup::decode(1), Some(CooldownGroup::Standard));
         assert_eq!(CooldownGroup::Standard.encode(), 0);
         assert_eq!(CooldownGroup::Event.encode(), 2);
+        assert_eq!(CooldownGroup::Progression.encode(), 3);
 
         let rows = vec![(1_i16, 3_i16, 5_i16, T0)];
         let hist = history_from_rows(&rows);
@@ -1663,36 +1776,50 @@ mod tests {
     }
 
     #[test]
-    fn a_legacy_standard_entry_drives_the_standard_timer() {
+    fn a_legacy_ladder_entry_drives_the_progression_timer() {
         // `UPDATE discord SET latest_bounty='2_7', latest_bounty_time = <now>`.
+        // The column used to gate the whole ladder, so a Gold entry must seed the
+        // progression timer rather than the Free one.
         let legacy = legacy_entry(&code(&Category::Gold, &BBQ::BBQ07), T0);
         let hist = apply_legacy(&[], legacy);
         assert_eq!(hist, vec![entry(Category::Gold, BBQ::BBQ07, T0)]);
         assert_eq!(
-            evaluate(&hist, &Category::Free, &BBQ::BBQ03, &policy(), T0 + HOUR),
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ03, &policy(), T0 + HOUR),
             CooldownVerdict::Blocked {
-                ends_at: T0 + 20 * HOUR
+                ends_at: T0 + 40 * HOUR
             }
         );
-    }
-
-    #[test]
-    fn the_legacy_entry_overrides_a_stored_standard_row() {
-        // An operator shortening a wait: the stored row says 20 hours from now, the
-        // column says 30 hours ago. The column wins, so the wait is already over.
-        let stored = history_of(Category::Gold, BBQ::BBQ07, T0 + 20 * HOUR);
-        let legacy = legacy_entry(&code(&Category::Free, &BBQ::BBQ03), T0 - 30 * HOUR);
-        let hist = apply_legacy(&stored, legacy);
-        assert_eq!(hist.len(), 1);
+        // ...and it must not touch Free.
         assert_eq!(
-            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy(), T0),
+            evaluate(&hist, &Category::Free, &BBQ::BBQ03, &policy(), T0 + HOUR),
             CooldownVerdict::Allowed
         );
     }
 
     #[test]
+    fn the_legacy_entry_overrides_only_its_own_group() {
+        // An operator shortening the Free wait: the stored progression row must
+        // survive, because the column now speaks for one group rather than all.
+        let stored = history_of(Category::Gold, BBQ::BBQ07, T0 + 20 * HOUR);
+        let legacy = legacy_entry(&code(&Category::Free, &BBQ::BBQ03), T0 - 30 * HOUR);
+        let hist = apply_legacy(&stored, legacy);
+        assert_eq!(hist.len(), 2);
+        assert_eq!(
+            evaluate(&hist, &Category::Free, &BBQ::BBQ01, &policy(), T0),
+            CooldownVerdict::Allowed
+        );
+        // The stored progression row sits at T0+20h, so the ladder waits 40 hours
+        // from there, not from T0.
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy(), T0),
+            CooldownVerdict::Blocked { ends_at: T0 + 60 * HOUR }
+        );
+    }
+
+    #[test]
     fn the_legacy_entry_also_extends_a_stored_row() {
-        // The other direction: the stored row is old, the column is fresh.
+        // The other direction: the stored row is old, the column is fresh. Both are
+        // in the progression group, so only one row remains.
         let stored = history_of(Category::Gold, BBQ::BBQ07, T0 - 100 * HOUR);
         let legacy = legacy_entry(&code(&Category::Silver, &BBQ::BBQ09), T0);
         let hist = apply_legacy(&stored, legacy);
@@ -1700,7 +1827,7 @@ mod tests {
         assert_eq!(
             evaluate(&hist, &Category::Gold, &BBQ::BBQ07, &policy(), T0 + HOUR),
             CooldownVerdict::Blocked {
-                ends_at: T0 + 20 * HOUR
+                ends_at: T0 + 40 * HOUR
             }
         );
     }
@@ -1772,24 +1899,39 @@ mod tests {
 
     #[test]
     fn history_with_legacy_is_what_the_callers_use() {
+        // Group 0 is Free now, so the stored standard row is a Free completion.
         let rows = vec![
             (2_i16, 4_i16, 1_i16, T0),
-            (0_i16, 2_i16, 7_i16, T0 - 100 * HOUR),
+            (0_i16, 3_i16, 7_i16, T0 - 100 * HOUR),
         ];
         let stored = history_from_rows(&rows);
 
-        // The column clears the standard wait but keeps the Event wait.
+        // The column clears both shared timers but keeps the Event wait.
         let hist = history_with_legacy(&stored, "0_1", 0);
         assert_eq!(hist, vec![entry(Category::Event, BBQ::BBQ01, T0)]);
 
-        // The column sets a fresh standard wait on top of the stored Event row.
-        let hist = history_with_legacy(&stored, &code(&Category::Gold, &BBQ::BBQ07), T0);
+        // The column sets a fresh Free wait on top of the stored Event row.
+        let hist = history_with_legacy(&stored, &code(&Category::Free, &BBQ::BBQ07), T0);
         assert_eq!(
             hist,
             vec![
                 entry(Category::Event, BBQ::BBQ01, T0),
-                entry(Category::Gold, BBQ::BBQ07, T0),
+                entry(Category::Free, BBQ::BBQ07, T0),
             ]
+        );
+    }
+
+    #[test]
+    fn a_stale_group_zero_ladder_row_does_not_gate_the_ladder() {
+        // Rows written before the split carry group 0 with a ladder category. The
+        // ladder now reads group 3, so such a row is inert until `regroup` moves
+        // it. Pinning this makes the migration's purpose explicit instead of
+        // letting it look like an accident.
+        let rows = vec![(0_i16, 2_i16, 7_i16, T0)];
+        let stored = history_from_rows(&rows);
+        assert_eq!(
+            evaluate(&stored, &Category::Bronze, &BBQ::BBQ01, &policy(), T0 + HOUR),
+            CooldownVerdict::Allowed
         );
     }
 
@@ -1859,25 +2001,40 @@ mod tests {
     }
 
     #[test]
-    fn event_on_blocks_the_ladder() {
-        // An Event run now locks the standard group, so Bronze must wait.
+    fn event_on_blocks_free_but_not_the_ladder() {
+        // `event_shares_standard` now means Event and Free, because the ladder has
+        // its own timer and is out of reach of that switch.
         let policy = shared_policy(true);
         let hist = policy.normalize(&history_of(Category::Event, BBQ::BBQ01, T0));
+
+        assert_eq!(
+            evaluate(&hist, &Category::Free, &BBQ::BBQ02, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 20 * HOUR },
+            "a different Free BBQ waits `different`, measured from the Event run"
+        );
         assert_eq!(
             evaluate(&hist, &Category::Bronze, &BBQ::BBQ02, &policy, T0 + HOUR),
-            CooldownVerdict::Blocked { ends_at: T0 + 20 * HOUR },
-            "a different BBQ waits `different`, measured from the Event run"
+            CooldownVerdict::Allowed,
+            "the ladder is not part of the shared standard timer"
         );
     }
 
     #[test]
-    fn event_on_is_blocked_by_the_ladder() {
-        // The other direction: a completed Bronze run must now gate Event.
+    fn event_on_is_blocked_by_free_not_the_ladder() {
+        // The other direction, with the same split: Free gates Event, the ladder
+        // does not.
         let policy = shared_policy(true);
-        let hist = policy.normalize(&history_of(Category::Bronze, BBQ::BBQ03, T0));
+
+        let free_run = policy.normalize(&history_of(Category::Free, BBQ::BBQ03, T0));
         assert_eq!(
-            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy, T0 + HOUR),
+            evaluate(&free_run, &Category::Event, &BBQ::BBQ01, &policy, T0 + HOUR),
             CooldownVerdict::Blocked { ends_at: T0 + 20 * HOUR }
+        );
+
+        let ladder_run = policy.normalize(&history_of(Category::Bronze, BBQ::BBQ03, T0));
+        assert_eq!(
+            evaluate(&ladder_run, &Category::Event, &BBQ::BBQ01, &policy, T0 + HOUR),
+            CooldownVerdict::Allowed
         );
     }
 
@@ -1951,7 +2108,8 @@ mod tests {
         assert_eq!(shared_policy(true).group_of(&Category::Event).encode(), 0);
         for on in [false, true] {
             let p = shared_policy(on);
-            assert_eq!(p.group_of(&Category::Bronze).encode(), 0);
+            // The ladder has its own key now; Free keeps the standard one.
+            assert_eq!(p.group_of(&Category::Bronze).encode(), 3);
             assert_eq!(p.group_of(&Category::Free).encode(), 0);
         }
     }
@@ -2014,5 +2172,138 @@ mod tests {
             &shared_policy(true),
         );
         assert!(hist.is_empty(), "an Event legacy column must not seed a row");
+    }
+    // ---------------------------------------------------------------------
+    // Progression: own timer, and no repeating a cleared bounty
+    // ---------------------------------------------------------------------
+
+    #[test]
+    fn the_ladder_has_its_own_group_and_key() {
+        assert_eq!(CooldownGroup::from_category(&Category::Bronze), CooldownGroup::Progression);
+        assert_eq!(CooldownGroup::from_category(&Category::Silver), CooldownGroup::Progression);
+        assert_eq!(CooldownGroup::from_category(&Category::Gold), CooldownGroup::Progression);
+        assert_eq!(CooldownGroup::from_category(&Category::Free), CooldownGroup::Standard);
+        assert_eq!(CooldownGroup::from_category(&Category::Event), CooldownGroup::Event);
+
+        // 3 was never used, so no existing row collides with it.
+        assert_eq!(CooldownGroup::Progression.encode(), 3);
+        assert_eq!(CooldownGroup::decode(3), Some(CooldownGroup::Progression));
+        assert_ne!(CooldownGroup::Progression.encode(), CooldownGroup::Standard.encode());
+        assert_ne!(CooldownGroup::Progression.encode(), CooldownGroup::Event.encode());
+        assert_eq!(CooldownGroup::Progression.name(), "Progression");
+    }
+
+    #[test]
+    fn the_same_run_is_refused_so_the_ladder_has_to_move_up() {
+        // Counter 3 means Bronze BBQ01..BBQ03 are done. Asking for any of them
+        // again has to be refused, and the answer must name the next one.
+        for cleared in 1..=3u8 {
+            assert_eq!(
+                progression_repeat(3, cleared, true),
+                ProgressionRepeat::AlreadyCleared {
+                    bbq: cleared,
+                    next: Some(4),
+                },
+                "BBQ{cleared:02} was already cleared"
+            );
+        }
+    }
+
+    #[test]
+    fn the_next_bounty_is_allowed() {
+        assert_eq!(progression_repeat(3, 4, true), ProgressionRepeat::Allowed);
+        // Ahead of the ladder is left to the existing rank check, which refuses it
+        // with its own message; this rule must not claim it.
+        assert_eq!(progression_repeat(3, 9, true), ProgressionRepeat::Allowed);
+    }
+
+    #[test]
+    fn the_first_bounty_is_open_to_a_new_player() {
+        assert_eq!(progression_repeat(0, 1, true), ProgressionRepeat::Allowed);
+        // With nothing cleared, a higher number is the rank check's business.
+        assert_eq!(progression_repeat(0, 5, true), ProgressionRepeat::Allowed);
+    }
+
+    #[test]
+    fn a_finished_ladder_is_closed() {
+        // 25 cleared means every BBQ is done, so even the last one is refused and
+        // there is no "next" to point at.
+        assert_eq!(progression_repeat(25, 25, true), ProgressionRepeat::LadderFinished);
+        assert_eq!(progression_repeat(25, 1, true), ProgressionRepeat::LadderFinished);
+        assert_eq!(progression_repeat(30, 25, true), ProgressionRepeat::LadderFinished);
+    }
+
+    #[test]
+    fn turning_the_rule_off_allows_repeats_again() {
+        // The operator switch has to restore the old behaviour exactly.
+        assert_eq!(progression_repeat(3, 1, false), ProgressionRepeat::Allowed);
+        assert_eq!(progression_repeat(25, 1, false), ProgressionRepeat::Allowed);
+    }
+
+    #[test]
+    fn a_negative_counter_is_treated_as_nothing_cleared() {
+        // Defensive: a corrupt `-1` must not unlock or lock anything odd.
+        assert_eq!(progression_repeat(-1, 1, true), ProgressionRepeat::Allowed);
+    }
+
+    #[test]
+    fn the_no_repeat_switch_defaults_to_on() {
+        // A config without the key enforces the new rule, per the confirmed choice.
+        let cfg: super::super::super::config::Bounty = serde_json::from_value(serde_json::json!({
+            "board_ch": 0, "conquered_ch": 0, "receptionist_ch": 0, "promotion_ch": 0,
+            "cooldown_ch": 0, "cooldown_msg": 0, "judge_ch": 0
+        }))
+        .expect("a bounty block without the switch must parse");
+        assert!(cfg.progression_no_repeat);
+    }
+
+    #[test]
+    fn the_progression_hours_are_their_own_setting() {
+        // The ladder must read `progression`, not `same`/`different`/`event`.
+        let policy = CooldownPolicy {
+            same: 11,
+            different: 22,
+            event: 33,
+            progression: 44,
+            event_shares_standard: false,
+        };
+        let hist = history_of(Category::Bronze, BBQ::BBQ01, T0);
+        // Repeat of the same BBQ: still 44, not 11.
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 44 * HOUR }
+        );
+        // A change: still 44, not 22.
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ02, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 44 * HOUR }
+        );
+    }
+
+    #[test]
+    fn a_ladder_run_does_not_gate_free_and_free_does_not_gate_the_ladder() {
+        let ladder = history_of(Category::Bronze, BBQ::BBQ01, T0);
+        assert_eq!(
+            evaluate(&ladder, &Category::Free, &BBQ::BBQ01, &policy(), T0 + HOUR),
+            CooldownVerdict::Allowed
+        );
+        let free = history_of(Category::Free, BBQ::BBQ01, T0);
+        assert_eq!(
+            evaluate(&free, &Category::Bronze, &BBQ::BBQ01, &policy(), T0 + HOUR),
+            CooldownVerdict::Allowed
+        );
+    }
+
+    #[test]
+    fn a_ladder_run_still_blocks_across_the_three_categories() {
+        // Bronze -> Silver -> Gold is one ladder, so a Gold run gates Bronze.
+        let hist = history_of(Category::Gold, BBQ::BBQ07, T0);
+        for target in [Category::Bronze, Category::Silver, Category::Gold] {
+            assert_eq!(
+                evaluate(&hist, &target, &BBQ::BBQ09, &policy(), T0 + HOUR),
+                CooldownVerdict::Blocked { ends_at: T0 + 40 * HOUR },
+                "{target:?} must share the ladder timer"
+            );
+        }
     }
 }
