@@ -129,6 +129,24 @@ async fn main() {
 
     let image_handler = Images::new().await.expect("Critical: Image processor initialization failed");
 
+    // The adopted cooldown board lives in a runtime file, while `config.json` is
+    // the durable record. Write the adopted id back so a lost `static/` folder
+    // cannot silently fall back to a stale board.
+    match reusable::component::cooldown_board::sync_into_config(
+        conf.bounty.cooldown_ch,
+        conf.bounty.cooldown_msg,
+    )
+    .await
+    {
+        Ok(Some(board)) => tracing::info!(
+            channel = board.channel,
+            message = board.message,
+            "Wrote the adopted cooldown board id into config.json"
+        ),
+        Ok(None) => {}
+        Err(e) => tracing::warn!(error = %e, "Could not write the adopted cooldown board id into config.json"),
+    }
+
     let auto_config = AutoResponseConfig::load().await.unwrap_or_else(|_| AutoResponseConfig { responses: vec![] });
     {
         let mut cache = AUTO_CACHE.write().await;

@@ -91,6 +91,46 @@ pub fn resolve_with(channel: u64, configured: u64, state: Option<BoardState>) ->
     })
 }
 
+/// Copies the adopted board id into `config.json`.
+///
+/// The override in `static/cooldown_board.json` wins at runtime, but it is a
+/// runtime file: it is not in the repository and can be lost when the folder is
+/// replaced or the bot moves host. `config.json` is the durable record, so when
+/// the two disagree the adopted value is written back to it.
+///
+/// Only the `bounty.cooldown_msg` key is touched. The file is read, that one
+/// field is replaced, and the result is written through a temp file and a rename
+/// so an interrupted write cannot truncate the configuration.
+///
+/// Returns the ids that were synchronised, or `None` when they already agree.
+pub async fn sync_into_config(channel: u64, configured: u64) -> Result<Option<Board>, crate::MyErr> {
+    let Some(board) = resolve_with(channel, configured, BoardState::load().await) else {
+        return Ok(None);
+    };
+    if board.message == configured {
+        return Ok(None);
+    }
+
+    let path = std::path::Path::new(".").join("config.json");
+    let raw = tokio::fs::read_to_string(&path).await?;
+    let mut doc: serde_json::Value = serde_json::from_str(&raw)?;
+
+    let bounty = doc
+        .get_mut("bounty")
+        .and_then(|b| b.as_object_mut())
+        .ok_or_else(|| crate::MyErr::Custom("config.json has no bounty block".to_owned()))?;
+    bounty.insert(
+        "cooldown_msg".to_owned(),
+        serde_json::Value::from(board.message),
+    );
+
+    let tmp = path.with_extension("json.tmp");
+    let body = serde_json::to_string_pretty(&doc)?;
+    tokio::fs::write(&tmp, body.as_bytes()).await?;
+    tokio::fs::rename(&tmp, &path).await?;
+    Ok(Some(board))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,6 +178,46 @@ mod tests {
             resolve_with(10, 0, state(0, 99)),
             Some(Board { channel: 10, message: 99 })
         );
+    }
+
+    /// The decision `sync_into_config` makes, separated from the file writes so
+    /// the "do we need to write at all" rule can be tested offline.
+    fn needs_sync(channel: u64, configured: u64, state: Option<BoardState>) -> Option<u64> {
+        let board = resolve_with(channel, configured, state)?;
+        if board.message == configured {
+            None
+        } else {
+            Some(board.message)
+        }
+    }
+
+    #[test]
+    fn an_adopted_board_that_differs_from_config_needs_syncing() {
+        // The live case: the operator adopted a fresh board, config still holds
+        // the old id, so the durable record has to be corrected.
+        assert_eq!(needs_sync(10, 20, state(10, 99)), Some(99));
+    }
+
+    #[test]
+    fn an_adopted_board_that_already_matches_config_needs_no_sync() {
+        // Rewriting config.json on every start would be pointless churn.
+        assert_eq!(needs_sync(10, 20, state(10, 20)), None);
+    }
+
+    #[test]
+    fn no_override_leaves_config_alone() {
+        assert_eq!(needs_sync(10, 20, None), None);
+    }
+
+    #[test]
+    fn nothing_configured_needs_no_sync() {
+        assert_eq!(needs_sync(10, 0, None), None);
+    }
+
+    #[test]
+    fn a_zeroed_override_does_not_overwrite_a_good_config() {
+        // A corrupt override must not blank the durable record.
+        assert_eq!(needs_sync(10, 20, state(10, 0)), None);
     }
 
     #[test]
