@@ -134,6 +134,9 @@ pub struct CooldownPolicy {
     /// an Event run lock the progression ladder and the ladder lock Event. When
     /// `false`, the historical split applies and `event` is the whole Event rule.
     pub event_shares_standard: bool,
+    /// Whether the progression ladder shares the standard (Free) timer instead of
+    /// keeping its own. Set from `bounty.progression_shares_standard`.
+    pub progression_shares_standard: bool,
 }
 
 impl Default for CooldownPolicy {
@@ -144,6 +147,7 @@ impl Default for CooldownPolicy {
             event: DEFAULT_EVENT_HOURS,
             progression: DEFAULT_PROGRESSION_HOURS,
             event_shares_standard: false,
+            progression_shares_standard: false,
         }
     }
 }
@@ -161,6 +165,17 @@ impl CooldownPolicy {
         self
     }
 
+    /// Whether the progression ladder shares the standard (Free) timer.
+    pub fn progression_shares_standard(&self) -> bool {
+        self.progression_shares_standard
+    }
+
+    /// Enables or disables progression sharing, mirroring `with_event_sharing`.
+    pub fn with_progression_sharing(mut self, on: bool) -> Self {
+        self.progression_shares_standard = on;
+        self
+    }
+
     /// The group a category is evaluated against, taking the option into account.
     ///
     /// This is the option-aware counterpart of [`CooldownGroup::from_category`].
@@ -168,12 +183,24 @@ impl CooldownPolicy {
     /// static mapping, or Event silently keeps its old behaviour.
     pub fn group_of(&self, category: &Category) -> CooldownGroup {
         if self.event_shares_standard && *category == Category::Event {
-            // Event joins the ladder, so it uses the shared row and the
-            // `same`/`different` rule. `event` is deliberately not consulted.
-            CooldownGroup::Standard
-        } else {
-            CooldownGroup::from_category(category)
+            // Event joins the shared row, so it uses `same`/`different`.
+            // `event` is deliberately not consulted.
+            return CooldownGroup::Standard;
         }
+        if self.progression_shares_standard && Self::is_ladder(category) {
+            // Same for the ladder: it leaves its own row and follows the shared
+            // rule, so `progression` is not consulted while this is on.
+            return CooldownGroup::Standard;
+        }
+        CooldownGroup::from_category(category)
+    }
+
+    /// Whether this category is one of the three ladder steps.
+    pub fn is_ladder(category: &Category) -> bool {
+        matches!(
+            category,
+            Category::Bronze | Category::Silver | Category::Gold
+        )
     }
 
     /// Rewrites stored rows onto their effective groups.
@@ -187,19 +214,31 @@ impl CooldownPolicy {
     /// A remapped row keeps its category, so the `same`/`different` decision still
     /// knows which bounty the previous run was.
     pub fn normalize(&self, history: &[GroupHistory]) -> Vec<GroupHistory> {
-        if !self.event_shares_standard {
-            return history.to_vec();
-        }
         history
             .iter()
             .map(|h| {
-                if h.group == CooldownGroup::Event {
+                // A row's *category* says which group it logically belongs to, and the
+                // switches then decide whether that group joined the shared row. Going
+                // through `group_of` rather than testing the stored key is what makes
+                // the mapping reversible: a row written while sharing was on landed on
+                // `Standard`, and it still recovers its own timer when the switch is
+                // turned back off.
+                //
+                // Testing the stored key instead (as this used to) only converted rows
+                // one way, so switching a group back left its rows on the shared row,
+                // where they gated Free and its own timer stayed empty.
+                //
+                // Because the decision comes from the category, this also revives rows
+                // written by the pre-split build (ladder categories on key 0) without
+                // waiting for `regroup` to run.
+                let effective = self.group_of(&h.category);
+                if effective == h.group {
+                    h.clone()
+                } else {
                     GroupHistory {
-                        group: CooldownGroup::Standard,
+                        group: effective,
                         ..h.clone()
                     }
-                } else {
-                    h.clone()
                 }
             })
             .collect()
@@ -646,6 +685,7 @@ impl From<&super::super::config::CooldownHours> for CooldownPolicy {
             different: c.different,
             event: c.event,
             progression: c.progression,
+            progression_shares_standard: false,
             // The hours block says nothing about sharing; that lives in
             // `bounty.event_shares_standard`. Call sites apply it with
             // `with_event_sharing`, so this conversion stays default-off.
@@ -661,7 +701,9 @@ impl From<&super::super::config::CooldownHours> for CooldownPolicy {
 /// ignoring the option.
 impl From<&super::super::config::Bounty> for CooldownPolicy {
     fn from(b: &super::super::config::Bounty) -> Self {
-        CooldownPolicy::from(&b.cooldown_hours).with_event_sharing(b.event_shares_standard)
+        CooldownPolicy::from(&b.cooldown_hours)
+            .with_event_sharing(b.event_shares_standard)
+            .with_progression_sharing(b.progression_shares_standard)
     }
 }
 
@@ -2072,9 +2114,10 @@ mod tests {
 
     #[test]
     fn normalize_maps_only_the_event_group() {
+        // A *Free* row on the shared key is genuinely a Free run, so it stays put.
         let standard = GroupHistory {
             group: CooldownGroup::Standard,
-            category: Category::Gold,
+            category: Category::Free,
             bbq: BBQ::BBQ07,
             completed_at: T0,
         };
@@ -2266,6 +2309,7 @@ mod tests {
             event: 33,
             progression: 44,
             event_shares_standard: false,
+            progression_shares_standard: false,
         };
         let hist = history_of(Category::Bronze, BBQ::BBQ01, T0);
         // Repeat of the same BBQ: still 44, not 11.
@@ -2305,5 +2349,217 @@ mod tests {
                 "{target:?} must share the ladder timer"
             );
         }
+    }
+    // ---------------------------------------------------------------------
+    // Progression sharing the standard timer (`bounty.progression_shares_standard`)
+    // ---------------------------------------------------------------------
+
+    /// A 40/20/40/40 policy with the ladder-sharing switch in the asked state.
+    fn shared_ladder_policy(on: bool) -> CooldownPolicy {
+        CooldownPolicy::default().with_progression_sharing(on)
+    }
+
+    #[test]
+    fn the_progression_sharing_default_is_off() {
+        // Same reasoning as the Event switch: an upgrade must not change a live
+        // server on its own.
+        assert!(!CooldownPolicy::default().progression_shares_standard());
+        let parsed: super::super::super::config::CooldownHours =
+            serde_json::from_str("{}").expect("an empty hours block must parse");
+        assert!(!CooldownPolicy::from(&parsed).progression_shares_standard());
+    }
+
+    #[test]
+    fn the_switch_is_read_from_the_bounty_block() {
+        let on: super::super::super::config::Bounty = serde_json::from_value(serde_json::json!({
+            "board_ch": 0, "conquered_ch": 0, "receptionist_ch": 0, "promotion_ch": 0,
+            "cooldown_ch": 0, "cooldown_msg": 0, "judge_ch": 0,
+            "progression_shares_standard": true
+        }))
+        .expect("a bounty block with the switch must parse");
+        assert!(CooldownPolicy::from(&on).progression_shares_standard());
+
+        let off: super::super::super::config::Bounty = serde_json::from_value(serde_json::json!({
+            "board_ch": 0, "conquered_ch": 0, "receptionist_ch": 0, "promotion_ch": 0,
+            "cooldown_ch": 0, "cooldown_msg": 0, "judge_ch": 0
+        }))
+        .expect("a bounty block without the switch must parse");
+        assert!(!CooldownPolicy::from(&off).progression_shares_standard());
+    }
+
+    #[test]
+    fn the_ladder_joins_the_standard_row_when_sharing() {
+        let on = shared_ladder_policy(true);
+        for cat in [Category::Bronze, Category::Silver, Category::Gold] {
+            assert_eq!(on.group_of(&cat), CooldownGroup::Standard, "{cat:?}");
+        }
+        // Off returns them to their own row.
+        let off = shared_ladder_policy(false);
+        for cat in [Category::Bronze, Category::Silver, Category::Gold] {
+            assert_eq!(off.group_of(&cat), CooldownGroup::Progression, "{cat:?}");
+        }
+        // Free and Event are untouched by this switch.
+        assert_eq!(on.group_of(&Category::Free), CooldownGroup::Standard);
+        assert_eq!(on.group_of(&Category::Event), CooldownGroup::Event);
+    }
+
+    #[test]
+    fn the_ladder_write_key_follows_the_switch() {
+        assert_eq!(shared_ladder_policy(false).group_of(&Category::Bronze).encode(), 3);
+        assert_eq!(shared_ladder_policy(true).group_of(&Category::Bronze).encode(), 0);
+    }
+
+    #[test]
+    fn a_ladder_run_blocks_free_only_when_sharing() {
+        let hist = history_of(Category::Bronze, BBQ::BBQ01, T0);
+        // Off: independent timers, so Free is free.
+        assert_eq!(
+            evaluate(&hist, &Category::Free, &BBQ::BBQ01, &shared_ladder_policy(false), T0 + HOUR),
+            CooldownVerdict::Allowed
+        );
+        // On: one timer, and a ladder run now gates Free. Changing category is a
+        // "change", so the wait is `different` (20h), not the ladder hours.
+        let on = shared_ladder_policy(true);
+        assert_eq!(
+            evaluate(&on.normalize(&hist), &Category::Free, &BBQ::BBQ01, &on, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 20 * HOUR }
+        );
+    }
+
+    #[test]
+    fn a_free_run_blocks_the_ladder_only_when_sharing() {
+        let hist = history_of(Category::Free, BBQ::BBQ01, T0);
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &shared_ladder_policy(false), T0 + HOUR),
+            CooldownVerdict::Allowed
+        );
+        let on = shared_ladder_policy(true);
+        assert_eq!(
+            evaluate(&on.normalize(&hist), &Category::Bronze, &BBQ::BBQ01, &on, T0 + HOUR),
+            // Free -> Bronze is a category change, so `different` applies.
+            CooldownVerdict::Blocked { ends_at: T0 + 20 * HOUR }
+        );
+    }
+
+    #[test]
+    fn sharing_gives_the_ladder_the_same_and_different_rule() {
+        // While sharing is on the ladder leaves its own hours behind: a change now
+        // waits `different` and a repeat waits `same`, not `progression`.
+        let policy = CooldownPolicy {
+            same: 11,
+            different: 22,
+            event: 33,
+            progression: 44,
+            event_shares_standard: false,
+            progression_shares_standard: true,
+        };
+        let hist = policy.normalize(&history_of(Category::Bronze, BBQ::BBQ01, T0));
+        // A change (different BBQ) waits `different`.
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ02, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 22 * HOUR }
+        );
+        // A repeat of the same BBQ waits `same`.
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 11 * HOUR }
+        );
+    }
+
+    #[test]
+    fn a_ladder_row_on_the_shared_key_recovers_its_own_timer() {
+        // This is the round trip that used to be impossible. A ladder completion is
+        // written on the shared key while sharing is on; turning sharing back off
+        // must give the ladder its timer back, and must stop it gating Free.
+        let written = vec![GroupHistory {
+            group: CooldownGroup::Standard,
+            category: Category::Gold,
+            bbq: BBQ::BBQ07,
+            completed_at: T0,
+        }];
+
+        let off = shared_ladder_policy(false);
+        let hist = off.normalize(&written);
+        assert_eq!(hist[0].group, CooldownGroup::Progression);
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &off, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 40 * HOUR },
+            "the ladder must get its own 40 hour wait back"
+        );
+        assert_eq!(
+            evaluate(&hist, &Category::Free, &BBQ::BBQ01, &off, T0 + HOUR),
+            CooldownVerdict::Allowed,
+            "and it must stop gating Free"
+        );
+    }
+
+    #[test]
+    fn normalize_maps_the_ladder_rows_only_when_asked() {
+        let ladder = GroupHistory {
+            group: CooldownGroup::Progression,
+            category: Category::Gold,
+            bbq: BBQ::BBQ07,
+            completed_at: T0,
+        };
+        let rows = vec![ladder.clone()];
+
+        // Off: untouched, so the row keeps driving its own timer.
+        assert_eq!(shared_ladder_policy(false).normalize(&rows), rows);
+
+        // On: it moves onto the shared row and keeps its category/bbq/time.
+        let mapped = shared_ladder_policy(true).normalize(&rows);
+        assert_eq!(mapped.len(), 1);
+        assert_eq!(mapped[0].group, CooldownGroup::Standard);
+        assert_eq!(mapped[0].category, Category::Gold);
+        assert_eq!(mapped[0].bbq, BBQ::BBQ07);
+        assert_eq!(mapped[0].completed_at, T0);
+    }
+
+    #[test]
+    fn both_switches_together_put_event_and_ladder_on_one_row() {
+        // The most permissive configuration: Event and the ladder both join Free.
+        let policy = CooldownPolicy::default()
+            .with_event_sharing(true)
+            .with_progression_sharing(true);
+        assert_eq!(policy.group_of(&Category::Event), CooldownGroup::Standard);
+        assert_eq!(policy.group_of(&Category::Bronze), CooldownGroup::Standard);
+        assert_eq!(policy.group_of(&Category::Free), CooldownGroup::Standard);
+
+        // A Gold run then gates an Event submission, because all three share a row.
+        let hist = policy.normalize(&history_of(Category::Gold, BBQ::BBQ01, T0));
+        assert_eq!(
+            evaluate(&hist, &Category::Event, &BBQ::BBQ02, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 20 * HOUR }
+        );
+    }
+
+    #[test]
+    fn turning_ladder_sharing_off_recovers_the_progression_hours() {
+        // The stored row was written on key 3, so switching back must restore the
+        // ladder timer from it rather than losing the wait.
+        let stored = history_of(Category::Gold, BBQ::BBQ04, T0);
+
+        let on = shared_ladder_policy(true);
+        assert_eq!(
+            evaluate(&on.normalize(&stored), &Category::Bronze, &BBQ::BBQ01, &on, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 20 * HOUR }
+        );
+
+        let off = shared_ladder_policy(false);
+        assert_eq!(
+            evaluate(&off.normalize(&stored), &Category::Bronze, &BBQ::BBQ01, &off, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 40 * HOUR }
+        );
+    }
+
+    #[test]
+    fn the_no_repeat_rule_is_independent_of_sharing() {
+        // Sharing changes which timer applies, not whether a cleared bounty may be
+        // submitted again; that stays a separate switch.
+        assert_eq!(
+            progression_repeat(3, 1, true),
+            ProgressionRepeat::AlreadyCleared { bbq: 1, next: Some(4) }
+        );
+        assert_eq!(progression_repeat(3, 1, false), ProgressionRepeat::Allowed);
     }
 }

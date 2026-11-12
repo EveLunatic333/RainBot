@@ -752,7 +752,7 @@ mod event_sharing_db_tests {
 
     #[tokio::test]
     #[ignore]
-    async fn a_real_event_row_blocks_the_ladder_only_when_enabled() {
+    async fn a_real_event_row_blocks_free_only_when_enabled() {
         let pool = pool().await;
         cleanup(&pool).await;
 
@@ -773,12 +773,12 @@ mod event_sharing_db_tests {
         // Event value reports `Unusable`, so it neither adds nor removes rows.
         let legacy = (legacy_code(Category::Event, BBQ::BBQ01), now());
 
-        // Off: the ladder is untouched, which is the behaviour that must survive.
+        // Off: Free is untouched, which is the behaviour that must survive.
         assert_eq!(
             verdict_for(
                 &pool,
                 USER_A,
-                Category::Bronze,
+                Category::Free,
                 BBQ::BBQ02,
                 &CooldownPolicy::default(),
                 (&legacy.0, legacy.1),
@@ -786,24 +786,31 @@ mod event_sharing_db_tests {
             )
             .await,
             CooldownVerdict::Allowed,
-            "with sharing off an Event row must not lock Bronze"
+            "with sharing off an Event row must not lock Free"
         );
 
-        // On: the same stored row now gates the ladder.
+        // On: the same stored row now gates Free.
         let on = CooldownPolicy::default().with_event_sharing(true);
-        match verdict_for(&pool, USER_A, Category::Bronze, BBQ::BBQ02, &on, (&legacy.0, legacy.1), now()).await {
+        match verdict_for(&pool, USER_A, Category::Free, BBQ::BBQ02, &on, (&legacy.0, legacy.1), now()).await {
             CooldownVerdict::Blocked { ends_at } => {
                 assert!(ends_at > now(), "ends_at must be in the future");
             }
             other => panic!("expected Blocked, got {other:?}"),
         }
 
+        // The ladder has its own timer, so the Event run must not reach it.
+        assert_eq!(
+            verdict_for(&pool, USER_A, Category::Bronze, BBQ::BBQ02, &on, (&legacy.0, legacy.1), now()).await,
+            CooldownVerdict::Allowed,
+            "the ladder is out of reach of `event_shares_standard`"
+        );
+
         cleanup(&pool).await;
     }
 
     #[tokio::test]
     #[ignore]
-    async fn a_real_standard_row_blocks_event_only_when_enabled() {
+    async fn a_real_free_row_blocks_event_only_when_enabled() {
         let pool = pool().await;
         cleanup(&pool).await;
 
@@ -811,15 +818,15 @@ mod event_sharing_db_tests {
             &mut pool.acquire().await.unwrap(),
             USER_B,
             0,
-            Category::Gold.encode() as i16,
+            Category::Free.encode() as i16,
             BBQ::BBQ03.encode() as i16,
             now(),
         )
         .await
         .expect("the completion must be recorded");
 
-        // A real Gold completion stamps the legacy column with the Gold run.
-        let legacy = (legacy_code(Category::Gold, BBQ::BBQ03), now());
+        // A real Free completion stamps the legacy column with the Free run.
+        let legacy = (legacy_code(Category::Free, BBQ::BBQ03), now());
 
         assert_eq!(
             verdict_for(
@@ -833,7 +840,7 @@ mod event_sharing_db_tests {
             )
             .await,
             CooldownVerdict::Allowed,
-            "with sharing off a Gold row must not lock Event"
+            "with sharing off a Free row must not lock Event"
         );
 
         let on = CooldownPolicy::default().with_event_sharing(true);
@@ -913,5 +920,189 @@ mod event_sharing_db_tests {
         // have polluted the table.
         assert!(rows_of(&pool, USER_A).await.is_empty());
         assert!(rows_of(&pool, USER_B).await.is_empty());
+    }
+    /// Records a ladder completion on whichever key the policy writes, then reads it
+    /// back through the same policy. This is the round trip `send_reward` and
+    /// `Hunter::new` actually perform.
+    async fn ladder_verdict_after_write(
+        pool: &sqlx::PgPool,
+        user: &str,
+        policy: &CooldownPolicy,
+        legacy: (&str, i64),
+    ) -> CooldownVerdict {
+        let key = policy.group_of(&Category::Bronze).encode();
+        record_group_completion_tx(
+            &mut pool.acquire().await.unwrap(),
+            user,
+            key,
+            Category::Bronze.encode() as i16,
+            BBQ::BBQ01.encode() as i16,
+            now(),
+        )
+        .await
+        .expect("the completion must be recorded");
+
+        verdict_for(
+            pool,
+            user,
+            Category::Bronze,
+            BBQ::BBQ02,
+            policy,
+            legacy,
+            now(),
+        )
+        .await
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn a_real_ladder_row_lands_on_its_own_key() {
+        let pool = pool().await;
+        cleanup(&pool).await;
+
+        let off = CooldownPolicy::default();
+        // `latest_bounty_time > 0` keeps the legacy column from clearing the ladder.
+        let legacy = (legacy_code(Category::Bronze, BBQ::BBQ01), now());
+        let verdict = ladder_verdict_after_write(&pool, USER_A, &off, (&legacy.0, legacy.1)).await;
+        match verdict {
+            CooldownVerdict::Blocked { ends_at } => assert!(ends_at > now()),
+            other => panic!("expected Blocked, got {other:?}"),
+        }
+
+        // The row must be readable under the progression key, not the shared one.
+        let rows = rows_of(&pool, USER_A).await;
+        assert!(
+            rows.iter().any(|(g, _, _, _)| *g == 3),
+            "the ladder must write key 3: {rows:?}"
+        );
+
+        cleanup(&pool).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn a_real_ladder_row_shares_the_key_when_enabled() {
+        let pool = pool().await;
+        cleanup(&pool).await;
+
+        let on = CooldownPolicy::default().with_progression_sharing(true);
+        let legacy = (legacy_code(Category::Bronze, BBQ::BBQ01), now());
+        let verdict = ladder_verdict_after_write(&pool, USER_A, &on, (&legacy.0, legacy.1)).await;
+        match verdict {
+            CooldownVerdict::Blocked { ends_at } => assert!(ends_at > now()),
+            other => panic!("expected Blocked, got {other:?}"),
+        }
+
+        let rows = rows_of(&pool, USER_A).await;
+        assert!(
+            rows.iter().any(|(g, _, _, _)| *g == 0),
+            "while sharing the ladder must write the shared key: {rows:?}"
+        );
+
+        // A ladder run on the shared key must now gate Free too.
+        let free = verdict_for(
+            &pool,
+            USER_A,
+            Category::Free,
+            BBQ::BBQ02,
+            &on,
+            (&legacy.0, legacy.1),
+            now(),
+        )
+        .await;
+        match free {
+            CooldownVerdict::Blocked { .. } => {}
+            other => panic!("expected Blocked for Free, got {other:?}"),
+        }
+
+        cleanup(&pool).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn turning_ladder_sharing_off_recovers_the_ladder_timer() {
+        let pool = pool().await;
+        cleanup(&pool).await;
+
+        // Written while sharing was on, so the row sits on the shared key.
+        let on = CooldownPolicy::default().with_progression_sharing(true);
+        let legacy = (legacy_code(Category::Bronze, BBQ::BBQ01), now());
+        ladder_verdict_after_write(&pool, USER_A, &on, (&legacy.0, legacy.1)).await;
+
+        // Read back with sharing off: the ladder must recover its own timer and must
+        // stop gating Free. This is the defect a one-way `normalize` had.
+        let off = CooldownPolicy::default();
+        let ladder = verdict_for(
+            &pool,
+            USER_A,
+            Category::Bronze,
+            BBQ::BBQ02,
+            &off,
+            (&legacy.0, legacy.1),
+            now(),
+        )
+        .await;
+        match ladder {
+            CooldownVerdict::Blocked { ends_at } => assert!(ends_at > now()),
+            other => panic!("expected the ladder timer back, got {other:?}"),
+        }
+
+        let free = verdict_for(
+            &pool,
+            USER_A,
+            Category::Free,
+            BBQ::BBQ02,
+            &off,
+            (&legacy.0, legacy.1),
+            now(),
+        )
+        .await;
+        assert_eq!(
+            free,
+            CooldownVerdict::Allowed,
+            "the recovered ladder row must stop gating Free"
+        );
+
+        cleanup(&pool).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn a_pre_split_ladder_row_on_the_shared_key_still_gates_the_ladder() {
+        let pool = pool().await;
+        cleanup(&pool).await;
+
+        // Rows written by the build before the split carried the ladder on key 0.
+        // `normalize` derives the group from the category, so they must still gate
+        // the ladder even if `regroup` never runs.
+        record_group_completion_tx(
+            &mut pool.acquire().await.unwrap(),
+            USER_B,
+            0,
+            Category::Gold.encode() as i16,
+            BBQ::BBQ07.encode() as i16,
+            now(),
+        )
+        .await
+        .expect("the completion must be recorded");
+
+        let legacy = (legacy_code(Category::Gold, BBQ::BBQ07), now());
+        let off = CooldownPolicy::default();
+        let verdict = verdict_for(
+            &pool,
+            USER_B,
+            Category::Bronze,
+            BBQ::BBQ01,
+            &off,
+            (&legacy.0, legacy.1),
+            now(),
+        )
+        .await;
+        match verdict {
+            CooldownVerdict::Blocked { ends_at } => assert!(ends_at > now()),
+            other => panic!("expected Blocked, got {other:?}"),
+        }
+
+        cleanup(&pool).await;
     }
 }

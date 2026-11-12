@@ -222,6 +222,21 @@ pub struct Bounty {
     /// Free and Event are never affected.
     #[serde(default = "default_progression_no_repeat")]
     pub progression_no_repeat: bool,
+    /// Whether the progression ladder shares the standard (Free) cooldown timer.
+    ///
+    /// `false` (the default) keeps the ladder on a timer of its own, measured in
+    /// `cooldown_hours.progression`. `true` folds the ladder into the shared
+    /// standard group: a Bronze/Silver/Gold run then locks Free and the other way
+    /// round, and ladder repeats obey `same`/`different` instead of `progression`.
+    ///
+    /// This is the mirror of [`Self::event_shares_standard`], which pairs Event
+    /// with Free. Turning both on leaves a single shared timer for everything that
+    /// is not Event-or-ladder specific.
+    ///
+    /// Defaults to `false` so a build upgrade cannot silently change a live
+    /// server's cooldown behaviour; the operator has to opt in.
+    #[serde(default)]
+    pub progression_shares_standard: bool,
 }
 
 fn default_progression_no_repeat() -> bool {

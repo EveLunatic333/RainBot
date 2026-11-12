@@ -54,6 +54,9 @@
     "_event_shares_standard_comment": "When true, Event shares the timer with FREE only: an Event run locks Free and the other way round, and Event repeats obey 'same'/'different' -- the 'event' value is then ignored. The progression ladder has its own timer and is never affected. When false (the default) Event keeps its own timer of 'event' hours.",
     "event_shares_standard": false,
 
+    "_progression_shares_standard_comment": "When true, the progression ladder (Bronze/Silver/Gold) shares the timer with FREE, exactly as 'event_shares_standard' does for Event: a ladder run locks Free and the other way round, and ladder repeats obey 'same'/'different' -- the 'progression' value is then ignored. When false (the default) the ladder keeps its own 'progression' timer. Turning this and 'event_shares_standard' both on puts Progression, Free and Event on ONE timer. The no-repeat rule is unaffected by this switch.",
+    "progression_shares_standard": false,
+
     "_progression_no_repeat_comment": "When true (the default) a progression bounty that was already cleared cannot be submitted again: the ladder must move up. Bronze BBQ03 cleared means the next submission has to be BBQ04; the category closes once all 25 are done. When false the old behaviour returns and any BBQ up to the current rank may be repeated. Free and Event are never affected.",
     "progression_no_repeat": true,
 

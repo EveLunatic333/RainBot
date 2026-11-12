@@ -234,32 +234,39 @@ impl Event {
             Market::currency(self.bounty as i64), self.gacha, self.gacha_premium
         );
 
-        // Cooldown is per group and there are three of them, so the card lists one
-        // block per timer. The ladder has its own timer now, which is why it is no
-        // longer folded into the Free line.
+        // Cooldown is per group, and each switch folds one group's timer onto the
+        // shared one. The card has to follow the switches, because printing a group
+        // under its own heading while it actually shares a timer would show a
+        // countdown that does not exist.
         //
-        // `event_shares_standard` pairs Event with Free only: the ladder is out of
-        // that switch's reach, so Free is what shares, never the progression block.
-        let ladder_block = format!(
-            "🏅 **Progression** (Bronze / Silver / Gold)\n{}",
-            status(Category::Bronze)
-        );
-        let free_block = if policy.event_shares_standard() {
-            // One timer, so printing it twice would show the same countdown under
-            // two headings.
-            format!(
-                "🎯 **Standard** (Free / Event)\n{}",
-                status(Category::Free)
-            )
-        } else {
-            format!(
-                "🎯 **Standard** (Free)\n{}\n\n⭐ **Event**\n{}",
-                status(Category::Free),
-                status(Category::Event)
-            )
-        };
+        // Four combinations, and each prints one block per *live* timer:
+        //   neither      -> Progression, Free, Event
+        //   event only   -> Progression, Standard (Free + Event)
+        //   ladder only  -> Standard (Progression + Free), Event
+        //   both         -> Standard (Progression + Free + Event)
+        let ladder_shares = policy.progression_shares_standard();
+        let event_shares = policy.event_shares_standard();
+        let shared_label = shared_row_label(policy);
+
+        let mut blocks: Vec<String> = Vec::new();
+        if !ladder_shares {
+            blocks.push(format!(
+                "🏅 **Progression** (Bronze / Silver / Gold)\n{}",
+                status(Category::Bronze)
+            ));
+        }
+        // The shared row is always reported, because Free is always on it.
+        blocks.push(format!(
+            "🎯 **Standard** ({shared_label})\n{}",
+            status(Category::Free)
+        ));
+        if !event_shares {
+            blocks.push(format!("⭐ **Event**\n{}", status(Category::Event)));
+        }
+
         let cooldown_desc = format!(
-            "{ladder_block}\n\n{free_block}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
+            "{}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
+            blocks.join("\n\n"),
             BBQ::name_encode(self.bronze as u8),
             BBQ::name_encode(self.silver as u8),
             BBQ::name_encode(self.gold as u8)
@@ -316,6 +323,24 @@ impl Event {
             ),
         ).await?)
     }
+}
+
+/// Names every group that ended up on the shared cooldown row.
+///
+/// Each switch folds one group's timer onto the shared one, so the label has to be
+/// derived from the switches rather than written by hand: printing a group under
+/// its own heading while it actually shares a timer would show a countdown that
+/// does not exist.
+fn shared_row_label(policy: &super::bounty_cooldown::CooldownPolicy) -> String {
+    let mut shared = Vec::new();
+    if policy.progression_shares_standard() {
+        shared.push("Progression");
+    }
+    shared.push("Free");
+    if policy.event_shares_standard() {
+        shared.push("Event");
+    }
+    shared.join(" / ")
 }
 
 #[cfg(test)]
@@ -505,5 +530,57 @@ mod tests {
         let out = cooldown_lines(&hist, &Category::Free, &policy, T0 + HOUR);
         assert!(out.contains("Different Bounty CD"), "{out}");
         assert!(out.contains("Event BBQ02"), "the anchor must name the Event run: {out}");
+    }
+    #[test]
+    fn the_card_names_every_group_on_the_shared_timer() {
+        // Four switch combinations. The label is what the embed prints, so it has
+        // to follow the switches exactly: a group that shares must appear once and
+        // a group that does not must not appear at all.
+        let label = |ladder: bool, event: bool| -> String {
+            let policy = CooldownPolicy::default()
+                .with_progression_sharing(ladder)
+                .with_event_sharing(event);
+            super::shared_row_label(&policy)
+        };
+
+        assert_eq!(label(false, false), "Free");
+        assert_eq!(label(false, true), "Free / Event");
+        assert_eq!(label(true, false), "Progression / Free");
+        assert_eq!(label(true, true), "Progression / Free / Event");
+    }
+
+    #[test]
+    fn a_shared_ladder_uses_the_shared_countdown_on_the_card() {
+        // With the ladder sharing, a Bronze run must produce the same numbers a
+        // Free run would, because they are one timer.
+        let policy = CooldownPolicy::default().with_progression_sharing(true);
+        let hist = policy.normalize(&history(Category::Gold, BBQ::BBQ07, T0));
+
+        let from_ladder = cooldown_lines(&hist, &Category::Bronze, &policy, T0 + HOUR);
+        let as_free = cooldown_lines(&hist, &Category::Free, &policy, T0 + HOUR);
+        assert_eq!(from_ladder, as_free, "one timer must read identically");
+
+        // The 20 hour change is what a shared timer uses, not the 40 hour ladder.
+        assert!(
+            from_ladder.contains(&format!("<t:{}:R>", T0 + 20 * HOUR)),
+            "got {from_ladder}"
+        );
+    }
+
+    #[test]
+    fn an_unshared_ladder_keeps_its_own_countdown_on_the_card() {
+        // The control case for the test above: with sharing off the same run reads
+        // the ladder hours, so the two cannot be confused.
+        let policy = CooldownPolicy::default();
+        let hist = history(Category::Gold, BBQ::BBQ07, T0);
+
+        let ladder = cooldown_lines(&hist, &Category::Bronze, &policy, T0 + HOUR);
+        let as_free = cooldown_lines(&hist, &Category::Free, &policy, T0 + HOUR);
+        assert_ne!(ladder, as_free, "separate timers must not read the same");
+        assert!(ladder.contains(&format!("<t:{}:R>", T0 + 40 * HOUR)), "got {ladder}");
+        assert!(
+            as_free.contains("Ready"),
+            "Free is untouched by the ladder run: {as_free}"
+        );
     }
 }
