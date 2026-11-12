@@ -268,7 +268,7 @@ async fn handle_final_submission(bnd: &SlashBundle<'_>, urls: &[String], mention
     let mut cooldown_config = Box::new(BountyRefresh::new(true).await?);
     let member = bnd.cmd.member.clone().ok_or_else(|| MyErr::Custom("Guild member data unavailable".into()))?;
     let mut blocks: Vec<Block> = Vec::new();
-    let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init.bounty.cooldown_hours);
+    let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init.bounty);
     let tier = BountyTitle::progression_tier().await;
     for uid in target_users {
         let pg_temp = PgConn::create(bnd.init, uid.to_string()).await?;
@@ -328,12 +328,13 @@ async fn handle_final_submission(bnd: &SlashBundle<'_>, urls: &[String], mention
         };
         // The legacy column stays the operator switch for the standard timer, so it
         // is folded over the stored rows before anything is decided.
-        let history = bounty_cooldown::history_with_legacy(
+        let history = bounty_cooldown::history_with_legacy_and_policy(
             &bounty_cooldown::history_from_rows(&rows),
             &event.latest_bounty,
             event.latest_bounty_time,
+            &policy,
         );
-        let group = bounty_cooldown::CooldownGroup::from_category(&category);
+        let group = policy.group_of(&category);
         let previous = bounty_cooldown::last_of_group(&history, group);
         let verdict = bounty_cooldown::evaluate(
             &history,

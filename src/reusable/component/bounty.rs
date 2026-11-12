@@ -489,7 +489,7 @@ impl Hunter {
                     ));
                 }
 
-                let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty.cooldown_hours);
+                let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty);
                 let did = us.user.id.to_string();
                 let rows = crate::reusable::postgress::gacha::group_history(pg.pool(), &did)
                     .await
@@ -499,12 +499,13 @@ impl Hunter {
                             .collect::<Vec<_>>()
                     })
                     .unwrap_or_default();
-                let history = bounty_cooldown::history_with_legacy(
+                let history = bounty_cooldown::history_with_legacy_and_policy(
                     &bounty_cooldown::history_from_rows(&rows),
                     &event.latest_bounty,
                     event.latest_bounty_time,
+                    &policy,
                 );
-                let group = bounty_cooldown::CooldownGroup::from_category(category);
+                let group = policy.group_of(category);
                 let previous = bounty_cooldown::last_of_group(&history, group);
                 let verdict =
                     bounty_cooldown::evaluate(&history, category, bbq, &policy, MyTime::now());
@@ -584,7 +585,12 @@ impl BountySubmit {
         })
     }
 
-    async fn send_reward(&self, bypass: bool, pg: &PgConn<'_>) -> Result<(), MyErr> {
+    async fn send_reward(
+        &self,
+        bypass: bool,
+        pg: &PgConn<'_>,
+        policy: &bounty_cooldown::CooldownPolicy,
+    ) -> Result<(), MyErr> {
         let name = format!(
             "{} {} {} Rewards",
             self.method.name(),
@@ -625,7 +631,11 @@ impl BountySubmit {
                 crate::reusable::postgress::gacha::record_group_completion_tx(
                     &mut tx,
                     &did,
-                    bounty_cooldown::CooldownGroup::from_category(&self.category).encode(),
+                    // The row has to land on the group the option puts this
+                    // category in: with Event sharing enabled an Event completion
+                    // must be written onto the standard row, or it would not lock
+                    // the progression ladder.
+                    policy.group_of(&self.category).encode(),
                     self.category.encode() as i16,
                     self.bbq.encode() as i16,
                     self.time,
@@ -665,8 +675,10 @@ impl BountySubmit {
             }
         }
 
-        // Phase 2: apply every write atomically.
-        self.send_reward(bypass, pg).await?;
+        // Phase 2: apply every write atomically. The policy is passed down so the
+        // cooldown row uses the same group the checks just used.
+        let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty);
+        self.send_reward(bypass, pg, &policy).await?;
 
         let ch = ChannelId::new(bnd.init().bounty.receptionist_ch);
         for (user, embed) in self.reward_embed(bnd.pedia()) {

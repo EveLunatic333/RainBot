@@ -234,22 +234,34 @@ impl Event {
             Market::currency(self.bounty as i64), self.gacha, self.gacha_premium
         );
 
-        // Cooldown is per group, so the card lists the two groups rather than the
-        // old per-category split, which no longer maps to anything real.
+        // Cooldown is per group, so the card lists the groups rather than the old
+        // per-category split, which no longer maps to anything real.
         // `status(Bronze)` is the shared group: the evaluator maps every standard
         // category onto the same row, so asking about Free separately would always
         // print the same answer twice.
         //
-        // Each group gets its own block so the two countdowns are never read as
-        // belonging to the other group.
-        let cooldown_desc = format!(
-            "🎯 **Standard** (Bronze / Silver / Gold / Free)\n{}\n\n⭐ **Event**\n{}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
-            status(Category::Bronze),
-            status(Category::Event),
-            BBQ::name_encode(self.bronze as u8),
-            BBQ::name_encode(self.silver as u8),
-            BBQ::name_encode(self.gold as u8)
-        );
+        // When Event shares the standard timer there is only one group to report,
+        // and printing it twice would show the same countdown under two headings.
+        let cooldown_desc = if policy.event_shares_standard() {
+            format!(
+                "🎯 **Standard** (Bronze / Silver / Gold / Free / Event)\n{}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
+                status(Category::Bronze),
+                BBQ::name_encode(self.bronze as u8),
+                BBQ::name_encode(self.silver as u8),
+                BBQ::name_encode(self.gold as u8)
+            )
+        } else {
+            // Each group gets its own block so the two countdowns are never read
+            // as belonging to the other group.
+            format!(
+                "🎯 **Standard** (Bronze / Silver / Gold / Free)\n{}\n\n⭐ **Event**\n{}\n\n🥉 **Bronze:** {}\n🥈 **Silver:** {}\n🥇 **Gold:** {}",
+                status(Category::Bronze),
+                status(Category::Event),
+                BBQ::name_encode(self.bronze as u8),
+                BBQ::name_encode(self.silver as u8),
+                BBQ::name_encode(self.gold as u8)
+            )
+        };
 
         let event_desc = format!(
             "🕜 **Latest Bounty:** {latest}\n🕒 **Time Completed:** {time_completed}\n🍽️ **Restaurant Buff:** {}\n\n{}",
@@ -265,7 +277,7 @@ impl Event {
     }
 
     pub async fn response<T: Mybundle>(&self, user: &User, bnd: &T) -> Result<(), MyErr> {
-        let policy = super::bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty.cooldown_hours);
+        let policy = super::bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty);
 
         // One query for at most two rows; no per-category round trips.
         let did = user.id.to_string();
@@ -288,10 +300,11 @@ impl Event {
         };
         // Same fold the submit flow applies, so the card cannot promise a slot the
         // bot will then refuse (or hide one that is open).
-        let history = super::bounty_cooldown::history_with_legacy(
+        let history = super::bounty_cooldown::history_with_legacy_and_policy(
             &stored,
             &self.latest_bounty,
             self.latest_bounty_time,
+            &policy,
         );
 
         Ok(Components::response_adv(
@@ -459,5 +472,23 @@ mod tests {
         assert!(out.contains("(Gold BBQ07)"), "got {out}");
         assert!(out.contains(&format!("<t:{}:R>", T0 + 20 * HOUR)), "got {out}");
         assert!(out.contains(&format!("<t:{}:R>", T0 + 40 * HOUR)), "got {out}");
+    }
+    #[test]
+    fn sharing_policy_reports_one_group() {
+        // The card branches on this, so it must follow the option exactly.
+        assert!(!CooldownPolicy::default().event_shares_standard());
+        assert!(CooldownPolicy::default().with_event_sharing(true).event_shares_standard());
+    }
+
+    #[test]
+    fn a_shared_event_still_counts_as_the_same_run() {
+        // With sharing on, an Event run is what the ladder waits behind, and the
+        // two labels must still describe one countdown pair rather than two.
+        let hist = history(Category::Event, BBQ::BBQ02, T0);
+        let policy = CooldownPolicy::default().with_event_sharing(true);
+        let hist = policy.normalize(&hist);
+        let out = cooldown_lines(&hist, &Category::Bronze, &policy, T0 + HOUR);
+        assert!(out.contains("Different Bounty CD"), "{out}");
+        assert!(out.contains("Event BBQ02"), "the anchor must name the Event run: {out}");
     }
 }

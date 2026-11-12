@@ -108,6 +108,13 @@ pub struct CooldownPolicy {
     pub same: i64,
     pub different: i64,
     pub event: i64,
+    /// Whether Event shares the standard timer instead of keeping its own.
+    ///
+    /// Set from `bounty.event_shares_standard`. When `true`, Event is mapped onto
+    /// [`CooldownGroup::Standard`] for evaluation, writing and display, which makes
+    /// an Event run lock the progression ladder and the ladder lock Event. When
+    /// `false`, the historical split applies and `event` is the whole Event rule.
+    pub event_shares_standard: bool,
 }
 
 impl Default for CooldownPolicy {
@@ -116,11 +123,68 @@ impl Default for CooldownPolicy {
             same: DEFAULT_SAME_HOURS,
             different: DEFAULT_DIFF_HOURS,
             event: DEFAULT_EVENT_HOURS,
+            event_shares_standard: false,
         }
     }
 }
 
 impl CooldownPolicy {
+    /// Whether Event and the progression ladder share one timer.
+    pub fn event_shares_standard(&self) -> bool {
+        self.event_shares_standard
+    }
+
+    /// Enables or disables Event sharing, for callers that build the policy from
+    /// `cooldown_hours` and then apply the operator switch.
+    pub fn with_event_sharing(mut self, on: bool) -> Self {
+        self.event_shares_standard = on;
+        self
+    }
+
+    /// The group a category is evaluated against, taking the option into account.
+    ///
+    /// This is the option-aware counterpart of [`CooldownGroup::from_category`].
+    /// Every read, write and display path must go through this rather than the
+    /// static mapping, or Event silently keeps its old behaviour.
+    pub fn group_of(&self, category: &Category) -> CooldownGroup {
+        if self.event_shares_standard && *category == Category::Event {
+            // Event joins the ladder, so it uses the shared row and the
+            // `same`/`different` rule. `event` is deliberately not consulted.
+            CooldownGroup::Standard
+        } else {
+            CooldownGroup::from_category(category)
+        }
+    }
+
+    /// Rewrites stored rows onto their effective groups.
+    ///
+    /// Rows are written with the group that was in force at the time, so an Event
+    /// completion sits in `group_id = 2`. Turning the option on must make that row
+    /// count for the standard timer, and turning it off must let Event recover its
+    /// own timer from the same row. Remapping on read does both without a
+    /// migration: the stored key is never destroyed, only reinterpreted.
+    ///
+    /// A remapped row keeps its category, so the `same`/`different` decision still
+    /// knows which bounty the previous run was.
+    pub fn normalize(&self, history: &[GroupHistory]) -> Vec<GroupHistory> {
+        if !self.event_shares_standard {
+            return history.to_vec();
+        }
+        history
+            .iter()
+            .map(|h| {
+                if h.group == CooldownGroup::Event {
+                    GroupHistory {
+                        group: CooldownGroup::Standard,
+                        ..h.clone()
+                    }
+                } else {
+                    h.clone()
+                }
+            })
+            .collect()
+    }
+
     /// Wait in hours that applies when `new_category` is submitted after the
     /// recorded run described by `previous_category` / `previous_bbq`.
     pub fn hours_for(
@@ -219,7 +283,7 @@ pub fn evaluate(
     policy: &CooldownPolicy,
     now: i64,
 ) -> CooldownVerdict {
-    let group = CooldownGroup::from_category(new_category);
+    let group = policy.group_of(new_category);
     let Some(previous) = last_of_group(history, group) else {
         // Never completed a bounty of this group, so there is nothing to wait for.
         return CooldownVerdict::Allowed;
@@ -369,7 +433,7 @@ pub fn earliest_reopen(
     policy: &CooldownPolicy,
     now: i64,
 ) -> CooldownVerdict {
-    let group = CooldownGroup::from_category(category);
+    let group = policy.group_of(category);
     let Some(previous) = last_of_group(history, group) else {
         return CooldownVerdict::Allowed;
     };
@@ -450,7 +514,7 @@ pub fn reopen_windows(
     policy: &CooldownPolicy,
     now: i64,
 ) -> Option<ReopenWindows> {
-    let group = CooldownGroup::from_category(category);
+    let group = policy.group_of(category);
     let previous = last_of_group(history, group)?;
 
     // Same guard as `evaluate`: a corrupt future timestamp must not paint a
@@ -504,7 +568,22 @@ impl From<&super::super::config::CooldownHours> for CooldownPolicy {
             same: c.same,
             different: c.different,
             event: c.event,
+            // The hours block says nothing about sharing; that lives in
+            // `bounty.event_shares_standard`. Call sites apply it with
+            // `with_event_sharing`, so this conversion stays default-off.
+            event_shares_standard: false,
         }
+    }
+}
+
+/// The policy in force for one `bounty` config block.
+///
+/// This is the constructor every caller should use: it reads both the hour values
+/// and the sharing switch, so a caller cannot accidentally apply the hours while
+/// ignoring the option.
+impl From<&super::super::config::Bounty> for CooldownPolicy {
+    fn from(b: &super::super::config::Bounty) -> Self {
+        CooldownPolicy::from(&b.cooldown_hours).with_event_sharing(b.event_shares_standard)
     }
 }
 
@@ -616,6 +695,26 @@ pub fn history_with_legacy(
     latest_bounty_time: i64,
 ) -> Vec<GroupHistory> {
     apply_legacy(history, legacy_entry(latest_bounty, latest_bounty_time))
+}
+
+/// History for a policy that may fold Event into the standard group.
+///
+/// Same as [`history_with_legacy`], but the stored rows are first remapped onto
+/// their effective groups via [`CooldownPolicy::normalize`]. Without that step an
+/// Event row stays in its own group, so turning `event_shares_standard` on would
+/// not make a completed Event block the progression ladder.
+///
+/// The legacy column is applied afterwards on purpose: `legacy_entry` already
+/// refuses to drive Event (an Event timestamp reports `Unusable`), which stays
+/// correct in both modes because that column never gated Event.
+pub fn history_with_legacy_and_policy(
+    history: &[GroupHistory],
+    latest_bounty: &str,
+    latest_bounty_time: i64,
+    policy: &CooldownPolicy,
+) -> Vec<GroupHistory> {
+    let normalized = policy.normalize(history);
+    apply_legacy(&normalized, legacy_entry(latest_bounty, latest_bounty_time))
 }
 
 #[cfg(test)]
@@ -1704,5 +1803,216 @@ mod tests {
             evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &policy(), T0),
             CooldownVerdict::Allowed
         );
+    }
+
+    // ---------------------------------------------------------------------
+    // Event sharing the standard timer (`bounty.event_shares_standard`)
+    // ---------------------------------------------------------------------
+
+    /// A 40/20/40 policy with the sharing switch in the requested state.
+    fn shared_policy(on: bool) -> CooldownPolicy {
+        CooldownPolicy::default().with_event_sharing(on)
+    }
+
+    #[test]
+    fn the_shipped_default_keeps_event_separate() {
+        // Turning the option on must be a deliberate operator action, so the
+        // default has to stay off or an upgrade would change live behaviour.
+        assert!(!CooldownPolicy::default().event_shares_standard());
+        let parsed: super::super::super::config::CooldownHours =
+            serde_json::from_str("{}").expect("an empty hours block must parse");
+        assert!(
+            !CooldownPolicy::from(&parsed).event_shares_standard(),
+            "a config without the key must not enable sharing"
+        );
+    }
+
+    #[test]
+    fn the_option_comes_from_the_bounty_block() {
+        // The switch lives beside the hours, not inside them, so the constructor
+        // that reads the whole `bounty` block is the one that must see it.
+        let cfg: super::super::super::config::Bounty = serde_json::from_value(serde_json::json!({
+            "board_ch": 0, "conquered_ch": 0, "receptionist_ch": 0, "promotion_ch": 0,
+            "cooldown_ch": 0, "cooldown_msg": 0, "judge_ch": 0,
+            "event_shares_standard": true
+        }))
+        .expect("a bounty block with the switch must parse");
+        assert!(CooldownPolicy::from(&cfg).event_shares_standard());
+
+        let legacy: super::super::super::config::Bounty = serde_json::from_value(serde_json::json!({
+            "board_ch": 0, "conquered_ch": 0, "receptionist_ch": 0, "promotion_ch": 0,
+            "cooldown_ch": 0, "cooldown_msg": 0, "judge_ch": 0
+        }))
+        .expect("a bounty block without the switch must still parse");
+        assert!(!CooldownPolicy::from(&legacy).event_shares_standard());
+    }
+
+    #[test]
+    fn event_off_does_not_block_the_ladder() {
+        // The behaviour that must survive: with sharing off, a completed Event
+        // leaves Bronze untouched.
+        let hist = history_of(Category::Event, BBQ::BBQ01, T0);
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ01, &shared_policy(false), T0 + HOUR),
+            CooldownVerdict::Allowed
+        );
+    }
+
+    #[test]
+    fn event_on_blocks_the_ladder() {
+        // An Event run now locks the standard group, so Bronze must wait.
+        let policy = shared_policy(true);
+        let hist = policy.normalize(&history_of(Category::Event, BBQ::BBQ01, T0));
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ02, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 20 * HOUR },
+            "a different BBQ waits `different`, measured from the Event run"
+        );
+    }
+
+    #[test]
+    fn event_on_is_blocked_by_the_ladder() {
+        // The other direction: a completed Bronze run must now gate Event.
+        let policy = shared_policy(true);
+        let hist = policy.normalize(&history_of(Category::Bronze, BBQ::BBQ03, T0));
+        assert_eq!(
+            evaluate(&hist, &Category::Event, &BBQ::BBQ01, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + 20 * HOUR }
+        );
+    }
+
+    #[test]
+    fn event_on_uses_same_and_different_not_the_event_hours() {
+        // The confirmed semantic: Event obeys `same`/`different`, so the `event`
+        // value must not be consulted while sharing is on.
+        let policy = shared_policy(true);
+
+        let repeat = policy.normalize(&history_of(Category::Event, BBQ::BBQ01, T0));
+        assert_eq!(
+            evaluate(&repeat, &Category::Event, &BBQ::BBQ01, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + DEFAULT_SAME_HOURS * HOUR },
+            "an unchanged Event repeat waits `same`"
+        );
+
+        let change = policy.normalize(&history_of(Category::Event, BBQ::BBQ01, T0));
+        assert_eq!(
+            evaluate(&change, &Category::Event, &BBQ::BBQ09, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + DEFAULT_DIFF_HOURS * HOUR },
+            "a different Event BBQ waits `different`"
+        );
+    }
+
+    #[test]
+    fn event_off_still_uses_the_event_hours() {
+        // Regression guard for the other half of the switch.
+        let policy = shared_policy(false);
+        let hist = history_of(Category::Event, BBQ::BBQ01, T0);
+        assert_eq!(
+            evaluate(&hist, &Category::Event, &BBQ::BBQ02, &policy, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + DEFAULT_EVENT_HOURS * HOUR }
+        );
+    }
+
+    #[test]
+    fn normalize_maps_only_the_event_group() {
+        let standard = GroupHistory {
+            group: CooldownGroup::Standard,
+            category: Category::Gold,
+            bbq: BBQ::BBQ07,
+            completed_at: T0,
+        };
+        let event = GroupHistory {
+            group: CooldownGroup::Event,
+            category: Category::Event,
+            bbq: BBQ::BBQ02,
+            completed_at: T0 + 5,
+        };
+        let rows = vec![standard.clone(), event.clone()];
+
+        // Off: untouched, so a stored Event row keeps driving its own timer.
+        assert_eq!(shared_policy(false).normalize(&rows), rows);
+
+        // On: only the Event row moves, and it keeps its category/bbq/time so the
+        // `same` versus `different` decision still knows the previous run.
+        let mapped = shared_policy(true).normalize(&rows);
+        assert_eq!(mapped.len(), 2);
+        assert_eq!(mapped[0], standard);
+        assert_eq!(mapped[1].group, CooldownGroup::Standard);
+        assert_eq!(mapped[1].category, Category::Event);
+        assert_eq!(mapped[1].bbq, BBQ::BBQ02);
+        assert_eq!(mapped[1].completed_at, T0 + 5);
+    }
+
+    #[test]
+    fn the_write_key_follows_the_option() {
+        // `send_reward` uses `group_of(...).encode()`, so this pins the database
+        // key an Event completion lands on in each mode.
+        assert_eq!(shared_policy(false).group_of(&Category::Event).encode(), 2);
+        assert_eq!(shared_policy(true).group_of(&Category::Event).encode(), 0);
+        for on in [false, true] {
+            let p = shared_policy(on);
+            assert_eq!(p.group_of(&Category::Bronze).encode(), 0);
+            assert_eq!(p.group_of(&Category::Free).encode(), 0);
+        }
+    }
+
+    #[test]
+    fn turning_the_option_off_restores_the_events_own_timer() {
+        // The stored row was never moved, so switching back must recover the real
+        // Event cooldown rather than losing it.
+        let stored = history_of(Category::Event, BBQ::BBQ04, T0);
+
+        let on = shared_policy(true);
+        assert_eq!(
+            evaluate(&on.normalize(&stored), &Category::Event, &BBQ::BBQ01, &on, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + DEFAULT_DIFF_HOURS * HOUR }
+        );
+
+        let off = shared_policy(false);
+        assert_eq!(
+            evaluate(&off.normalize(&stored), &Category::Event, &BBQ::BBQ01, &off, T0 + HOUR),
+            CooldownVerdict::Blocked { ends_at: T0 + DEFAULT_EVENT_HOURS * HOUR }
+        );
+    }
+
+    #[test]
+    fn the_latest_row_wins_when_both_groups_map_together() {
+        // With sharing on, a standard row and an event row become the same group.
+        // The newer one must be the one that gates.
+        let policy = shared_policy(true);
+        let rows = vec![
+            GroupHistory {
+                group: CooldownGroup::Standard,
+                category: Category::Gold,
+                bbq: BBQ::BBQ01,
+                completed_at: T0,
+            },
+            GroupHistory {
+                group: CooldownGroup::Event,
+                category: Category::Event,
+                bbq: BBQ::BBQ02,
+                completed_at: T0 + 2 * HOUR,
+            },
+        ];
+        let hist = policy.normalize(&rows);
+        assert_eq!(
+            last_of_group(&hist, CooldownGroup::Standard)
+                .expect("there must be a standard row")
+                .completed_at,
+            T0 + 2 * HOUR
+        );
+    }
+
+    #[test]
+    fn a_legacy_event_timestamp_still_never_drives_standard() {
+        // `latest_bounty_time` was never a gate for Event, and folding Event into
+        // the ladder must not change that.
+        let hist = history_with_legacy_and_policy(
+            &[],
+            &code(&Category::Event, &BBQ::BBQ01),
+            T0,
+            &shared_policy(true),
+        );
+        assert!(hist.is_empty(), "an Event legacy column must not seed a row");
     }
 }

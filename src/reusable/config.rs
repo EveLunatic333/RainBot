@@ -200,6 +200,17 @@ pub struct Bounty {
     /// What the Bronze -> Silver -> Gold gate requires. See [`ProgressionGateMode`].
     #[serde(default)]
     pub progression_gate: ProgressionGateMode,
+    /// Whether the Event category shares the standard cooldown timer.
+    ///
+    /// `false` (the default) keeps Event on a timer of its own, measured in
+    /// `cooldown_hours.event`. `true` folds Event into the shared standard group:
+    /// an Event run then locks Bronze/Silver/Gold/Free and the other way round,
+    /// and Event repeats obey `same`/`different` instead of `event`.
+    ///
+    /// Defaults to `false` so a build upgrade cannot silently change a live
+    /// server's cooldown behaviour; the operator has to opt in.
+    #[serde(default)]
+    pub event_shares_standard: bool,
 }
 
 /// What must be true before the next progression category opens.
