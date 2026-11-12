@@ -582,17 +582,124 @@ async fn distribution(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     }
 }
 
+/// What a bounty button click should do, decided from its custom id alone.
+///
+/// Kept separate from the Discord calls so the routing can be tested: getting it
+/// wrong is silent (a Delete click would look up a submission that is gone, or a
+/// normal button would be treated as a delete).
+#[derive(Debug, PartialEq, Eq)]
+enum BountyClick {
+    /// Delete the judge message with this id.
+    DeleteStale(u64),
+    /// A malformed `bountydel_` payload.
+    MalformedDelete,
+    /// The Approve/Reject/Check flow for a user: (user id, action state).
+    Submission(String, String),
+    /// Not a bounty button at all.
+    Ignore,
+}
+
+fn classify_bounty_click(custom_id: &str) -> BountyClick {
+    // The delete id must be checked before the `bounty_` prefix, because
+    // `bountydel_1` would otherwise split into ("bountydel", "1") and be treated
+    // as a submission action for user "1".
+    if let Some(rest) = custom_id.strip_prefix("bountydel_") {
+        return match rest.parse::<u64>() {
+            Ok(id) => BountyClick::DeleteStale(id),
+            Err(_) => BountyClick::MalformedDelete,
+        };
+    }
+    let mut parts = custom_id.split('_');
+    if parts.next().unwrap_or_default() != "bounty" {
+        return BountyClick::Ignore;
+    }
+    match (parts.next(), parts.next()) {
+        (Some(user), Some(action)) => BountyClick::Submission(user.to_owned(), action.to_owned()),
+        _ => BountyClick::Ignore,
+    }
+}
+
 #[hertz::hertz_button_normal(0, false)]
 async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
-    let mut code_parts = bnd.cmd.data.custom_id.split('_');
-    let prefix = code_parts.next().unwrap_or_default();
-    if prefix != "bounty" { return Ok(()); }
-    let user_id = code_parts.next().ok_or_else(|| MyErr::Custom("Missing user identifier in button payload".into()))?;
-    let action_state = code_parts.next().ok_or_else(|| MyErr::Custom("Missing action state in button payload".into()))?;
-    let mut submission = match BountySubmit::open(user_id).await {
+    let click = classify_bounty_click(&bnd.cmd.data.custom_id);
+
+    let (user_id, action_state) = match click {
+        BountyClick::DeleteStale(judge_msg_id) => {
+            // The bot must not be able to delete an arbitrary message: refetch it
+            // from this channel first and only remove it when it really is a
+            // bounty judge message.
+            let outcome = match ChannelId::new(bnd.cmd.channel_id.get())
+                .message(&bnd.ctx.http, MessageId::new(judge_msg_id))
+                .await
+            {
+                Ok(msg) => {
+                    let is_judge_msg = msg
+                        .components
+                        .iter()
+                        .flat_map(|row| &row.components)
+                        .any(|c| matches!(c, ActionRowComponent::Button(b)
+                            if matches!(&b.data, ButtonKind::NonLink { custom_id, .. }
+                                if custom_id.starts_with("bounty_"))));
+                    if is_judge_msg {
+                        msg.delete(&bnd.ctx.http).await.map(|_| ())
+                    } else {
+                        Err(serenity::Error::Other("not a bounty judge message"))
+                    }
+                }
+                Err(e) => Err(e),
+            };
+            let text = match outcome {
+                Ok(()) => "🗑 **Message deleted.**".to_owned(),
+                Err(e) => format!("❌ **Could not delete the message:**\n```\n{}\n```", e),
+            };
+            let _ = bnd
+                .cmd
+                .edit_response(
+                    &bnd.ctx.http,
+                    EditInteractionResponse::new().content(text).components(Vec::new()),
+                )
+                .await;
+            return Ok(());
+        }
+        BountyClick::MalformedDelete => {
+            let _ = bnd.cmd.create_response(
+                &bnd.ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .content("❌ Malformed delete request.")
+                        .ephemeral(true),
+                ),
+            ).await;
+            return Ok(());
+        }
+        BountyClick::Submission(user, action) => (user, action),
+        BountyClick::Ignore => return Ok(()),
+    };
+
+
+    let mut submission = match BountySubmit::open(&user_id).await {
         Some(data) => data,
         None => {
-            let _ = bnd.cmd.create_response(&bnd.ctx.http, notices::bounty_submission_expired().to_interaction_response(true)).await;
+            // The submission is gone: cancelled, expired, approved or rejected.
+            // The judge message keeps live buttons that no longer do anything, so
+            // offer one that clears it instead of leaving dead buttons behind.
+            // `bnd.cmd.message` is the judge message here, because this button
+            // lives on that message.
+            let dismiss = CreateActionRow::Buttons(vec![
+                CreateButton::new(format!("bountydel_{}", bnd.cmd.message.id))
+                    .label("Delete Message")
+                    .style(ButtonStyle::Danger)
+                    .emoji('🗑'),
+            ]);
+            let _ = bnd.cmd.create_response(
+                &bnd.ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .embed(notices::bounty_submission_expired().to_embed())
+                        .components(vec![dismiss])
+                        .ephemeral(true),
+                ),
+            ).await;
             return Ok(());
         }
     };
@@ -602,7 +709,7 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
             serde_json::to_value(btn).ok().and_then(|json| json.get("url")?.as_str().map(str::to_string))
         } else { None }
     });
-    match action_state {
+    match action_state.as_str() {
         "c" => {
             let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(CreateInteractionResponseMessage::new().content("⏳ Fetching bounty details...").ephemeral(true))).await;
             let bounty_data = Box::new(Bounty::new(&submission.category).await?);
@@ -681,7 +788,7 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
             // failure must abort the approval. What must not happen is leaving the
             // judge with a dead message: on any failure the Approve/Reject buttons
             // are put back so the approval can be retried once the cause is fixed.
-            let outcome = approve(bnd, &mut submission, user_id, &jump_url).await;
+            let outcome = approve(bnd, &mut submission, &user_id, &jump_url).await;
             match outcome {
                 Ok(()) => {
                     submission.delete().await;
@@ -795,4 +902,51 @@ async fn approve(
 
     submission.reward(false, bnd, &mut pg_conn).await?;
     Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_delete_click_targets_its_message() {
+        assert_eq!(
+            classify_bounty_click("bountydel_1234567890123456789"),
+            BountyClick::DeleteStale(1234567890123456789)
+        );
+    }
+
+    #[test]
+    fn the_delete_prefix_is_not_read_as_a_submission_action() {
+        // Without the early `bountydel_` check, "bountydel_1" splits into
+        // ("bountydel", "1") and the click would be routed to a submission lookup
+        // for user "1" that is already gone.
+        assert_eq!(
+            classify_bounty_click("bountydel_1"),
+            BountyClick::DeleteStale(1)
+        );
+    }
+
+    #[test]
+    fn a_malformed_delete_id_is_reported() {
+        assert_eq!(
+            classify_bounty_click("bountydel_notanumber"),
+            BountyClick::MalformedDelete
+        );
+    }
+
+    #[test]
+    fn a_judge_button_still_routes_to_its_submission() {
+        assert_eq!(
+            classify_bounty_click("bounty_814352814078820372_a"),
+            BountyClick::Submission("814352814078820372".to_owned(), "a".to_owned())
+        );
+    }
+
+    #[test]
+    fn unrelated_components_are_ignored() {
+        assert_eq!(classify_bounty_click("papp_1_2_a"), BountyClick::Ignore);
+        assert_eq!(classify_bounty_click("title_edit_select_0_1"), BountyClick::Ignore);
+        assert_eq!(classify_bounty_click("bounty"), BountyClick::Ignore);
+        assert_eq!(classify_bounty_click("bounty_123"), BountyClick::Ignore);
+    }
 }
