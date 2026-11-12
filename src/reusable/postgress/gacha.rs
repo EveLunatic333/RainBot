@@ -389,16 +389,22 @@ pub async fn clear_cooldown_history(
         .bind(did)
         .execute(&mut *conn)
         .await?;
-    sqlx::query(
-        "DO $$ BEGIN \
-             IF to_regclass('public.bounty_cooldown') IS NOT NULL THEN \
-                 DELETE FROM bounty_cooldown WHERE discord_id = $1; \
-             END IF; \
-         END $$",
-    )
-    .bind(did)
-    .execute(&mut *conn)
-    .await?;
+
+    // The legacy table is only deleted from when it still exists, so this stays
+    // safe after a rollback table is dropped. The existence probe is a separate
+    // statement on purpose: a `DO` block runs as PL/pgSQL and cannot reference a
+    // bind parameter, so `... WHERE discord_id = $1` inside it fails to parse with
+    // "there is no parameter $1" before it ever runs.
+    let legacy_exists: Option<String> =
+        sqlx::query_scalar("SELECT to_regclass('public.bounty_cooldown')::text")
+            .fetch_one(&mut *conn)
+            .await?;
+    if legacy_exists.is_some() {
+        sqlx::query("DELETE FROM bounty_cooldown WHERE discord_id = $1")
+            .bind(did)
+            .execute(&mut *conn)
+            .await?;
+    }
     Ok(())
 }
 
