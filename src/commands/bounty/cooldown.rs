@@ -48,7 +48,7 @@ async fn interface(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
         1. Copy the Message ID above.\n\
         2. Paste it into `config.json` under `\"cooldown_msg\"`.\n\
         3. Restart the bot.\n\
-        4. Run `/cooldown refresh` to load the actual interface and buttons from `cooldown.json`.",
+        4. Run `/cooldown refresh` to fill this message with the BBQ cooldown list from `cooldown.json`.",
         msg.id.get()
     );
     

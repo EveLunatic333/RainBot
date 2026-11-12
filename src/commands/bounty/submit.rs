@@ -625,6 +625,14 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
 
     let (user_id, action_state) = match click {
         BountyClick::DeleteStale(judge_msg_id) => {
+            // Acknowledge first. Discord gives an interaction three seconds to
+            // answer, and the lookup plus delete below can outlast that, which
+            // showed up as "RainBot Dev didn't respond in time" under the button
+            // even though the message was removed.
+            if bnd.cmd.defer_ephemeral(&bnd.ctx.http).await.is_err() {
+                return Ok(());
+            }
+
             // The bot must not be able to delete an arbitrary message: refetch it
             // from this channel first and only remove it when it really is a
             // bounty judge message.
