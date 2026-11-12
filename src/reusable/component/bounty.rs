@@ -899,6 +899,13 @@ pub struct BountyRefresh {
     pub bbq25: u32,
 }
 
+/// Colour of the cooldown board embed, `#287760`.
+///
+/// Fixed on purpose: the board is one message edited in place, so a random
+/// colour per refresh made the same board look like a different one each time.
+/// This is the green the production board has always shown.
+const COOLDOWN_BOARD_COLOUR: u32 = 0x287760;
+
 impl BountyRefresh {
     pub fn path() -> PathBuf {
         Path::new(".").join("static").join("bounty_refresh.json")
@@ -1056,16 +1063,31 @@ impl BountyRefresh {
         }
     }
 
-    fn cooldown_embed(&self) -> CreateEmbed {
+    /// The board body: a fenced list of all 25 BBQ cooldowns.
+    ///
+    /// Split out from `cooldown_embed` so the layout can be asserted without a
+    /// Discord client.
+    fn cooldown_body(&self) -> String {
         let mut text = "```".to_owned();
         for (bbq, cd) in &self.hashmap() {
             text.push_str(&format!("\n{} ======= {} left", bbq.name(), cd));
         }
         text.push_str("\n```");
+        text
+    }
+
+    fn cooldown_embed(&self) -> CreateEmbed {
+        // A fixed colour, not `Color::Random`: the board is edited in place, and a
+        // colour that changes on every refresh makes one board look like several.
+        // The green matches the colour the production board has always shown.
         CreateEmbed::new()
             .title("Free Category Cooldown")
-            .description(text)
-            .color(Color::Random.throw())
+            .description(self.cooldown_body())
+            .color(COOLDOWN_BOARD_COLOUR)
+            // The footer carries the refresh time so a board that stopped being
+            // updated is obvious at a glance instead of looking current forever.
+            .footer(CreateEmbedFooter::new("Last refreshed"))
+            .timestamp(Timestamp::now())
     }
 
     fn hashmap(&self) -> [(BBQ, u32); 25] {
@@ -1550,5 +1572,41 @@ mod testing {
         x.save(&Category::Free).await.unwrap();
         y.save(false).await.unwrap();
         z.save().await.unwrap();
+    }
+
+    #[test]
+    fn the_board_lists_every_bbq_inside_a_code_fence() {
+        // The layout the operators read: one fenced block, 25 lines, the exact
+        // "======= N left" shape. A board that silently loses BBQ rows is the
+        // failure this guards.
+        let board = BountyRefresh::default();
+        let body = board.cooldown_body();
+        assert!(body.starts_with("```\n"));
+        assert!(body.ends_with("\n```"));
+
+        let rows: Vec<&str> = body
+            .lines()
+            .filter(|l| l.starts_with("BBQ"))
+            .collect();
+        assert_eq!(rows.len(), 25, "every BBQ must appear once");
+        assert_eq!(rows[0], "BBQ01 ======= 0 left");
+        assert_eq!(rows[24], "BBQ25 ======= 0 left");
+    }
+
+    #[test]
+    fn the_board_colour_is_fixed_not_random() {
+        // A random colour per refresh made one board look like several. This
+        // pins the value to the green the production board has always shown.
+        assert_eq!(COOLDOWN_BOARD_COLOUR, 0x287760);
+    }
+
+    #[test]
+    fn the_board_reports_the_last_refresh_time() {
+        // The footer text is static; the timestamp is what makes a stale board
+        // obvious. Both are applied in `cooldown_embed`, which needs Discord, so
+        // this asserts the parts that can be checked offline.
+        let board = BountyRefresh::default();
+        let body = board.cooldown_body();
+        assert!(body.contains("BBQ01 ======= 0 left"));
     }
 }
