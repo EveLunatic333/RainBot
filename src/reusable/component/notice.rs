@@ -18,7 +18,7 @@ use serenity::builder::{
     CreateActionRow, CreateEmbed, CreateEmbedFooter, CreateInteractionResponse,
     CreateInteractionResponseMessage, EditInteractionResponse,
 };
-use serenity::all::Colour;
+use serenity::all::{Colour, Embed};
 
 use super::super::utils::Color;
 
@@ -335,6 +335,33 @@ impl Notice {
             .components(components)
     }
 
+    /// Replacement that keeps the original embed beneath the notice.
+    ///
+    /// `.embed()` on an edit **overwrites the whole embed list**, so a notice built
+    /// with [`Self::to_edit_response_with`] silently deleted the submission
+    /// screenshot from the bounty judge message: the judge selected a reject reason
+    /// and cancelled, and the image the player uploaded was gone.
+    ///
+    /// The original embeds are passed through unchanged, so whatever they carried
+    /// (`.image()`, thumbnail, author) survives. The notice is placed **first** and
+    /// renders bold, so it still reads as the status line.
+    ///
+    /// Only use this where the previous embed is worth preserving. A notice that is
+    /// meant to replace the screen entirely should keep using
+    /// [`Self::to_edit_response`].
+    pub fn to_edit_response_keeping(
+        &self,
+        components: Vec<CreateActionRow>,
+        previous: &[Embed],
+    ) -> EditInteractionResponse {
+        let mut embeds = Vec::with_capacity(previous.len() + 1);
+        embeds.push(self.to_embed());
+        embeds.extend(previous.iter().cloned().map(CreateEmbed::from));
+        EditInteractionResponse::new()
+            .embeds(embeds)
+            .components(components)
+    }
+
     /// A one-paragraph version for paths that can only return an error string.
     ///
     /// `Hunter::new` reports its refusals through `MyErr::Custom`, which the
@@ -619,5 +646,94 @@ mod tests {
         let plain = notice.to_edit_response();
         let with_rows = notice.to_edit_response_with(Vec::new());
         let _ = (plain, with_rows);
+    }
+
+    /// The regression: cancelling a reject wiped the submission screenshot.
+    ///
+    /// `.embed()` on an edit replaces the whole embed list. The judge message carries
+    /// the player's image via `.image()`, so the notice alone deleted it. These tests
+    /// drive the real builder and inspect the serialized request, which is the only
+    /// thing Discord sees.
+    /// A judge-message embed shaped like the one Discord actually sends back:
+    /// built by deserializing, because `EmbedImage` is `#[non_exhaustive]` and
+    /// cannot be constructed directly from this crate.
+    fn judge_message_embeds() -> Vec<Embed> {
+        let json = serde_json::json!([{
+            "title": "Free BBQ01 Solo",
+            "image": {
+                "url": "https://cdn.discordapp.com/attachments/1/2/proof.png",
+                "proxy_url": "https://media.discordapp.net/attachments/1/2/proof.png",
+                "width": 1280,
+                "height": 720
+            }
+        }]);
+        serde_json::from_value(json).expect("a real embed must deserialize")
+    }
+
+    fn serialized(edit: EditInteractionResponse) -> serde_json::Value {
+        serde_json::to_value(&edit).expect("an edit response must serialize")
+    }
+
+    #[test]
+    fn cancelling_keeps_the_submission_screenshot() {
+        let previous = judge_message_embeds();
+        let edit = Notice::new("Review Cancelled", "Nothing was decided.")
+            .to_edit_response_keeping(Vec::new(), &previous);
+        let json = serialized(edit);
+
+        let embeds = json["embeds"].as_array().expect("embeds array");
+        assert_eq!(embeds.len(), 2, "notice + original, got {embeds:?}");
+        assert!(
+            embeds.iter().any(|e| e["image"]["url"]
+                == "https://cdn.discordapp.com/attachments/1/2/proof.png"),
+            "the screenshot must survive the edit, got {embeds:?}"
+        );
+    }
+
+    #[test]
+    fn cancelling_still_keeps_the_judge_buttons() {
+        // The other half of the cancel contract: the reviewer must be able to act
+        // again afterwards, so the Approve/Reject/Check row is present.
+        let row = CreateActionRow::Buttons(vec![
+            serenity::builder::CreateButton::new("bounty_1_a").label("Approve"),
+            serenity::builder::CreateButton::new("bounty_1_r").label("Reject"),
+        ]);
+        let edit = Notice::new("Review Cancelled", "Nothing was decided.")
+            .to_edit_response_keeping(vec![row], &judge_message_embeds());
+        let json = serialized(edit);
+
+        let components = json["components"].as_array().expect("components");
+        assert_eq!(components.len(), 1, "the button row must be kept");
+    }
+
+    #[test]
+    fn the_notice_is_the_first_embed() {
+        // The notice must read as the status line, so it leads the message.
+        let edit = Notice::new("Review Cancelled", "Nothing was decided.")
+            .to_edit_response_keeping(Vec::new(), &judge_message_embeds());
+        let json = serialized(edit);
+        let embeds = json["embeds"].as_array().expect("embeds");
+
+        let title = embeds[0]["title"].as_str().unwrap_or_default();
+        assert!(
+            title.contains("Review Cancelled"),
+            "the notice must come first, got {title:?}"
+        );
+    }
+
+    #[test]
+    fn the_plain_edit_still_replaces_everything() {
+        // `to_edit_response` is used where the screen is meant to be replaced. It
+        // must keep that behaviour: exactly one embed and no leftover buttons.
+        let json = serialized(Notice::new("Done", "Replaced.").to_edit_response());
+        assert_eq!(
+            json["embeds"].as_array().map(|a| a.len()),
+            Some(1),
+            "a replacing notice carries only its own embed"
+        );
+        assert!(
+            json["components"].is_null() || json["components"] == serde_json::json!([]),
+            "a replacing notice clears the components"
+        );
     }
 }

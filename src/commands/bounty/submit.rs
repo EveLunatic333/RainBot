@@ -781,7 +781,13 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
                 // so the Approve/Reject/Check row must survive the edit. Clearing
                 // it (as a plain notice would) leaves the submission stuck with
                 // no way to review it.
-                bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response_with(final_components)).await?;
+                //
+                // The submission embed must survive too: the judge message carries
+                // the player's screenshot via `.image()`, and a naive `.embed()`
+                // edit wipes the whole embed list, which deleted the evidence the
+                // judge was looking at.
+                let previous = &bnd.cmd.message.embeds;
+                bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response_keeping(final_components, previous)).await?;
                 return Ok(());
             }
             let mut reason = match state {
@@ -798,12 +804,17 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
                     let typed_reason = reply.content.trim().to_string();
                     let _ = reply.delete(&bnd.ctx.http).await;
                     if typed_reason.to_lowercase() == "cancel" {
-                        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response_with(final_components)).await?;
+                        // Same as rm5: keep both the buttons and the screenshot.
+                        let previous = &bnd.cmd.message.embeds;
+                        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response_keeping(final_components, previous)).await?;
                         return Ok(());
                     }
                     reason = typed_reason;
                 } else {
-                    bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_rejection_timed_out().to_edit_response_with(final_components)).await?;
+                    // The submission stays pending and the judge buttons are put
+                    // back, so the screenshot must stay visible for the next attempt.
+                    let previous = &bnd.cmd.message.embeds;
+                    bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_rejection_timed_out().to_edit_response_keeping(final_components, previous)).await?;
                     return Ok(());
                 }
             }
@@ -875,7 +886,21 @@ async fn restore_judge_buttons(
         .cmd
         .edit_response(
             &bnd.ctx.http,
-            EditInteractionResponse::new().content(note).components(rows),
+            // The submission is still pending and the judge must retry, so the
+            // screenshot has to stay visible. Passing the embeds through keeps it;
+            // a bare `.content()` edit would have dropped the whole embed list.
+            EditInteractionResponse::new()
+                .content(note)
+                .components(rows)
+                .embeds(
+                    bnd.cmd
+                        .message
+                        .embeds
+                        .iter()
+                        .cloned()
+                        .map(CreateEmbed::from)
+                        .collect::<Vec<_>>(),
+                ),
         )
         .await;
 }
