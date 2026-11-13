@@ -91,7 +91,6 @@
   "discord": {
     "author_id": 0,
     "prefix": "?",
-    "sightengine_enabled": false,
     "token": "LOADED_FROM_ENV"
   },
   "lfg_roles": {

@@ -15,7 +15,6 @@ pub mod notices;
 pub mod gacha;
 pub mod market;
 pub mod shutdown;
-pub mod sightengine;
 pub mod welcome;
 pub mod autoresponse;
 pub mod autoresponse_logger;

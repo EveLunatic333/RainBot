@@ -35,8 +35,6 @@ pub struct Discord {
     pub token: String,
     pub prefix: String,
     pub author_id: u64,
-    #[serde(default)]
-    pub sightengine_enabled: bool,
 }
 
 /// PostgreSQL connection details.
@@ -1173,5 +1171,27 @@ mod tests {
             !raw.contains("leaderboard_ch"),
             "config.example.json must not advertise leaderboard_ch: nothing reads it"
         );
+        // Sightengine image moderation was removed; the switch must not linger and
+        // imply that uploading `true` still turns something on.
+        assert!(
+            !raw.contains("sightengine_enabled"),
+            "config.example.json must not advertise sightengine_enabled: the feature is gone"
+        );
+    }
+
+    /// A config.json written before the Sightengine and ChatGPT removals still
+    /// carries their keys. It must keep loading: `Discord` has no
+    /// `deny_unknown_fields`, so the stale entries are simply ignored.
+    #[test]
+    fn a_config_carrying_removed_features_still_loads() {
+        let mut value = config_value();
+        value["discord"]["sightengine_enabled"] = serde_json::json!(false);
+        value["bounty"]["reward_multiplier"] = serde_json::json!({
+            "free": { "coin": 1.0, "gacha": 1.0 }
+        });
+
+        let cfg: Init = serde_json::from_value(value)
+            .expect("a config with removed keys must deserialize");
+        assert_eq!(cfg.discord.prefix.is_empty(), false, "the rest must still parse");
     }
 }

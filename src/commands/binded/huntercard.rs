@@ -2,7 +2,6 @@ use serenity::builder::{CreateAttachment, EditInteractionResponse, CreateInterac
 use serenity::all::*;
 use crate::{Reg, SlashBundle, MyErr};
 use crate::reusable::image_edit::huntercard::{HunterCardEngine, RoleRenderData};
-use crate::reusable::component::sightengine;
 use crate::reusable::component::notices;
 use image::Rgba;
 use tokio::{fs, sync::Mutex};
@@ -147,17 +146,6 @@ async fn handle_edit_subcommand(bnd: &SlashBundle<'_>, reg: &Reg<'_>, storage_di
             "character" | "equipment" => {
                 if let CommandDataOptionValue::Attachment(att_id) = &opt.value {
                     if let Some(att) = bnd.cmd.data.resolved.attachments.get(att_id) {
-                        // Moderation degrades to "allow" when the API keys are not
-                        // configured, so a fresh clone without moderation still works.
-                        let flagged = match sightengine::SIGHTENGINE_KEYS.as_ref() {
-                            Some(keys) => sightengine::scan_image(&att.url, &keys.api_user, &keys.api_secret).await,
-                            None => false,
-                        };
-                        if flagged {
-                            let msg = format!("🛑 **Access Denied:** {} image violates content safety policies.", opt.name);
-                            bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content(msg)).await.ok();
-                            return Ok(());
-                        }
                         if let Ok(bytes) = att.download().await {
                             let suffix = if opt.name == "character" { "char" } else { "equip" };
                             let file_path = storage_dir.join(format!("{}_{}.jpg", reg.cid, suffix));

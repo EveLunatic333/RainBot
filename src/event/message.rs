@@ -1,6 +1,5 @@
 use serenity::all::*;
 use crate::{Init, MyErr, ItemPedia, commands};
-use crate::reusable::component::sightengine;
 use crate::PgConn;
 
 pub struct MsgBundle<'a> {
@@ -13,24 +12,6 @@ pub struct MsgBundle<'a> {
 pub async fn msg_handler(ctx: &Context, msg: &Message, init: &Init, pedia: &ItemPedia) {
     if msg.author.bot || msg.webhook_id.is_some() {
         return;
-    }
-
-    if init.discord.sightengine_enabled && !msg.attachments.is_empty() {
-        if let Some(keys) = sightengine::SIGHTENGINE_KEYS.as_ref() {
-            for att in &msg.attachments {
-                if att.content_type.as_ref().map_or(false, |c| c.starts_with("image/")) {
-                    if sightengine::scan_image(&att.url, &keys.api_user, &keys.api_secret).await {
-                        let _ = msg.delete(&ctx.http).await;
-                        let warning = format!(
-                            "🛑 **Security Alert**: <@{}>, your upload was flagged for violating community guidelines and has been removed.",
-                            msg.author.id
-                        );
-                        let _ = msg.channel_id.say(&ctx.http, warning).await;
-                        return;
-                    }
-                }
-            }
-        }
     }
 
     if msg.content.starts_with(&init.discord.prefix) {
