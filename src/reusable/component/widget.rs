@@ -2,9 +2,22 @@ use serenity::all::*;
 use serenity::builder::{CreateButton, CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse, CreateMessage};
 use serenity::model::prelude::ReactionType;
 use super::{Components, Mytrait, MyErr};
+use super::notice::Notice;
 use crate::{Mybundle, MsgBundle, SlashBundle};
 
 impl Components {
+    /// Replies with a structured notice, public or ephemeral.
+    pub async fn notice<T: Mybundle>(bnd: &T, notice: &Notice, ephemeral: bool) -> Result<(), MyErr> {
+        let cmd = bnd.cmd();
+        Ok(cmd.response(bnd.ctx(), notice.to_interaction_response(ephemeral)).await?)
+    }
+
+    /// Replaces the screen the interaction came from with a structured notice.
+    pub async fn notice_edit<T: Mybundle>(bnd: &T, notice: &Notice) -> Result<(), MyErr> {
+        let cmd = bnd.cmd();
+        Ok(cmd.edit(bnd.ctx(), notice.to_edit_response()).await?)
+    }
+
     pub fn normal_button(name: &str, custom_id: &str, style: ButtonStyle, emoji: &str) -> CreateButton {
         let mut b = CreateButton::new(custom_id).label(name).style(style);
         if let Ok(emj) = emoji.parse::<ReactionType>() {

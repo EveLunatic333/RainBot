@@ -3,7 +3,9 @@ use crate::reusable::component::Mytrait;
 use std::time::Duration;
 use crate::{MyErr, ItemPedia, Components, SlashBundle, Reg, reusable::{bitwise::ItemCode, component::{bounty::Title}}, event::interaction::ComponentBundle};
 use serenity::{all::*, futures::StreamExt};
+use tracing::warn;
 use crate::reusable::component::market::{Market, Item, Trading};
+use crate::reusable::component::notices;
 
 fn render_market_components(filtered_items: &Vec<(String, String)>, page: usize, selected_item: &Option<String>, selected_qty: &Option<u16>, is_searching: bool) -> Vec<CreateActionRow> {
     let mut rows = Vec::new();
@@ -77,21 +79,27 @@ impl Handle {
         // Unlimited items skip the stock check entirely; limited items keep
         // the legacy behavior and also cover the out-of-stock (0) case.
         if !self.item.unlimited && self.bought as u32 > self.item.treshold {
-            let msg = if self.item.treshold == 0 {
-                format!("{} is currently out of stock. Please check back later.", self.item.item.text(pedia).unwrap_or_default())
-            } else {
-                format!("You bought {} item, but market now only had {} item", self.bought, self.item.treshold)
-            };
-            return Err(MyErr::Custom(msg));
+            let name = self.item.item.text(pedia).unwrap_or_default();
+            return Err(notices::market_out_of_stock(
+                &name,
+                self.bought as i64,
+                self.item.treshold as i64,
+            )
+            .into());
         }
         if bc < discounted as i32 {
-            return Err(MyErr::Custom(format!("You only have {} Bounty Coin but you need {} for transaction", Market::currency(bc as i64), Market::currency(discounted))));
+            return Err(notices::market_insufficient_balance_formatted(
+                bc as i64,
+                discounted,
+                Market::currency,
+            )
+            .into());
         }
         if total > 2_147_483_647 {
-            return Err(MyErr::Custom(format!("You try to begin transaction with {} BC, which exceeds the limit.", Market::currency(total))));
+            return Err(notices::market_total_too_large(total, 2_147_483_647).into());
         }
         if item_count > 65_535 {
-            return Err(MyErr::Custom(format!("You try to bought {item_count} total items. Our courier can only carry 65.535 items. Please reduce.")));
+            return Err(notices::market_too_many_items(item_count, 65_535).into());
         }
 
         let change = bc as i64 - discounted;
@@ -127,9 +135,14 @@ impl Handle {
         Ok(())
     }
 
-    async fn post_transaction(&self, bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
+    /// Persists the remaining stock after a successful purchase.
+    ///
+    /// This used to also refresh the public "Server Market Stall" board. The board
+    /// has been removed: it duplicated the `/trading market` menu, and editing it was
+    /// the source of the 403 / 50005 failures whenever it had been posted by an older
+    /// bot identity. Only the stock file still needs writing.
+    async fn save_stock(&self) -> Result<(), MyErr> {
         self.market.save().await?;
-        self.market.update(bnd.ctx, bnd.init, bnd.pedia).await?;
         Ok(())
     }
 }
@@ -247,7 +260,7 @@ pub async fn auto(bnd: &SlashBundle<'_>, focus: &str) -> Result<(), MyErr> {
 pub async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
     let trade = Trading::new().await?;
     if !trade.market.enabled {
-        return Err(MyErr::Custom("Trading market is currently disabled".to_string()));
+        return Err(notices::trading_disabled().into());
     }
     bnd.cmd.defer(&bnd.ctx.http).await?;
 
@@ -266,7 +279,7 @@ pub async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
     let all_items: Vec<(String, String)> = all_items_raw.into_iter().map(|(key, display, _)| (key, display)).collect();
 
     if all_items.is_empty() {
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("❌ **The market is currently empty or completely sold out!**").components(vec![])).await?;
+        bnd.cmd.edit_response(&bnd.ctx.http, notices::market_empty().to_edit_response()).await?;
         return Ok(());
     }
 
@@ -323,7 +336,7 @@ pub async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
                 status_text = "🛒 **Server Market**\nPlease select an item and quantity to purchase.".to_string();
             }
             "m_cancel" => {
-                bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("🛑 **Market Transaction Cancelled.**").components(vec![])).await?;
+                bnd.cmd.edit_response(&bnd.ctx.http, notices::market_cancelled().to_edit_response()).await?;
                 return Ok(());
             }
             "m_clear" => {
@@ -394,7 +407,7 @@ pub async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
         let item = match market.item_hash().get(&item_key) {
             Some(i) => i.clone(),
             None => {
-                bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("❌ **Error:** Selected item no longer exists in the market.").components(vec![])).await?;
+                bnd.cmd.edit_response(&bnd.ctx.http, notices::market_item_gone().to_edit_response()).await?;
                 return Ok(());
             }
         };
@@ -403,12 +416,21 @@ pub async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
         let receipt = handle.check(reg, bnd.pedia).await?;
 
         if receipt.confirmation_market(bnd).await? {
+            // The purchase is committed here: coins are debited and the item is
+            // queued for delivery. Any failure past this point must never be
+            // reported as a failed transaction, because the player has paid.
             handle.transaction(reg, bnd.pedia).await?;
-            handle.post_transaction(bnd).await?;
+
+            // Persisting stock is part of the sale; a failure here is worth logging
+            // but must never turn a completed transaction into an error embed.
+            if let Err(e) = handle.save_stock().await {
+                warn!(error = %e, "Could not persist market stock after a successful purchase; sale stands");
+            }
+
             bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("🎉 **Transaction Successful!** Thank you for your purchase. Please check your in-game inventory.").components(vec![])).await?;
         }
     } else {
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("⏳ **Market Transaction Timed Out.**").components(vec![])).await?;
+        bnd.cmd.edit_response(&bnd.ctx.http, notices::market_timed_out().to_edit_response()).await?;
     }
 
     Ok(())

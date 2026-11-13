@@ -1,122 +1,134 @@
 {
-  "_comment": "Template configuration. Copy this file to config.json and replace the placeholder IDs, database details, and Discord settings with your own. Secrets are NOT stored here -- they come from .env (DISCORD_TOKEN, POSTGRES_PASSWORD, CHATGPT_TOKEN, SIGHTENGINE_*).",
-
-  "discord": {
-    "token": "LOADED_FROM_ENV",
-    "prefix": "?",
-    "author_id": 0,
-    "sightengine_enabled": false
-  },
-
-  "postgress": {
-    "user": "postgres",
-    "host": "localhost",
-    "password": "LOADED_FROM_ENV",
-    "port": 5432,
-    "database": "erupe"
-  },
-
+  "_comment": "Template configuration. Copy this file to config.json and replace the placeholder IDs and Discord settings with your own. Secrets AND database connection details (host, port, database, user, password) are NOT stored here -- they come from .env (DISCORD_TOKEN, SIGHTENGINE_*, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, or DATABASE_URL).",
+  "_master_commander_id_comment": "Optional. A Discord user ID that bypasses every admin role check. Leave this out (or set it to null) to disable the bypass entirely, so only the roles below can run admin commands. Prefer roles over a hardcoded owner account.",
+  "_postgress_note": "The whole 'postgress' block is intentionally omitted. Supply POSTGRES_HOST / POSTGRES_PORT / POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD in .env instead.",
   "authorized_guilds": [
     0
   ],
-
-  "chat_gpt": {
-    "token": "LOADED_FROM_ENV",
-    "timeout": 600
+  "bot_config": {
+    "bounty": true,
+    "gacha": true,
+    "member_join": true,
+    "member_leave": true,
+    "server_market": true,
+    "transfer_timeout": 7200
   },
-
+  "bounty": {
+    "_cooldown_comment": "Per-group bounty cooldown, in HOURS, with THREE independent timers. The progression ladder (Bronze/Silver/Gold) uses 'progression'. Free uses 'same'/'different': 'same' when the same BBQ is repeated, 'different' when it changes. Event uses 'event' unless 'event_shares_standard' pairs it with Free. 'progression' and 'event' are one value each and ignore 'same'/'different'; an explicit 0 disables that timer. The Free timer is still driven by discord.latest_bounty_time, so an operator can move or clear it with plain SQL. Omit the whole block to keep 40/20/40/40.",
+    "_event_shares_standard_comment": "When true, Event shares the timer with FREE only: an Event run locks Free and the other way round, and Event repeats obey 'same'/'different' -- the 'event' value is then ignored. The progression ladder has its own timer and is never affected. When false (the default) Event keeps its own timer of 'event' hours.",
+    "_per_bbq_comment": "Optional per-BBQ overrides inside a group, keyed by BBQ number. An override REPLACES the group value, it does not multiply it: with free.coin = 2.00 and per_bbq '25'.coin = 5.00, BBQ25 pays 5x, not 10x. Any currency the override does not name falls back to 1.00, not to the group value, so name both when both differ. Keys outside 1..25 never apply and are reported at startup. Inspect the result with /config reward_preview before relying on it.",
+    "_progression_gate_comment": "What the Bronze -> Silver -> Gold gate requires. 'counter' (default) needs only the completed-bounty counter, which is the trustworthy record. 'either' accepts the counter OR the achievement bit. 'both' requires the counter AND the bit, and will block players whose achievement role was never granted -- check with audit_achievement_roles.py before choosing it.",
+    "_progression_no_repeat_comment": "When true (the default) a progression bounty that was already cleared cannot be submitted again: the ladder must move up. Bronze BBQ03 cleared means the next submission has to be BBQ04; the category closes once all 25 are done. When false the old behaviour returns and any BBQ up to the current rank may be repeated. Free and Event are never affected.",
+    "_progression_shares_standard_comment": "When true, the progression ladder (Bronze/Silver/Gold) shares the timer with FREE, exactly as 'event_shares_standard' does for Event: a ladder run locks Free and the other way round, and ladder repeats obey 'same'/'different' -- the 'progression' value is then ignored. When false (the default) the ladder keeps its own 'progression' timer. Turning this and 'event_shares_standard' both on puts Progression, Free and Event on ONE timer. The no-repeat rule is unaffected by this switch.",
+    "_reward_multiplier_comment": "Scales the reward a bounty pays WITHOUT editing static/*_bounty.json. Three groups, matching the cooldown groups: 'free', 'event', and 'progression' (Bronze, Silver and Gold together -- one value for the whole ladder). Each group sets 'coin' (Bounty Coin) and 'gacha' (Gacha Ticket) independently. Default 1.00 leaves every reward exactly as the category file states. Any positive factor is allowed, e.g. 1.25 or 2.00; 0 pays nothing for that currency. Results are rounded DOWN, so a payout never exceeds base x factor. Items and equipment are never scaled. A value above 100 is clamped to 100, and NaN/negative/infinite values are replaced with 1.00 -- both are reported once in the log at startup. Omit the whole block to keep 1.00 everywhere.",
+    "board_ch": 0,
+    "conquered_ch": 0,
+    "cooldown_ch": 0,
+    "cooldown_hours": {
+      "different": 20,
+      "event": 40,
+      "progression": 40,
+      "same": 40
+    },
+    "cooldown_msg": 0,
+    "event_shares_standard": false,
+    "judge_ch": 0,
+    "progression_gate": "counter",
+    "progression_no_repeat": true,
+    "progression_shares_standard": false,
+    "promotion_ch": 0,
+    "receptionist_ch": 0,
+    "reward_multiplier": {
+      "event": {
+        "coin": 1.0,
+        "gacha": 1.0,
+        "per_bbq": {}
+      },
+      "free": {
+        "coin": 1.0,
+        "gacha": 1.0,
+        "per_bbq": {}
+      },
+      "progression": {
+        "coin": 1.0,
+        "gacha": 1.0,
+        "per_bbq": {}
+      }
+    }
+  },
+  "commands_toggle": {
+    "add": true,
+    "card": true,
+    "change_pasword": true,
+    "clearcache": true,
+    "config": true,
+    "cooldown": true,
+    "create": true,
+    "event": true,
+    "execute": true,
+    "ferias": true,
+    "gacha": true,
+    "gacha_check": true,
+    "guild": true,
+    "huntercard": true,
+    "interface": true,
+    "mod": true,
+    "monitor": true,
+    "party": true,
+    "password": true,
+    "pedia": true,
+    "ping": true,
+    "pull": true,
+    "purge": true,
+    "query": true,
+    "save": true,
+    "submit": true,
+    "tag": false,
+    "test": true,
+    "trading": true,
+    "transfer": true
+  },
+  "discord": {
+    "author_id": 0,
+    "prefix": "?",
+    "token": "LOADED_FROM_ENV"
+  },
+  "lfg_roles": {
+    "bounty_hunter": 0,
+    "gacha_enjoyer": 0,
+    "musou_slayer": 0,
+    "party_helper": 0,
+    "raviente_raid": 0,
+    "road_runner": 0
+  },
+  "log_channel": {
+    "account_channel": 0,
+    "err_channel": 0,
+    "erupe_channel": 0,
+    "info_channel": 0,
+    "info_channel_msg": 1,
+    "join_channel": 0,
+    "leave_channel": 0,
+    "market_channel": 0,
+    "market_channel_msg": 1,
+    "party_ch": 0,
+    "request_channel": 0,
+    "ticket_channel_id": 0,
+    "transfer_channel": 0
+  },
+  "master_commander_id": null,
   "mhfz_config": {
     "account_creation": true,
     "sending_log": false
   },
-
-  "bot_config": {
-    "member_join": true,
-    "member_leave": true,
-    "gacha": true,
-    "bounty": true,
-    "server_market": true,
-    "transfer_timeout": 7200
-  },
-
-  "bounty": {
-    "board_ch": 0,
-    "conquered_ch": 0,
-    "promotion_ch": 0,
-    "cooldown_ch": 0,
-    "cooldown_msg": 0,
-    "leaderboard_ch": 0,
-    "receptionist_ch": 0,
-    "judge_ch": 0
-  },
-
   "server_role": {
     "admin_role": 0,
     "bartender_role": 0,
-    "register_role": 0,
-    "member_role": 0,
     "judge_role": 0,
     "maintainer_role": 0,
-    "weekly_distributor": 0,
-    "speedrun_supervisor_role": 0
-  },
-
-  "lfg_roles": {
-    "raviente_raid": 0,
-    "party_helper": 0,
-    "bounty_hunter": 0,
-    "road_runner": 0,
-    "gacha_enjoyer": 0,
-    "musou_slayer": 0
-  },
-
-  "log_channel": {
-    "err_channel": 0,
-    "account_channel": 0,
-    "transfer_channel": 0,
-    "info_channel": 0,
-    "info_channel_msg": 1,
-    "market_channel": 0,
-    "market_channel_msg": 1,
-    "erupe_channel": 0,
-    "request_channel": 0,
-    "join_channel": 0,
-    "leave_channel": 0,
-    "party_ch": 0,
-    "ticket_channel_id": 0
-  },
-
-  "commands_toggle": {
-    "transfer": true,
-    "pull": true,
-    "gpt": false,
-    "ping": true,
-    "change_pasword": true,
-    "card": true,
-    "monitor": true,
-    "cooldown": true,
-    "clearcache": true,
-    "purge": true,
-    "config": true,
-    "interface": true,
-    "mod": true,
-    "gacha_check": true,
-    "execute": true,
-    "tag": false,
-    "trading": true,
-    "ferias": true,
-    "party": true,
-    "pedia": true,
-    "gacha": true,
-    "huntercard": true,
-    "add": true,
-    "test": true,
-    "save": true,
-    "submit": true,
-    "guild": true,
-    "create": true,
-    "password": true,
-    "query": true,
-    "event": true
+    "member_role": 0,
+    "register_role": 0,
+    "speedrun_supervisor_role": 0,
+    "weekly_distributor": 0
   }
 }

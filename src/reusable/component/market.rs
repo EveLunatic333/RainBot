@@ -1,4 +1,4 @@
-use crate::{Init, ItemPedia};
+use crate::ItemPedia;
 use serde::{Deserialize, Serialize};
 use serenity::all::*;
 use std::collections::HashMap;
@@ -108,119 +108,6 @@ impl Market {
         }
     }
 
-    pub fn make_embed(&self, pedia: &ItemPedia) -> CreateEmbed {
-        use crate::reusable::utils::Color;
-
-        let mut desc = String::new();
-        desc.push_str("```\n");
-
-        desc.push_str(&format!("{: <26} | {}\n", "🛒 ITEM NAME", "📦 STOCK"));
-        desc.push_str("---------------------------+---------\n");
-
-        for x in self.market.iter() {
-            let mut item_name = x.item.text(pedia).unwrap();
-
-            if item_name.len() > 25 {
-                item_name.truncate(22);
-                item_name.push_str("...");
-            }
-
-            let stock_display = if x.unlimited { "∞".to_string() } else { x.treshold.to_string() };
-            let line = format!("{: <26} | {: >7}\n", item_name, stock_display);
-
-            if desc.len() + line.len() > 3900 {
-                desc.push_str("---------------------------+---------\n");
-                desc.push_str("... [VIEW LIMIT REACHED. OTHER ITEMS HIDDEN]\n");
-                break;
-            }
-            desc.push_str(&line);
-        }
-
-        desc.push_str("```");
-
-        CreateEmbed::new()
-            .color(Color::Random.throw())
-            .title("🏪 Server Market Stall")
-            .description(desc)
-            .footer(CreateEmbedFooter::new("Use the /market command for transactions"))
-    }
-
-    pub async fn send(
-        &self,
-        ctx: &Context,
-        init: &mut Init,
-        msg: &Message,
-        pedia: &ItemPedia,
-    ) -> Result<(), MyErr> {
-        if init.discord.author_id == msg.author.id.get() {
-            let mid = msg
-                .channel_id
-                .send_message(&ctx.http, CreateMessage::new().embed(self.make_embed(pedia)))
-                .await?;
-            init.log_channel.market_channel = msg.channel_id.get();
-            init.log_channel.market_channel_msg = mid.id.get();
-            init.bot_config.server_market = true;
-            return Ok(());
-        }
-        Err(MyErr::Custom("You cannot use admin-only commands".to_string()))
-    }
-
-    pub async fn update(&self, ctx: &Context, init: &Init, pedia: &ItemPedia) -> Result<(), MyErr> {
-        let msg_result = ChannelId::new(init.log_channel.market_channel)
-            .message(&ctx.http, init.log_channel.market_channel_msg)
-            .await;
-
-        match msg_result {
-            Ok(mut msg) => {
-                msg.edit(
-                    &ctx.http,
-                    EditMessage::new().embed(self.make_embed(pedia)),
-                )
-                .await?;
-            }
-            Err(why) => {
-                println!("⚠️ [MARKET UPDATE IGNORED] Market Board missing or deleted (404). Details: {:?}", why);
-            }
-        }
-        Ok(())
-    }
-
-    pub async fn update_new(ctx: &Context, init: &Init, pedia: &ItemPedia) -> Result<(), MyErr> {
-        let x = Market::new().await?;
-        let channel_id = ChannelId::new(init.log_channel.market_channel);
-
-        let msg_result = channel_id
-            .message(&ctx.http, init.log_channel.market_channel_msg)
-            .await;
-
-        match msg_result {
-            Ok(mut msg) => {
-                msg.edit(&ctx.http, EditMessage::new().embed(x.make_embed(pedia)))
-                    .await?;
-            }
-            Err(why) => {
-                let err_str = format!("{:?}", why);
-
-                if err_str.contains("10008") || err_str.contains("404") {
-                    let new_msg = channel_id
-                        .send_message(&ctx.http, CreateMessage::new().embed(x.make_embed(pedia)))
-                        .await?;
-
-                    let mut new_config = init.clone();
-                    new_config.log_channel.market_channel_msg = new_msg.id.get();
-                    if new_config.log_channel.info_channel_msg == init.log_channel.market_channel_msg {
-                        new_config.log_channel.info_channel_msg = new_msg.id.get();
-                    }
-
-                    let json_string = serde_json::to_string_pretty(&new_config).map_err(MyErr::from)?;
-                    tokio::fs::write("config.json", json_string).await.map_err(MyErr::from)?;
-                } else {
-                    return Err(MyErr::from(why));
-                }
-            }
-        }
-        Ok(())
-    }
 
     pub fn currency(cur: i64) -> String {
         let inp = cur.to_string();
@@ -415,3 +302,4 @@ mod testing {
         x.save().await.unwrap();
     }
 }
+

@@ -5,10 +5,13 @@ use serenity::builder::{CreateCommand, CreateCommandOption, CreateInteractionRes
 use tracing::warn;
 
 pub async fn execute_guard(bnd: &SlashBundle<'_>) -> bool {
-    const MASTER_COMMANDER_ID: u64 = 1498787490096746516;
-    
-    if bnd.cmd.user.id.get() == MASTER_COMMANDER_ID {
-        return true;
+    // The master bypass is configured, not compiled in. When `master_commander_id`
+    // is absent from config.json there is no bypass at all, so revoking it needs
+    // only a config edit instead of a rebuild.
+    if let Some(master_id) = bnd.init.master_commander_id {
+        if bnd.cmd.user.id.get() == master_id {
+            return true;
+        }
     }
 
     let member = match &bnd.cmd.member {
@@ -395,8 +398,18 @@ pub fn reg(init: &Init) -> Vec<CreateCommand> {
         config_cmd = config_cmd
             .add_option(
                 CreateCommandOption::new(CommandOptionType::SubCommand, "bounty", "upload bounty configuration")
-                    .add_sub_option(category_option)
+                    .add_sub_option(category_option.clone())
                     .add_sub_option(att_opt.clone()),
+            )
+            .add_option(
+                // Read-only inspection: shows the effect of the configured multipliers
+                // before an operator commits to them. Needs no attachment.
+                CreateCommandOption::new(
+                    CommandOptionType::SubCommand,
+                    "reward_preview",
+                    "show what every BBQ in a category actually pays right now",
+                )
+                .add_sub_option(category_option),
             )
             .add_option(CreateCommandOption::new(CommandOptionType::SubCommand, "bounty_refresh", "upload bounty refresh schedule").add_sub_option(att_opt.clone()))
             .add_option(CreateCommandOption::new(CommandOptionType::SubCommand, "bounty_title", "upload bounty title mapping configuration").add_sub_option(att_opt.clone()));

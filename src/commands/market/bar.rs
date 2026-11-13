@@ -1,5 +1,6 @@
 use crate::{MyErr, SlashBundle, ModalBundle, Components};
 use crate::reusable::utils::Color;
+use crate::reusable::component::notices;
 use serenity::all::*;
 
 pub(super) async fn slash(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
@@ -23,7 +24,7 @@ async fn modal(bnd: &ModalBundle<'_>) -> Result<(), MyErr> {
     let mut item = "";
     let mut price = "";
     for data in &bnd.cmd.data.components {
-        let arow = data.components.first().ok_or_else(|| MyErr::Custom("Cannot get first component".to_owned()))?;
+        let arow = data.components.first().ok_or_else(|| MyErr::from(notices::bad_button_payload()))?;
         if let ActionRowComponent::InputText(x) = arow {
             match x.custom_id.as_str() {
                 "item" => item = x.value.as_deref().unwrap_or_default(),

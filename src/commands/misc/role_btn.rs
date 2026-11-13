@@ -1,6 +1,7 @@
 use serenity::all::*;
 use crate::{MyErr, ComponentBundle};
 use tracing::error;
+use crate::reusable::component::notices;
 
 #[hertz::hertz_button_normal(0, false)]
 pub async fn all(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
@@ -10,7 +11,7 @@ pub async fn all(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
 
     if let Some(member) = bnd.cmd.member.clone() {
         if member.roles.contains(&role_id) {
-            let _ = bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("ℹ️ You already have the Member role!")).await;
+            let _ = bnd.cmd.edit_response(&bnd.ctx.http, notices::role_already_held("Member").to_edit_response()).await;
         } else {
             match member.add_role(&bnd.ctx.http, role_id).await {
                 Ok(_) => {
@@ -18,7 +19,7 @@ pub async fn all(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
                 }
                 Err(e) => {
                     error!(error = %e, "Failed to assign member role");
-                    let _ = bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("❌ **Error:** Failed to assign role. Check bot permissions.")).await;
+                    let _ = bnd.cmd.edit_response(&bnd.ctx.http, notices::role_assign_failed("Member", &e.to_string()).to_edit_response()).await;
                 }
             }
         }

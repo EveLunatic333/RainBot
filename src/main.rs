@@ -22,7 +22,6 @@ use reusable::postgress::PgConn;
 use reusable::component::registered::Reg;
 use reusable::component::discord::AppReg;
 use reusable::image_edit::Images;
-use reusable::gpt::chat::CompModel;
 use event::interaction::{ModalBundle, SlashBundle, ComponentBundle, Mybundle};
 use event::message::MsgBundle;
 use reusable::component::{MyErr, Mytrait};
@@ -36,7 +35,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 lazy_static! {
     pub static ref COOLDOWN: Mutex<HashMap<String, i64>> = Mutex::new(HashMap::new());
-    pub static ref CHAT: Mutex<HashMap<String, CompModel>> = Mutex::new(HashMap::new());
     pub static ref MONITOR: Mutex<bool> = Mutex::new(true);
     pub static ref BOUNTY: Mutex<HashMap<String, BountySubmit>> = Mutex::new(HashMap::new());
     // Tracks users that are currently filling out a bounty submission form.
@@ -91,7 +89,61 @@ async fn main() {
         .await
         .expect("Critical: Database pool initialization failed");
 
+    // Bounty cooldown is tracked per group (Standard / Event). Bronze, Silver,
+    // Gold and Free share one timer, so a Gold run also locks Bronze, Silver and
+    // Free; Event keeps a timer of its own.
+    let pool = reusable::postgress::get_pool();
+    match reusable::postgress::gacha::ensure_bounty_cooldown_group_table(pool).await {
+        Ok(()) => {
+            match reusable::postgress::gacha::backfill_cooldown_history(pool).await {
+                Ok(n) if n > 0 => {
+                    tracing::info!(rows = n, "Backfilled bounty cooldown from latest_bounty")
+                }
+                Ok(_) => {}
+                Err(e) => tracing::error!(error = %e, "Cannot backfill bounty cooldown rows"),
+            }
+            match reusable::postgress::gacha::migrate_category_cooldown_to_group(pool).await {
+                Ok(n) if n > 0 => {
+                    tracing::info!(rows = n, "Migrated per-category cooldown rows into groups")
+                }
+                Ok(_) => {}
+                Err(e) => tracing::error!(error = %e, "Cannot migrate per-category cooldown rows"),
+            }
+            // Runs last so a row written by any of the steps above is folded too.
+            match reusable::postgress::gacha::merge_free_into_standard(pool).await {
+                Ok((folded, deleted)) if folded > 0 || deleted > 0 => {
+                    tracing::info!(
+                        folded = folded,
+                        deleted = deleted,
+                        "Merged the Free cooldown rows into the standard group"
+                    )
+                }
+                Ok(_) => {}
+                Err(e) => tracing::error!(error = %e, "Cannot merge the Free cooldown rows"),
+            }
+        }
+        Err(e) => tracing::error!(error = %e, "Cannot create the bounty_cooldown_group table"),
+    }
+
     let image_handler = Images::new().await.expect("Critical: Image processor initialization failed");
+
+    // The adopted cooldown board lives in a runtime file, while `config.json` is
+    // the durable record. Write the adopted id back so a lost `static/` folder
+    // cannot silently fall back to a stale board.
+    match reusable::component::cooldown_board::sync_into_config(
+        conf.bounty.cooldown_ch,
+        conf.bounty.cooldown_msg,
+    )
+    .await
+    {
+        Ok(Some(board)) => tracing::info!(
+            channel = board.channel,
+            message = board.message,
+            "Wrote the adopted cooldown board id into config.json"
+        ),
+        Ok(None) => {}
+        Err(e) => tracing::warn!(error = %e, "Could not write the adopted cooldown board id into config.json"),
+    }
 
     let auto_config = AutoResponseConfig::load().await.unwrap_or_else(|_| AutoResponseConfig { responses: vec![] });
     {

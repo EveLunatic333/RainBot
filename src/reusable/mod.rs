@@ -4,6 +4,5 @@ pub mod component;
 pub mod postgress;
 pub mod image_edit;
 pub mod bitwise;
-pub mod gpt;
 pub mod cache;
 pub use cache::*;

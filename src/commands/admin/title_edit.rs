@@ -2,6 +2,7 @@ use crate::event::interaction::{ComponentBundle, SlashBundle};
 use crate::MyErr;
 use crate::commands::admin::execute_guard;
 use crate::reusable::cache::{make_key, take, new_pending_edit, save};
+use crate::reusable::component::notices;
 use serde_json::{json, Value};
 use serenity::all::{AttachmentId, ButtonStyle, CommandDataOptionValue, CreateActionRow, CreateButton, CreateInteractionResponse, CreateInteractionResponseFollowup, CreateInteractionResponseMessage};
 use tokio::fs;
@@ -64,25 +65,25 @@ fn update_entry_by_key(data: &mut Value, key: &str, update_fn: impl FnOnce(&mut 
 pub async fn handle_selection(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
     let custom_id = bnd.cmd.data.custom_id.as_str();
     let prefix = "title_edit_select_";
-    if !custom_id.starts_with(prefix) { return Err(MyErr::Custom("Invalid button prefix".into())); }
+    if !custom_id.starts_with(prefix) { return Err(MyErr::from(notices::title_bad_button("unexpected prefix"))); }
 
     let rest = &custom_id[prefix.len()..];
-    let last_underscore = rest.rfind('_').ok_or_else(|| MyErr::Custom("Invalid button format".into()))?;
+    let last_underscore = rest.rfind('_').ok_or_else(|| MyErr::from(notices::title_bad_button("missing index separator")))?;
     let index: usize = rest[last_underscore + 1..].parse().unwrap_or(0);
     let cache_key = &rest[..last_underscore];
 
     let pending = match take(cache_key).await {
         Some(p) => p,
         None => {
-            let msg = CreateInteractionResponseMessage::new().content("❌ **Error:** Edit session expired. Please run `/title_edit` again.").ephemeral(true);
-            bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(msg)).await?;
+            let notice = notices::title_edit_session_expired();
+            bnd.cmd.create_response(&bnd.ctx.http, notice.to_interaction_response(true)).await?;
             return Ok(());
         }
     };
 
     if pending.user_id != bnd.cmd.user.id.get() {
-        let msg = CreateInteractionResponseMessage::new().content("❌ **Error:** This button is not intended for your use.").ephemeral(true);
-        bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(msg)).await?;
+        let notice = notices::title_edit_not_yours(Some(pending.user_id));
+        bnd.cmd.create_response(&bnd.ctx.http, notice.to_interaction_response(true)).await?;
         return Ok(());
     }
 
@@ -91,9 +92,8 @@ pub async fn handle_selection(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
         Ok(c) => c,
         Err(e) => {
             warn!("Failed to read bounty_title.json: {:?}", e);
-            bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(
-                CreateInteractionResponseMessage::new().content("❌ **Error:** Could not read bounty_title.json.").ephemeral(true)
-            )).await?;
+            let notice = notices::title_file_unreadable(json_path, &format!("{e:?}"));
+            bnd.cmd.create_response(&bnd.ctx.http, notice.to_interaction_response(true)).await?;
             return Ok(());
         }
     };
@@ -102,9 +102,8 @@ pub async fn handle_selection(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
         Ok(d) => d,
         Err(e) => {
             warn!("Failed to parse bounty_title.json: {:?}", e);
-            bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(
-                CreateInteractionResponseMessage::new().content("❌ **Error:** Invalid JSON format.").ephemeral(true)
-            )).await?;
+            let notice = notices::title_file_malformed(json_path, &format!("{e:?}"));
+            bnd.cmd.create_response(&bnd.ctx.http, notice.to_interaction_response(true)).await?;
             return Ok(());
         }
     };
@@ -142,9 +141,9 @@ pub async fn handle_selection(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
     }
 
     if !found {
-        bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(
-            CreateInteractionResponseMessage::new().content(format!("❌ **Error:** Entry at index {} not found.", index)).ephemeral(true)
-        )).await?;
+        bnd.cmd.create_response(&bnd.ctx.http,
+            notices::title_entry_missing(index, &pending.trigger).to_interaction_response(true)
+        ).await?;
         return Ok(());
     }
 
@@ -159,7 +158,7 @@ pub async fn handle_selection(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
 }
 
 pub async fn slash(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
-    if !execute_guard(bnd).await { return Err(MyErr::Custom("Access Denied".into())); }
+    if !execute_guard(bnd).await { return Err(MyErr::from(notices::admin_only("/title_edit"))); }
     bnd.cmd.defer_ephemeral(&bnd.ctx.http).await?;
 
     let opts = bnd.cmd.data.options.clone();
@@ -176,8 +175,8 @@ pub async fn slash(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
         opts.iter().find(|o| o.name == name).and_then(|o| if let CommandDataOptionValue::Boolean(v) = &o.value { Some(*v) } else { None })
     };
 
-    let category = get_str("bounty").ok_or_else(|| MyErr::Custom("Bounty category is required.".into()))?;
-    let bounty_no = get_str("bounty_no").ok_or_else(|| MyErr::Custom("Bounty number is required.".into()))?;
+    let category = get_str("bounty").ok_or_else(|| MyErr::from(notices::title_field_missing("bounty category")))?;
+    let bounty_no = get_str("bounty_no").ok_or_else(|| MyErr::from(notices::title_field_missing("bounty number")))?;
     let attachment_id = get_attachment_id("image");
     let new_diameter = get_int("diameter");
     let new_x_start = get_int("x_start");
@@ -272,12 +271,12 @@ pub async fn slash(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
 
     if let Some(att_id) = attachment_id {
         let attachment = bnd.cmd.data.resolved.attachments.get(&att_id).cloned()
-            .ok_or_else(|| MyErr::Custom("Failed to find attachment".into()))?;
+            .ok_or_else(|| MyErr::from(notices::title_image_unavailable("no attachment on the modal")))?;
         let file_name = &attachment.filename;
         let image_name = file_name.rsplit_once('.').map(|(name, _)| name).unwrap_or(file_name).to_string();
         let image_dir = "image/bounty_title";
         fs::create_dir_all(image_dir).await?;
-        let image_bytes = attachment.download().await.map_err(|e| MyErr::Custom(format!("Failed to download: {:?}", e)))?;
+        let image_bytes = attachment.download().await.map_err(|e| MyErr::from(notices::title_image_unavailable(&format!("{e:?}"))))?;
         let extension = file_name.rsplit_once('.').map(|(_, ext)| ext).unwrap_or("png");
         let file_path = format!("{}/{}.{}", image_dir, image_name, extension);
         fs::write(&file_path, &image_bytes).await?;

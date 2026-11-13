@@ -17,10 +17,22 @@ pub fn get_pool() -> &'static Pool<Postgres> {
 }
 
 pub async fn init_pool(init: &Init) -> Result<(), sqlx::Error> {
+    let missing = init.postgress.missing();
+    if !missing.is_empty() {
+        // Fail with the variable names rather than an opaque connection error.
+        return Err(sqlx::Error::Configuration(
+            format!(
+                "Database settings missing from .env: {}. See .env.example.",
+                missing.join(", ")
+            )
+            .into(),
+        ));
+    }
+
     let url = format!(
         "postgres://{}:{}@{}:{}/{}",
         init.postgress.user,
-        init.postgress.password,
+        urlencoding::encode(&init.postgress.password),
         init.postgress.host,
         init.postgress.port,
         init.postgress.database
@@ -55,6 +67,11 @@ impl<'a> PgConn<'a> {
     }
 
     pub async fn close(&mut self) {}
+
+    /// The underlying pool, for callers that need to open a transaction.
+    pub fn pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 
     pub async fn re_connect(&mut self) -> Result<(), BitwiseError> {
         self.pool = get_pool().clone();

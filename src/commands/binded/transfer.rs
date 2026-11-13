@@ -6,6 +6,7 @@ use tokio::fs::File;
 use crate::reusable::config::Init;
 use crate::{Components, Reg, SlashBundle, ComponentBundle, MyErr};
 use crate::reusable::utils::{Color, MyTime};
+use crate::reusable::component::notices;
 use std::path::Path;
 use std::time::{SystemTime, Duration};
 
@@ -97,7 +98,7 @@ impl SaveAcknowladge {
         if let (Some(uid_str), Some(action)) = (data.first(), data.last()) {
             return Ok(SaveAcknowladge { uid: uid_str.to_string(), accept: *action == "a" });
         }
-        Err(MyErr::Custom("Cannot retrieve data from button interaction. Please report this issue.".to_owned()))
+        Err(MyErr::from(notices::bad_button_payload()))
     }
 
     async fn get_files(&self) -> Result<Vec<FileSave>, MyErr> {
@@ -132,7 +133,7 @@ async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
     let data = SaveJudge::get_save(bnd.cmd).await;
 
     if data.files.is_empty() {
-        return Err(MyErr::Custom("No matched file detected. Please ensure your save file is named correctly and does not exceed the size limit.".to_string()));
+        return Err(MyErr::from(notices::transfer_no_file()));
     }
 
     data.save_to_file().await?;
@@ -177,8 +178,8 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
     Components::response(bnd, "Beginning lengthy operation. Please do not interact with buttons temporarily.", true).await?;
     let data: Vec<&str> = bnd.cmd.data.custom_id.split('*').collect();
     let check = SaveAcknowladge::check(data)?;
-    let uid_parsed = check.uid.parse::<u64>().map_err(|_| MyErr::Custom("Invalid User ID format".to_string()))?;
-    let target_user = UserId::new(uid_parsed).to_user(&bnd.ctx.http).await.map_err(|_| MyErr::Custom("Failed to fetch user".to_string()))?;
+    let uid_parsed = check.uid.parse::<u64>().map_err(|_| MyErr::from(notices::transfer_bad_user_id(&check.uid)))?;
+    let target_user = UserId::new(uid_parsed).to_user(&bnd.ctx.http).await.map_err(|_| MyErr::from(notices::transfer_user_fetch_failed()))?;
 
     if check.accept {
         let files = check.get_files().await?;

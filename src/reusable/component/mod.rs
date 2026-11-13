@@ -7,10 +7,14 @@ pub mod discord;
 pub mod json;
 pub mod new_error;
 pub mod bounty;
+pub mod bounty_cooldown;
+pub mod bounty_notice;
+pub mod cooldown_board;
+pub mod notice;
+pub mod notices;
 pub mod gacha;
 pub mod market;
 pub mod shutdown;
-pub mod sightengine;
 pub mod welcome;
 pub mod autoresponse;
 pub mod autoresponse_logger;
@@ -32,6 +36,12 @@ pub enum MyErr {
     Image(super::image_edit::CustomImageError),
     Sqlx(sqlx::Error),
     Custom(String),
+    /// A refusal that already knows how it should read.
+    ///
+    /// Command code builds the notice and returns it with `?`; the macro wrapper
+    /// renders it as an embed instead of flattening it into one reason line.
+    /// Boxed because `Notice` is much larger than the other variants.
+    Notice(Box<notice::Notice>),
 }
 
 impl std::error::Error for MyErr {}
@@ -47,7 +57,16 @@ impl std::fmt::Display for MyErr {
             MyErr::ByteWise(x) => x.fmt(f),
             MyErr::Image(x) => x.fmt(f),
             MyErr::Sqlx(x) => x.fmt(f),
+            // Plain text, so a log line stays readable and never prints the
+            // embedded bars as a struct dump.
+            MyErr::Notice(x) => f.write_str(&x.to_plain_text()),
         }
+    }
+}
+
+impl From<notice::Notice> for MyErr {
+    fn from(value: notice::Notice) -> Self {
+        MyErr::Notice(Box::new(value))
     }
 }
 

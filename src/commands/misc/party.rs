@@ -5,6 +5,7 @@ use serde::{Serialize, Deserialize};
 use crate::MyErr;
 use crate::event::interaction::{SlashBundle, ComponentBundle};
 use crate::reusable::component::Components;
+use crate::reusable::component::notices;
 use crate::reusable::component::shutdown::Shutdown;
 use crate::reusable::config::LfgRoles;
 use crate::reusable::utils::MyTime;
@@ -393,10 +394,9 @@ pub async fn slash(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
             bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await?;
         }
         Err(e) => {
-            let error_msg = "❌ Failed to post party recruitment. Please try again.";
             error!(channel_id = %target_channel, error = %e, "Failed to send party recruitment message");
-            let response = CreateInteractionResponseMessage::new().content(error_msg).ephemeral(true);
-            let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+            let notice = notices::party_post_failed();
+            let _ = Components::notice(bnd, &notice, true).await;
         }
     }
     Ok(())
@@ -414,10 +414,7 @@ pub async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
 
     let lock_key = bnd.cmd.message.id.to_string();
     if !reserve_party_lock(&lock_key).await {
-        let response = CreateInteractionResponseMessage::new()
-            .content("⏳ This party is being updated right now. Please click again.")
-            .ephemeral(true);
-        let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+        let _ = Components::notice(bnd, &notices::party_busy(), true).await;
         return Ok(());
     }
     let result = handle_party_button(bnd, size, leader_id_str, action).await;
@@ -447,10 +444,7 @@ async fn handle_party_button(bnd: &ComponentBundle<'_>, size: usize, leader_id_s
     match action.as_str() {
         "e" => {
             if !is_leader {
-                let response = CreateInteractionResponseMessage::new()
-                    .content("❌ Only the party leader can edit this party.")
-                    .ephemeral(true);
-                let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+                let _ = Components::notice(bnd, &notices::party_leader_only("edit", Some(leader_id_u64)), true).await;
                 return Ok(());
             }
             handle_edit(bnd, size, leader_id_u64, notes.as_deref(), &footer_text, approval_mode).await?;
@@ -460,10 +454,7 @@ async fn handle_party_button(bnd: &ComponentBundle<'_>, size: usize, leader_id_s
         }
         "x" => {
             if !is_leader {
-                let response = CreateInteractionResponseMessage::new()
-                    .content("❌ Only the party leader can cancel this recruitment.")
-                    .ephemeral(true);
-                let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+                let _ = Components::notice(bnd, &notices::party_leader_only("cancel the recruitment of", Some(leader_id_u64)), true).await;
                 return Ok(());
             }
             let response = CreateInteractionResponseMessage::new()
@@ -477,10 +468,7 @@ async fn handle_party_button(bnd: &ComponentBundle<'_>, size: usize, leader_id_s
         }
         "c" => {
             if !is_leader {
-                let response = CreateInteractionResponseMessage::new()
-                    .content("❌ Only the party leader can close this party.")
-                    .ephemeral(true);
-                let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+                let _ = Components::notice(bnd, &notices::party_leader_only("close", Some(leader_id_u64)), true).await;
                 return Ok(());
             }
             // Closing keeps the real roster and count instead of resetting them.
@@ -495,10 +483,7 @@ async fn handle_party_button(bnd: &ComponentBundle<'_>, size: usize, leader_id_s
         }
         "q" => {
             if !is_leader {
-                let response = CreateInteractionResponseMessage::new()
-                    .content("🛑 Only the party leader can review join requests.")
-                    .ephemeral(true);
-                let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+                let _ = Components::notice(bnd, &notices::party_leader_only("review join requests for", Some(leader_id_u64)), true).await;
                 return Ok(());
             }
             let pending = pending_requests_of(msg.id.get()).await;
@@ -510,17 +495,11 @@ async fn handle_party_button(bnd: &ComponentBundle<'_>, size: usize, leader_id_s
         }
         "j" => {
             if members.contains(&user_mention) {
-                let response = CreateInteractionResponseMessage::new()
-                    .content("ℹ️ You are already registered in this party.")
-                    .ephemeral(true);
-                let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+                let _ = Components::notice(bnd, &notices::party_already_member(size, members.len()), true).await;
                 return Ok(());
             }
             if members.len() >= size {
-                let response = CreateInteractionResponseMessage::new()
-                    .content("❌ This party is already full.")
-                    .ephemeral(true);
-                let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+                let _ = Components::notice(bnd, &notices::party_full(size, members.len(), Some(leader_id_u64)), true).await;
                 return Ok(());
             }
             if approval_mode {
@@ -533,17 +512,11 @@ async fn handle_party_button(bnd: &ComponentBundle<'_>, size: usize, leader_id_s
         }
         "l" => {
             if is_leader {
-                let response = CreateInteractionResponseMessage::new()
-                    .content("❌ As the party leader, you cannot leave. Use **Close Party** or **Cancel Recruitment** instead.")
-                    .ephemeral(true);
-                let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+                let _ = Components::notice(bnd, &notices::party_leader_cannot_leave(leader_id_u64), true).await;
                 return Ok(());
             }
             if !members.contains(&user_mention) {
-                let response = CreateInteractionResponseMessage::new()
-                    .content("ℹ️ You are not registered in this party.")
-                    .ephemeral(true);
-                let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+                let _ = Components::notice(bnd, &notices::party_not_a_member(), true).await;
                 return Ok(());
             }
             let mut members = members;
@@ -579,10 +552,7 @@ async fn handle_join_request(
 ) -> Result<(), MyErr> {
     let already_pending = crate::PARTIES.lock().await.get(&msg.id.to_string()).map_or(false, |r| r.pending.iter().any(|p| p.user_id == user_id));
     if already_pending {
-        let response = CreateInteractionResponseMessage::new()
-            .content("ℹ️ You already sent a join request to this party. Please wait for the leader's decision.")
-            .ephemeral(true);
-        let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+        let _ = Components::notice(bnd, &notices::party_request_pending(), true).await;
         return Ok(());
     }
 
@@ -724,10 +694,10 @@ async fn handle_edit(
                 warn!(message_id = %msg.id, error = %e, "Failed to update party embed after edit");
             }
         } else {
-            let _ = bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("❌ Invalid format. Party was not updated. Use `quest | location`.").components(vec![])).await;
+            let _ = Components::notice_edit(bnd, &notices::party_edit_bad_format()).await;
         }
     } else {
-        let _ = bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("⏳ Edit timed out! Party was not updated.").components(vec![])).await;
+        let _ = Components::notice_edit(bnd, &notices::party_edit_timeout(EDIT_TIMEOUT_SECS)).await;
     }
     Ok(())
 }
@@ -747,8 +717,8 @@ pub async fn approval(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
     let party_msg = match bnd.cmd.channel_id.message(&bnd.ctx.http, MessageId::new(party_msg_id)).await {
         Ok(m) => m,
         Err(_) => {
-            let response = CreateInteractionResponseMessage::new().content("ℹ️ This party no longer exists.").ephemeral(true);
-            let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+            let response = notices::party_no_longer_exists().to_interaction_response(true);
+            let _ = bnd.cmd.create_response(&bnd.ctx.http, response).await;
             return Ok(());
         }
     };
@@ -756,26 +726,19 @@ pub async fn approval(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
     let (size, leader_id) = match party_meta_from_message(&party_msg) {
         Some(meta) => meta,
         None => {
-            let response = CreateInteractionResponseMessage::new().content("ℹ️ This party post is no longer valid.").ephemeral(true);
-            let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+            let _ = Components::notice(bnd, &notices::party_post_gone(), true).await;
             return Ok(());
         }
     };
 
     if bnd.cmd.user.id.get() != leader_id {
-        let response = CreateInteractionResponseMessage::new()
-            .content("🛑 Only the party leader can review join requests.")
-            .ephemeral(true);
-        let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+        let _ = Components::notice(bnd, &notices::party_leader_only("review join requests for", Some(leader_id)), true).await;
         return Ok(());
     }
 
     let lock_key = party_msg_id.to_string();
     if !reserve_party_lock(&lock_key).await {
-        let response = CreateInteractionResponseMessage::new()
-            .content("⏳ This party is being updated right now. Please click again.")
-            .ephemeral(true);
-        let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+        let _ = Components::notice(bnd, &notices::party_busy(), true).await;
         return Ok(());
     }
     let result = if action == "a" {
@@ -794,16 +757,14 @@ async fn approve_request(bnd: &ComponentBundle<'_>, mut party_msg: Message, size
     let party_msg_id = party_msg.id.get();
     let still_pending = crate::PARTIES.lock().await.get(&party_msg_id.to_string()).map_or(false, |r| r.pending.iter().any(|p| p.user_id == requester_id));
     if !still_pending {
-        let response = CreateInteractionResponseMessage::new().content("ℹ️ This request has already been handled.").ephemeral(true);
-        let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+        let _ = Components::notice(bnd, &notices::party_request_handled(), true).await;
         return Ok(());
     }
 
     let embed = match party_msg.embeds.first() {
         Some(e) => e,
         None => {
-            let response = CreateInteractionResponseMessage::new().content("ℹ️ This party post is no longer valid.").ephemeral(true);
-            let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+            let _ = Components::notice(bnd, &notices::party_post_gone(), true).await;
             return Ok(());
         }
     };
@@ -813,15 +774,14 @@ async fn approve_request(bnd: &ComponentBundle<'_>, mut party_msg: Message, size
     if members.contains(&requester_mention) {
         remove_pending(party_msg_id, requester_id).await;
         let _ = Shutdown::save().await;
-        let response = CreateInteractionResponseMessage::new().content("ℹ️ This player is already a member of the party.").ephemeral(true);
-        let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+        let _ = Components::notice(bnd, &notices::party_requester_is_member(), true).await;
         return Ok(());
     }
     if members.len() >= size {
         remove_pending(party_msg_id, requester_id).await;
         let _ = Shutdown::save().await;
-        let response = CreateInteractionResponseMessage::new().content("🛑 The party is already full — this request was declined.").ephemeral(true);
-        let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+        let response = notices::party_declined_full(size).to_interaction_response(true);
+        let _ = bnd.cmd.create_response(&bnd.ctx.http, response).await;
         return Ok(());
     }
 
@@ -867,8 +827,7 @@ async fn reject_request(bnd: &ComponentBundle<'_>, party_msg: Message, requester
     let party_msg_id = party_msg.id.get();
     let still_pending = crate::PARTIES.lock().await.get(&party_msg_id.to_string()).map_or(false, |r| r.pending.iter().any(|p| p.user_id == requester_id));
     if !still_pending {
-        let response = CreateInteractionResponseMessage::new().content("ℹ️ This request has already been handled.").ephemeral(true);
-        let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(response)).await;
+        let _ = Components::notice(bnd, &notices::party_request_handled(), true).await;
         return Ok(());
     }
 

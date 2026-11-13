@@ -1,4 +1,5 @@
 use crate::{Reg, SlashBundle, MyErr};
+use crate::reusable::component::notices;
 use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
 
 fn check_admin(bnd: &SlashBundle<'_>) -> bool {
@@ -47,7 +48,7 @@ async fn userr(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     let is_admin = check_admin(bnd);
     let user = bnd.cmd.data.resolved.users.iter().next()
         .map(|(_, u)| u)
-        .ok_or_else(|| MyErr::Custom("No user detected.".to_string()))?;
+        .ok_or_else(|| MyErr::from(notices::no_target_user()))?;
 
     let mut reg = Reg::check(bnd, user).await?;
     let card = reg.pg.get_card(reg.cid).await?;

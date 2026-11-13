@@ -3,6 +3,7 @@ use crate::event::interaction::ComponentBundle;
 use crate::reusable::component::market::Meal;
 use crate::reusable::component::registered::Reg;
 use crate::reusable::component::bounty::Title;
+use crate::reusable::component::notices;
 use serenity::all::*;
 use serenity::model::Timestamp;
 use tracing::{error, info, warn};
@@ -60,8 +61,7 @@ pub async fn slash(bnd: &SlashBundle<'_>, reg: &Reg<'_>) -> Result<(), MyErr> {
     };
 
     if days != 30 && days != 60 {
-        Components::response(bnd, "⚠️ **Invalid Duration:** You can only extend for exactly 30 or 60 days.", true).await?;
-        return Ok(());
+        return Components::notice(bnd, &notices::guild_bad_duration(days), true).await;
     }
 
     let meal = Meal::new().await?;
@@ -152,17 +152,17 @@ pub async fn handle_confirm(bnd: &ComponentBundle<'_>, reg: &Reg<'_>) -> Result<
     let custom_id = bnd.cmd.data.custom_id.as_str();
     let parts: Vec<&str> = custom_id.split(':').collect();
     if parts.len() != 4 {
-        return Err(MyErr::Custom("Invalid confirm button format".into()));
+        return Err(MyErr::from(notices::guild_bad_button()));
     }
-    let guild_id: i32 = parts[1].parse().map_err(|_| MyErr::Custom("Invalid guild ID".into()))?;
-    let food_id: i32 = parts[2].parse().map_err(|_| MyErr::Custom("Invalid food ID".into()))?;
-    let days: i64 = parts[3].parse().map_err(|_| MyErr::Custom("Invalid days".into()))?;
+    let guild_id: i32 = parts[1].parse().map_err(|_| MyErr::from(notices::guild_bad_button()))?;
+    let food_id: i32 = parts[2].parse().map_err(|_| MyErr::from(notices::guild_bad_button()))?;
+    let days: i64 = parts[3].parse().map_err(|_| MyErr::from(notices::guild_bad_days(&parts[3])))?;
 
     let meal = Meal::new().await?;
     let meal_info = meal.meals.iter().find(|m| m.id == food_id);
     let meal_name = match meal_info {
         Some(m) => m.name.as_str(),
-        None => return Err(MyErr::Custom("Food not found".into())),
+        None => return Err(MyErr::from(notices::guild_food_not_found(food_id as i64))),
     };
 
     let total_cost = (days / 30) * 300_000;
@@ -253,7 +253,7 @@ pub async fn handle_cancel(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
     let custom_id = bnd.cmd.data.custom_id.as_str();
     let parts: Vec<&str> = custom_id.split(':').collect();
     if parts.len() != 2 {
-        return Err(MyErr::Custom("Invalid cancel button format".into()));
+        return Err(MyErr::from(notices::guild_bad_button()));
     }
     let guild_id = parts[1];
 

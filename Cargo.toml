@@ -37,3 +37,12 @@ lto = "fat"
 codegen-units = 1
 # strip = "symbols"
 panic = "unwind"
+
+# Fast build for the dev host only: no fat LTO and parallel codegen, which takes
+# minutes off a rebuild. Never ship this profile to production: it trades runtime
+# speed for build speed. Use `cargo zigbuild --profile dev-fast`.
+[profile.dev-fast]
+inherits = "release"
+opt-level = 2
+lto = false
+codegen-units = 16

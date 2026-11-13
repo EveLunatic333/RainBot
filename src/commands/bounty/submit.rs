@@ -5,14 +5,15 @@ use serenity::all::*;
 use serenity::futures::StreamExt;
 use crate::{MyErr, SlashBundle, PgConn, Components, ComponentBundle};
 use crate::reusable::component::bounty::{Methode, BBQ, Category, BountySubmit, Bounty, BountyTitle, BountyRefresh};
+use crate::reusable::component::bounty_cooldown;
+use crate::reusable::component::bounty_notice::{self, Block};
+use crate::reusable::component::notices;
 use serenity::all::{CommandInteraction, Context, Message};
 use crate::reusable::component::shutdown::Shutdown;
 use tracing::{warn, error};
 
 const ITEMS_PER_PAGE: usize = 23;
 const MENU_TIMEOUT: Duration = Duration::from_secs(120);
-const SAME_CATEGORY_COOLDOWN: i64 = 40 * 60 * 60;
-const DIFF_CATEGORY_COOLDOWN: i64 = 20 * 60 * 60;
 const MAX_ATTACHMENTS: usize = 4;
 
 fn create_select_menu(custom_id: &str, options: Vec<(String, String)>, disabled: bool) -> CreateSelectMenu {
@@ -254,7 +255,7 @@ async fn submission_flow(bnd: &SlashBundle<'_>, attachment_urls: Vec<String>, me
         return final_result;
     } else {
         if let Some(state) = BountySubmit::open(&user_id_str).await { state.delete().await; }
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("⏳ **Cancelled:** Selection timed out or was aborted. Your pending status has been cleared.").components(vec![])).await?;
+        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_form_timed_out().to_edit_response()).await?;
         Ok(())
     }
 }
@@ -266,24 +267,128 @@ async fn handle_final_submission(bnd: &SlashBundle<'_>, urls: &[String], mention
     let bounty_data = Box::new(Bounty::new(&category).await?);
     let mut cooldown_config = Box::new(BountyRefresh::new(true).await?);
     let member = bnd.cmd.member.clone().ok_or_else(|| MyErr::Custom("Guild member data unavailable".into()))?;
-    let mut cooldown_violations = Vec::new();
+    let mut blocks: Vec<Block> = Vec::new();
+    let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init.bounty);
+    let tier = BountyTitle::progression_tier().await;
     for uid in target_users {
         let pg_temp = PgConn::create(bnd.init, uid.to_string()).await?;
-        if let Ok(event) = pg_temp.get_event().await {
-            let parts: Vec<&str> = event.latest_bounty.split('_').collect();
-            if parts.len() >= 2 {
-                if let (Some(hist_cat), Some(hist_bbq)) = (parts[0].parse::<u8>().ok().and_then(|v| Category::new(v).ok()), parts[1].parse::<u8>().ok().and_then(|v| BBQ::new(v).ok())) {
-                    let cooldown_duration = if hist_cat == category && hist_bbq == bbq_type { SAME_CATEGORY_COOLDOWN } else { DIFF_CATEGORY_COOLDOWN };
-                    let cooldown_end = event.latest_bounty_time + cooldown_duration;
-                    let current_time = crate::reusable::utils::MyTime::now();
-                    if cooldown_end > current_time && category != Category::Event {
-                        cooldown_violations.push(format!("- <@{}> is still on cooldown until <t:{}:R>.", uid, cooldown_end));
-                    }
+        let Ok(event) = pg_temp.get_event().await else { continue };
+        let who = format!("<@{}>", uid);
+        // Progression is walked in order; report the first unmet tier before
+        // bothering the player about a cooldown.
+        let title_bits = crate::reusable::component::bounty::Title::new(
+            u8::try_from(event.title).unwrap_or(0),
+        );
+        if let bounty_cooldown::ProgressionGate::Blocked {
+            required,
+            need,
+            have,
+        } = bounty_cooldown::progression_gate(
+            event.bronze,
+            event.silver,
+            title_bits.bounty_bronze,
+            title_bits.bounty_silver,
+            &category,
+            &tier,
+            bnd.init.bounty.progression_gate,
+        ) {
+            blocks.push(Block::Progression { user: who.clone(), required, need, have });
+            continue;
+        }
+
+        // The rank limit was checked only at the very end, inside `Hunter::new`,
+        // after the player had already filled in the whole form. Checking it here
+        // reports the same limit while the choice is still on screen.
+        if !category.check_rank(&event, bbq_type.encode()) {
+            let allowed = u8::try_from(category.rank(&event).clamp(1, 25)).unwrap_or(1);
+            // `rank` is `counter + 1`, so `wanted` needs `wanted - 1` completions.
+            let need = bbq_type.encode().saturating_sub(1);
+            blocks.push(Block::Rank {
+                user: who.clone(),
+                category: category.clone(),
+                allowed,
+                wanted: bbq_type.encode(),
+                have: category.counter(&event),
+                need,
+            });
+            continue;
+        }
+
+        // The ladder must move up: a BBQ the player already cleared is refused
+        // here, before the cooldown check, so the reason shown is about the
+        // repetition rather than an unrelated wait.
+        if matches!(category, Category::Bronze | Category::Silver | Category::Gold) {
+            match bounty_cooldown::progression_repeat(
+                category.counter(&event),
+                bbq_type.encode(),
+                bnd.init.bounty.progression_no_repeat,
+            ) {
+                bounty_cooldown::ProgressionRepeat::Allowed => {}
+                bounty_cooldown::ProgressionRepeat::AlreadyCleared { bbq, next } => {
+                    blocks.push(Block::ProgressionRepeat {
+                        user: who.clone(),
+                        category: category.clone(),
+                        bbq,
+                        next,
+                    });
+                    continue;
+                }
+                bounty_cooldown::ProgressionRepeat::LadderFinished => {
+                    blocks.push(Block::LadderFinished {
+                        user: who.clone(),
+                        category: category.clone(),
+                    });
+                    continue;
                 }
             }
         }
+
+        let rows = match crate::reusable::postgress::gacha::group_history(
+            pg_temp.pool(),
+            &uid.to_string(),
+        )
+        .await
+        {
+            Ok(rows) => rows
+                .iter()
+                .map(|r| (r.group_id, r.category, r.bbq, r.completed_at))
+                .collect::<Vec<_>>(),
+            Err(_) => Vec::new(),
+        };
+        // The legacy column stays the operator switch for the standard timer, so it
+        // is folded over the stored rows before anything is decided.
+        let history = bounty_cooldown::history_with_legacy_and_policy(
+            &bounty_cooldown::history_from_rows(&rows),
+            &event.latest_bounty,
+            event.latest_bounty_time,
+            &policy,
+        );
+        let group = policy.group_of(&category);
+        let previous = bounty_cooldown::last_of_group(&history, group);
+        let verdict = bounty_cooldown::evaluate(
+            &history,
+            &category,
+            &bbq_type,
+            &policy,
+            crate::reusable::utils::MyTime::now(),
+        );
+        if let Some(ends_at) = verdict.ends_at() {
+            let hours = previous
+                .as_ref()
+                .map(|p| {
+                    policy.hours_for(group, &p.category, &p.bbq, &category, &bbq_type)
+                })
+                .unwrap_or(0);
+            blocks.push(Block::Cooldown {
+                user: who,
+                ends_at,
+                group,
+                hours,
+                previous: previous.map(|p| (p.category, p.bbq)),
+            });
+        }
     }
-    let is_free_cooldown = if category == Category::Free {
+    if category == Category::Free {
         let cooldown_value = match bbq_type {
             BBQ::BBQ01 => cooldown_config.bbq1, BBQ::BBQ02 => cooldown_config.bbq2, BBQ::BBQ03 => cooldown_config.bbq3,
             BBQ::BBQ04 => cooldown_config.bbq4, BBQ::BBQ05 => cooldown_config.bbq5, BBQ::BBQ06 => cooldown_config.bbq6,
@@ -295,21 +400,30 @@ async fn handle_final_submission(bnd: &SlashBundle<'_>, urls: &[String], mention
             BBQ::BBQ22 => cooldown_config.bbq22, BBQ::BBQ23 => cooldown_config.bbq23, BBQ::BBQ24 => cooldown_config.bbq24,
             BBQ::BBQ25 => cooldown_config.bbq25,
         };
-        cooldown_value == 0
-    } else {
-        false
-    };
-    if is_free_cooldown { cooldown_violations.push("- This Free Bounty category is currently on global server cooldown.".to_string()); }
-    if !cooldown_violations.is_empty() {
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content(format!("❌ **Cooldown Detected!**\nSubmission blocked due to:\n{}", cooldown_violations.join("\n"))).components(vec![])).await?;
+        if cooldown_value == 0 {
+            blocks.push(Block::SlotClosed { category: category.clone(), bbq: bbq_type.clone() });
+        }
+    }
+    if !blocks.is_empty() {
+        let notice = bounty_notice::blocked_submission(&blocks);
+        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new()
+            .embed(notice.to_embed())
+            .components(vec![])).await?;
         return Ok(());
     }
     let primary_url = urls.first().ok_or_else(|| MyErr::Custom("No attachment URL available".into()))?;
-    let mut submission = BountySubmit::new(bnd, false, *member, mentions.to_vec(), &mut pg, &bounty_data, primary_url, Methode::new(method_val), bbq_type, category.clone()).await?;
+    let mut submission = BountySubmit::new(bnd, false, *member, mentions.to_vec(), &mut pg, &bounty_data, primary_url, Methode::new(method_val), bbq_type.clone(), category.clone()).await?;
     if !submission.cooldown(&mut cooldown_config).await.unwrap_or(false) {
         submission.delete().await;
-        error!(user_id = %bnd.cmd.user.id, "Final cooldown verification failed during bounty submission");
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("❌ **Submission Error:** Cooldown verification failed at the final step.").components(vec![])).await?;
+        // The per-slot cooldown table says this BBQ is closed, but the checks
+        // above already passed — so say which slot closed, not "verification
+        // failed", which left the player with nothing actionable.
+        error!(user_id = %bnd.cmd.user.id, bbq = %bbq_type.name(), category = %category.name(),
+            "Final cooldown verification failed during bounty submission");
+        let notice = bounty_notice::blocked_submission(&[Block::SlotClosed { category: category.clone(), bbq: bbq_type.clone() }]);
+        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new()
+            .embed(notice.to_embed())
+            .components(vec![])).await?;
         return Ok(());
     }
     let all_urls_text = urls.join("\n");
@@ -439,13 +553,13 @@ async fn try_distrib(bnd: &SlashBundle<'_>) -> Result<(), String> {
         bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content(&status_message).components(render_distribution_ui(&all_bbq, current_page, selected_method.is_some(), selected_category.is_some(), selected_bbq.is_some()))).await.map_err(|e| format!("Failed to update UI: {:?}", e))?;
     }
     if cancelled {
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("🛑 **Distribution Cancelled by Admin.**").components(vec![])).await.map_err(|e| format!("Failed to send cancellation message: {:?}", e))?;
+        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_distribution_cancelled().to_edit_response()).await.map_err(|e| format!("Failed to send cancellation message: {:?}", e))?;
         return Ok(());
     }
     if let (Some(method_val), Some(cat_val), Some(bbq_val)) = (selected_method, selected_category, selected_bbq) {
         execute_distribution(bnd, &target_users, method_val, cat_val, bbq_val).await
     } else {
-        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("⏳ **Cancelled:** Selection timed out without completing all required fields.").components(vec![])).await.map_err(|e| format!("Failed to send timeout message: {:?}", e))?;
+        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_form_timed_out().to_edit_response()).await.map_err(|e| format!("Failed to send timeout message: {:?}", e))?;
         Ok(())
     }
 }
@@ -498,17 +612,132 @@ async fn distribution(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     }
 }
 
+/// What a bounty button click should do, decided from its custom id alone.
+///
+/// Kept separate from the Discord calls so the routing can be tested: getting it
+/// wrong is silent (a Delete click would look up a submission that is gone, or a
+/// normal button would be treated as a delete).
+#[derive(Debug, PartialEq, Eq)]
+enum BountyClick {
+    /// Delete the judge message with this id.
+    DeleteStale(u64),
+    /// A malformed `bountydel_` payload.
+    MalformedDelete,
+    /// The Approve/Reject/Check flow for a user: (user id, action state).
+    Submission(String, String),
+    /// Not a bounty button at all.
+    Ignore,
+}
+
+fn classify_bounty_click(custom_id: &str) -> BountyClick {
+    // The delete id must be checked before the `bounty_` prefix, because
+    // `bountydel_1` would otherwise split into ("bountydel", "1") and be treated
+    // as a submission action for user "1".
+    if let Some(rest) = custom_id.strip_prefix("bountydel_") {
+        return match rest.parse::<u64>() {
+            Ok(id) => BountyClick::DeleteStale(id),
+            Err(_) => BountyClick::MalformedDelete,
+        };
+    }
+    let mut parts = custom_id.split('_');
+    if parts.next().unwrap_or_default() != "bounty" {
+        return BountyClick::Ignore;
+    }
+    match (parts.next(), parts.next()) {
+        (Some(user), Some(action)) => BountyClick::Submission(user.to_owned(), action.to_owned()),
+        _ => BountyClick::Ignore,
+    }
+}
+
 #[hertz::hertz_button_normal(0, false)]
 async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
-    let mut code_parts = bnd.cmd.data.custom_id.split('_');
-    let prefix = code_parts.next().unwrap_or_default();
-    if prefix != "bounty" { return Ok(()); }
-    let user_id = code_parts.next().ok_or_else(|| MyErr::Custom("Missing user identifier in button payload".into()))?;
-    let action_state = code_parts.next().ok_or_else(|| MyErr::Custom("Missing action state in button payload".into()))?;
-    let mut submission = match BountySubmit::open(user_id).await {
+    let click = classify_bounty_click(&bnd.cmd.data.custom_id);
+
+    let (user_id, action_state) = match click {
+        BountyClick::DeleteStale(judge_msg_id) => {
+            // Acknowledge first. Discord gives an interaction three seconds to
+            // answer, and the lookup plus delete below can outlast that, which
+            // showed up as "RainBot Dev didn't respond in time" under the button
+            // even though the message was removed.
+            if bnd.cmd.defer_ephemeral(&bnd.ctx.http).await.is_err() {
+                return Ok(());
+            }
+
+            // The bot must not be able to delete an arbitrary message: refetch it
+            // from this channel first and only remove it when it really is a
+            // bounty judge message.
+            let outcome = match ChannelId::new(bnd.cmd.channel_id.get())
+                .message(&bnd.ctx.http, MessageId::new(judge_msg_id))
+                .await
+            {
+                Ok(msg) => {
+                    let is_judge_msg = msg
+                        .components
+                        .iter()
+                        .flat_map(|row| &row.components)
+                        .any(|c| matches!(c, ActionRowComponent::Button(b)
+                            if matches!(&b.data, ButtonKind::NonLink { custom_id, .. }
+                                if custom_id.starts_with("bounty_"))));
+                    if is_judge_msg {
+                        msg.delete(&bnd.ctx.http).await.map(|_| ())
+                    } else {
+                        Err(serenity::Error::Other("not a bounty judge message"))
+                    }
+                }
+                Err(e) => Err(e),
+            };
+            let text = match outcome {
+                Ok(()) => "🗑 **Message deleted.**".to_owned(),
+                Err(e) => format!("❌ **Could not delete the message:**\n```\n{}\n```", e),
+            };
+            let _ = bnd
+                .cmd
+                .edit_response(
+                    &bnd.ctx.http,
+                    EditInteractionResponse::new().content(text).components(Vec::new()),
+                )
+                .await;
+            return Ok(());
+        }
+        BountyClick::MalformedDelete => {
+            let _ = bnd.cmd.create_response(
+                &bnd.ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .content("❌ Malformed delete request.")
+                        .ephemeral(true),
+                ),
+            ).await;
+            return Ok(());
+        }
+        BountyClick::Submission(user, action) => (user, action),
+        BountyClick::Ignore => return Ok(()),
+    };
+
+
+    let mut submission = match BountySubmit::open(&user_id).await {
         Some(data) => data,
         None => {
-            let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(CreateInteractionResponseMessage::new().content("❌ Submission data has expired or been processed.").ephemeral(true))).await;
+            // The submission is gone: cancelled, expired, approved or rejected.
+            // The judge message keeps live buttons that no longer do anything, so
+            // offer one that clears it instead of leaving dead buttons behind.
+            // `bnd.cmd.message` is the judge message here, because this button
+            // lives on that message.
+            let dismiss = CreateActionRow::Buttons(vec![
+                CreateButton::new(format!("bountydel_{}", bnd.cmd.message.id))
+                    .label("Delete Message")
+                    .style(ButtonStyle::Danger)
+                    .emoji('🗑'),
+            ]);
+            let _ = bnd.cmd.create_response(
+                &bnd.ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .embed(notices::bounty_submission_expired().to_embed())
+                        .components(vec![dismiss])
+                        .ephemeral(true),
+                ),
+            ).await;
             return Ok(());
         }
     };
@@ -518,7 +747,7 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
             serde_json::to_value(btn).ok().and_then(|json| json.get("url")?.as_str().map(str::to_string))
         } else { None }
     });
-    match action_state {
+    match action_state.as_str() {
         "c" => {
             let _ = bnd.cmd.create_response(&bnd.ctx.http, CreateInteractionResponse::Message(CreateInteractionResponseMessage::new().content("⏳ Fetching bounty details...").ephemeral(true))).await;
             let bounty_data = Box::new(Bounty::new(&submission.category).await?);
@@ -548,7 +777,17 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
                 final_components.push(CreateActionRow::Buttons(vec![CreateButton::new_link(url).label("View Submission").emoji('🔗')]));
             }
             if state == "rm5" {
-                bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("🔄 **Review Cancelled.**").components(final_components)).await?;
+                // Cancel keeps the submission pending and the judge in control,
+                // so the Approve/Reject/Check row must survive the edit. Clearing
+                // it (as a plain notice would) leaves the submission stuck with
+                // no way to review it.
+                //
+                // The submission embed must survive too: the judge message carries
+                // the player's screenshot via `.image()`, and a naive `.embed()`
+                // edit wipes the whole embed list, which deleted the evidence the
+                // judge was looking at.
+                let previous = &bnd.cmd.message.embeds;
+                bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response_keeping(final_components, previous)).await?;
                 return Ok(());
             }
             let mut reason = match state {
@@ -565,12 +804,17 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
                     let typed_reason = reply.content.trim().to_string();
                     let _ = reply.delete(&bnd.ctx.http).await;
                     if typed_reason.to_lowercase() == "cancel" {
-                        bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("🔄 **Review Cancelled.**").components(final_components)).await?;
+                        // Same as rm5: keep both the buttons and the screenshot.
+                        let previous = &bnd.cmd.message.embeds;
+                        bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_review_cancelled().to_edit_response_keeping(final_components, previous)).await?;
                         return Ok(());
                     }
                     reason = typed_reason;
                 } else {
-                    bnd.cmd.edit_response(&bnd.ctx.http, EditInteractionResponse::new().content("⏳ **Input Timeout.** Rejection cancelled.").components(final_components)).await?;
+                    // The submission stays pending and the judge buttons are put
+                    // back, so the screenshot must stay visible for the next attempt.
+                    let previous = &bnd.cmd.message.embeds;
+                    bnd.cmd.edit_response(&bnd.ctx.http, notices::bounty_rejection_timed_out().to_edit_response_keeping(final_components, previous)).await?;
                     return Ok(());
                 }
             }
@@ -589,33 +833,183 @@ async fn button(bnd: &ComponentBundle<'_>) -> Result<(), MyErr> {
         }
         "a" => {
             bnd.cmd.defer(&bnd.ctx.http).await?;
-            let title_config = BountyTitle::new().await?;
-            submission.title(bnd, &title_config).await?;
-            let _ = ChannelId::new(bnd.init.bounty.receptionist_ch).send_message(&bnd.ctx.http, CreateMessage::new().content(format!("✅ The bounty submitted by <@{}> has been approved by {} ", user_id, bnd.cmd.user.name))).await;
-            let mut pg_conn = PgConn::create(bnd.init, user_id.to_owned()).await?;
-            let recipient_cid = match pg_conn.get_char_id_by_discord(user_id.parse::<u64>().unwrap_or(0)).await {
-                Ok(cid) => cid,
-                Err(_) => {
-                    let _ = ChannelId::new(bnd.init.bounty.receptionist_ch).send_message(&bnd.ctx.http, CreateMessage::new().content(format!("❌ Failed to inject reward for <@{}> because user is not registered in the database.", user_id))).await;
+            // The role IS the reward here, item drops are only a bonus, so a role
+            // failure must abort the approval. What must not happen is leaving the
+            // judge with a dead message: on any failure the Approve/Reject buttons
+            // are put back so the approval can be retried once the cause is fixed.
+            let outcome = approve(bnd, &mut submission, &user_id, &jump_url).await;
+            match outcome {
+                Ok(()) => {
                     submission.delete().await;
-                    return Ok(());
+                    let _ = original_message.delete(&bnd.ctx.http).await;
+                    let _ = ChannelId::new(bnd.init.bounty.conquered_ch)
+                        .send_message(&bnd.ctx.http, CreateMessage::new().embed(submission.embed()))
+                        .await;
+                    Ok(())
                 }
-            };
-            if !pg_conn.validate_character_exists(recipient_cid).await? {
-                let _ = ChannelId::new(bnd.init.bounty.receptionist_ch).send_message(&bnd.ctx.http, CreateMessage::new().content(format!("❌ Failed to inject reward for <@{}> because character ID {} is invalid.", user_id, recipient_cid))).await;
-                submission.delete().await;
-                return Ok(());
+                Err(e) => {
+                    warn!(user_id = %user_id, error = %e, "Bounty approval failed; restoring judge buttons");
+                    restore_judge_buttons(bnd, &submission, &jump_url, &e).await;
+                    Err(e)
+                }
             }
-            let reward_injection_result = submission.reward(false, bnd, &mut pg_conn).await;
-            submission.delete().await;
-            let _ = original_message.delete(&bnd.ctx.http).await;
-            if let Err(e) = reward_injection_result { return Err(e); }
-            let _ = ChannelId::new(bnd.init.bounty.conquered_ch).send_message(&bnd.ctx.http, CreateMessage::new().embed(submission.embed())).await;
-            Ok(())
         }
         _ => {
             warn!(custom_id = %bnd.cmd.data.custom_id, "Unknown bounty button action state");
             Ok(())
         }
+    }
+}
+
+/// Puts the Approve/Reject/Check buttons back on the judge message after a failed
+/// approval, so the judge can retry without waiting for an administrator.
+async fn restore_judge_buttons(
+    bnd: &ComponentBundle<'_>,
+    submission: &BountySubmit,
+    jump_url: &Option<String>,
+    cause: &MyErr,
+) {
+    let mut rows = submission.button();
+    if let Some(url) = jump_url {
+        rows.push(CreateActionRow::Buttons(vec![
+            CreateButton::new_link(url).label("View Submission").emoji('🔗'),
+        ]));
+    }
+    let note = format!(
+        "⚠️ **Approval Failed — Nothing Was Granted**\n\
+         The submission is still pending and the buttons are active again.\n\
+         Fix the cause below, then press **Approve** again.\n\n\
+         **Reason:**\n```\n{}\n```",
+        cause
+    );
+    let _ = bnd
+        .cmd
+        .edit_response(
+            &bnd.ctx.http,
+            // The submission is still pending and the judge must retry, so the
+            // screenshot has to stay visible. Passing the embeds through keeps it;
+            // a bare `.content()` edit would have dropped the whole embed list.
+            EditInteractionResponse::new()
+                .content(note)
+                .components(rows)
+                .embeds(
+                    bnd.cmd
+                        .message
+                        .embeds
+                        .iter()
+                        .cloned()
+                        .map(CreateEmbed::from)
+                        .collect::<Vec<_>>(),
+                ),
+        )
+        .await;
+}
+
+/// Runs the approval steps that touch Discord roles and the database.
+async fn approve(
+    bnd: &ComponentBundle<'_>,
+    submission: &mut BountySubmit,
+    user_id: &str,
+    _jump_url: &Option<String>,
+) -> Result<(), MyErr> {
+    let title_config = BountyTitle::new().await?;
+    submission.title(bnd, &title_config).await?;
+
+    let _ = ChannelId::new(bnd.init.bounty.receptionist_ch)
+        .send_message(
+            &bnd.ctx.http,
+            CreateMessage::new().content(format!(
+                "✅ The bounty submitted by <@{}> has been approved by {} ",
+                user_id, bnd.cmd.user.name
+            )),
+        )
+        .await;
+
+    let mut pg_conn = PgConn::create(bnd.init, user_id.to_owned()).await?;
+    let recipient_cid = match pg_conn
+        .get_char_id_by_discord(user_id.parse::<u64>().unwrap_or(0))
+        .await
+    {
+        Ok(cid) => cid,
+        Err(_) => {
+            let _ = ChannelId::new(bnd.init.bounty.receptionist_ch)
+                .send_message(
+                    &bnd.ctx.http,
+                    CreateMessage::new().content(format!(
+                        "❌ Failed to inject reward for <@{}> because user is not registered in the database.",
+                        user_id
+                    )),
+                )
+                .await;
+            return Err(MyErr::Custom(
+                "User is not registered in the database.".to_owned(),
+            ));
+        }
+    };
+
+    if !pg_conn.validate_character_exists(recipient_cid).await? {
+        let _ = ChannelId::new(bnd.init.bounty.receptionist_ch)
+            .send_message(
+                &bnd.ctx.http,
+                CreateMessage::new().content(format!(
+                    "❌ Failed to inject reward for <@{}> because character ID {} is invalid.",
+                    user_id, recipient_cid
+                )),
+            )
+            .await;
+        return Err(MyErr::Custom(format!(
+            "Character ID {} is invalid.",
+            recipient_cid
+        )));
+    }
+
+    submission.reward(false, bnd, &mut pg_conn).await?;
+    Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_delete_click_targets_its_message() {
+        assert_eq!(
+            classify_bounty_click("bountydel_1234567890123456789"),
+            BountyClick::DeleteStale(1234567890123456789)
+        );
+    }
+
+    #[test]
+    fn the_delete_prefix_is_not_read_as_a_submission_action() {
+        // Without the early `bountydel_` check, "bountydel_1" splits into
+        // ("bountydel", "1") and the click would be routed to a submission lookup
+        // for user "1" that is already gone.
+        assert_eq!(
+            classify_bounty_click("bountydel_1"),
+            BountyClick::DeleteStale(1)
+        );
+    }
+
+    #[test]
+    fn a_malformed_delete_id_is_reported() {
+        assert_eq!(
+            classify_bounty_click("bountydel_notanumber"),
+            BountyClick::MalformedDelete
+        );
+    }
+
+    #[test]
+    fn a_judge_button_still_routes_to_its_submission() {
+        assert_eq!(
+            classify_bounty_click("bounty_814352814078820372_a"),
+            BountyClick::Submission("814352814078820372".to_owned(), "a".to_owned())
+        );
+    }
+
+    #[test]
+    fn unrelated_components_are_ignored() {
+        assert_eq!(classify_bounty_click("papp_1_2_a"), BountyClick::Ignore);
+        assert_eq!(classify_bounty_click("title_edit_select_0_1"), BountyClick::Ignore);
+        assert_eq!(classify_bounty_click("bounty"), BountyClick::Ignore);
+        assert_eq!(classify_bounty_click("bounty_123"), BountyClick::Ignore);
     }
 }

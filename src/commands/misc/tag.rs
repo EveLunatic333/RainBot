@@ -1,12 +1,13 @@
 use serenity::all::*;
 use crate::{MyErr, MsgBundle, Components};
 use crate::reusable::component::market::Tag;
+use crate::reusable::component::notices;
 use crate::reusable::utils::dumb_matching;
 
 #[hertz::hertz_msg(false)]
 async fn message(bnd: &MsgBundle<'_>) -> Result<(), MyErr> {
     let tag = Tag::new().await?;
-    let arg = bnd.msg.content.split_whitespace().nth(1).ok_or_else(|| MyErr::Custom("Missing command argument.".to_string()))?;
+    let arg = bnd.msg.content.split_whitespace().nth(1).ok_or_else(|| MyErr::from(notices::tag_missing_argument()))?;
     let names: Vec<_> = tag.tag.iter().map(|x| x.command.clone()).collect();
     let mut embed = CreateEmbed::new()
         .color(Color::DARK_GREEN)

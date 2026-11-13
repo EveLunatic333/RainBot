@@ -56,7 +56,18 @@
 # maintainer's machine. README.md is intentionally NOT ignored.
 /BACKLOG.md
 /CHANGELOG.md
-/Laporan_Analisis*.md
+/Analysis_Report_*.md
+/Deep_Analysis_Report_*.md
 /Party_Bug_Report_and_Fix_Plan.md
 /RequestToJoin_Plan.md
 /reports/
+
+# ==========================================
+# DEV DEPLOYMENT PLAYBOOK (kept locally, NEVER published)
+# ==========================================
+# These hold real server identifiers: production and dev IP addresses,
+# the SSH port, service unit names, database roles, and provisioning
+# commands. Publishing them would hand an attacker a map of the
+# infrastructure.
+/deploy/
+/DEPLOY_DEV.md
