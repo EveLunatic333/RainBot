@@ -190,7 +190,10 @@ impl Shutdown {
         let desc = bbq.get_bounty(&boxed).map_err(|e| {
             format!("{} is missing from the {} config: {}", bbq.name(), category.name(), e)
         })?;
-        let reward = method.get_reward(desc).clone();
+        // Same scaling as `BountySubmit::new`; a restored submission must be paid the
+        // amount the operator has configured now, not the amount frozen at submit time.
+        let multiplier = init.bounty.reward_multiplier.for_category(&category);
+        let reward = method.get_reward(desc).scaled(&multiplier);
 
         let guild = GuildId::new(i.sub.gid)
             .to_partial_guild(&ctx.http)

@@ -606,7 +606,10 @@ impl BountySubmit {
         let tier = BountyTitle::progression_tier().await;
         let hunter = Hunter::new(bnd, bypass, user, uid, pg, &bbq, &category, &tier).await?;
         let desc = bbq.get_bounty(&*bounty)?;
-        let reward = method.get_reward(desc).clone();
+        // The multiplier is applied here, once, so `self.reward` is the final amount:
+        // `reward()` pays it and `reward_embed` shows it without a second scaling.
+        let multiplier = bnd.init().bounty.reward_multiplier.for_category(&category);
+        let reward = method.get_reward(desc).scaled(&multiplier);
         Ok(BountySubmit {
             hunter,
             method,
@@ -917,6 +920,22 @@ pub struct BountyReward {
     items: Vec<ItemCode>,
 }
 
+impl BountyReward {
+    /// Returns a copy whose coin and ticket are scaled by `m`.
+    ///
+    /// Items are untouched: the multiplier covers the two currencies only. Applying
+    /// it here, once, keeps the granted amount and the displayed amount derived from
+    /// a single value — `self.reward` is then final everywhere downstream, so the
+    /// payment path and the embed cannot drift apart.
+    pub fn scaled(&self, m: &crate::reusable::config::RewardMultiplier) -> BountyReward {
+        BountyReward {
+            coin: m.coin_of(self.coin),
+            ticket: m.gacha_of(self.ticket),
+            items: self.items.clone(),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct BountyRefresh {
     pub bbq1: u32,
@@ -1204,6 +1223,12 @@ impl Bounty {
         let rulen = rules.len() - 1;
         let mulen = multi.len() - 1;
         let solen = solo.len() - 1;
+        // Show what the operator has configured, not the raw file values: a player who
+        // reads "15,000 BC" here must receive 15,000 BC, so the advertised amount and
+        // the paid amount come from the same scaling.
+        let multiplier = bnd.init().bounty.reward_multiplier.for_category(category);
+        let solo_reward = bdesc.solo.scaled(&multiplier);
+        let multi_reward = bdesc.multi.scaled(&multiplier);
         Ok(CreateEmbed::new()
             .title(format!("{} {}", category.name(), bbq.name()))
             .description(&bdesc.description)
@@ -1214,8 +1239,8 @@ impl Bounty {
                 "Solo Rewards",
                 format!(
                     "Bounty Coin: {}\nGacha Ticket: {} Ticket\n{}",
-                    Market::currency(bdesc.solo.coin as i64),
-                    bdesc.solo.ticket,
+                    Market::currency(solo_reward.coin as i64),
+                    solo_reward.ticket,
                     solo[..solen].concat()
                 ),
                 false,
@@ -1224,8 +1249,8 @@ impl Bounty {
                 "Multiplayer Rewards",
                 format!(
                     "Bounty Coin: {}\nGacha Ticket: {} Ticket\n{}",
-                    Market::currency(bdesc.multi.coin as i64),
-                    bdesc.multi.ticket,
+                    Market::currency(multi_reward.coin as i64),
+                    multi_reward.ticket,
                     multi[..mulen].concat()
                 ),
                 false,
@@ -1660,5 +1685,128 @@ mod testing {
         let board = BountyRefresh::default();
         let body = board.cooldown_body();
         assert!(body.contains("BBQ01 ======= 0 left"));
+    }
+
+    fn sample_reward() -> BountyReward {
+        BountyReward {
+            coin: 15_000,
+            ticket: 10,
+            items: vec![ItemCode::default()],
+        }
+    }
+
+    #[test]
+    fn a_neutral_multiplier_returns_the_same_reward() {
+        let reward = sample_reward();
+        let scaled = reward.scaled(&crate::reusable::config::RewardMultiplier::default());
+        assert_eq!(scaled.coin, reward.coin);
+        assert_eq!(scaled.ticket, reward.ticket);
+        assert_eq!(scaled.items.len(), reward.items.len());
+    }
+
+    #[test]
+    fn scaling_touches_the_currencies_but_not_the_items() {
+        let reward = sample_reward();
+        let m = crate::reusable::config::RewardMultiplier { coin: 2.0, gacha: 3.0 };
+        let scaled = reward.scaled(&m);
+        assert_eq!(scaled.coin, 30_000, "coin must double");
+        assert_eq!(scaled.ticket, 30, "ticket must triple");
+        assert_eq!(
+            scaled.items.len(),
+            reward.items.len(),
+            "items are never scaled: only the two currencies are in scope"
+        );
+    }
+
+    #[test]
+    fn scaling_is_not_applied_twice() {
+        // The reward is scaled once in `BountySubmit::new`, so `reward()` and
+        // `reward_embed` must read it verbatim. Re-scaling would pay 4x for a 2x
+        // setting; this pins the single-scaling contract.
+        let reward = sample_reward();
+        let m = crate::reusable::config::RewardMultiplier { coin: 2.0, gacha: 1.0 };
+        let once = reward.scaled(&m);
+        assert_eq!(once.coin, 30_000);
+        let neutral = crate::reusable::config::RewardMultiplier::default();
+        let again = once.scaled(&neutral);
+        assert_eq!(again.coin, 30_000, "an already-scaled reward must pass through");
+    }
+
+    #[test]
+    fn the_displayed_and_granted_amounts_come_from_one_value() {
+        // `reward_embed` formats `self.reward`; `reward()` pays `self.reward`. Because
+        // the scaling happens before both, they cannot disagree. This asserts the
+        // formatted text really is derived from the scaled value.
+        let m = crate::reusable::config::RewardMultiplier { coin: 1.25, gacha: 2.0 };
+        let scaled = sample_reward().scaled(&m);
+        let shown = Market::currency(scaled.coin as i64);
+        assert!(shown.contains("18,750"), "display must show the scaled coin, got {shown}");
+        assert_eq!(scaled.ticket, 20, "display must show the scaled ticket");
+    }
+
+    /// Reads a shipped category file. Uses the real files so a change to them (or to
+    /// the parsing) is caught here, not only against synthetic fixtures.
+    fn real_category(category: &Category) -> Bounty {
+        let raw = std::fs::read(Bounty::path(category)).expect("category file");
+        serde_json::from_slice(&raw).expect("parse category file")
+    }
+
+    #[test]
+    fn scaling_applies_to_the_real_shipped_bounty_files() {
+        // Synthetic fixtures cannot catch a renamed or retyped field. This runs the
+        // real `static/*_bounty.json` through the same path the bot uses.
+        use crate::reusable::config::RewardMultiplier;
+
+        let free = real_category(&Category::Free);
+        let base = free.bounty[0].solo.clone();
+        assert!(
+            base.coin > 0 && base.ticket > 0,
+            "the real Free BBQ01 must carry a positive base reward, got {base:?}"
+        );
+
+        let doubled = base.scaled(&RewardMultiplier { coin: 2.0, gacha: 1.0 });
+        assert_eq!(doubled.coin, base.coin * 2, "coin must double");
+
+        let neutral = base.scaled(&RewardMultiplier::default());
+        assert_eq!(neutral.coin, base.coin, "1.00 must leave the real file untouched");
+        assert_eq!(neutral.ticket, base.ticket);
+    }
+
+    #[test]
+    fn every_shipped_category_parses_and_scales() {
+        // Bronze/Silver/Gold/Free/Event are five separate files with slightly
+        // different shapes; a multiplier must work for all of them.
+        use crate::reusable::config::RewardMultiplier;
+        let m = RewardMultiplier { coin: 1.25, gacha: 1.5 };
+
+        for category in [
+            Category::Bronze,
+            Category::Silver,
+            Category::Gold,
+            Category::Free,
+            Category::Event,
+        ] {
+            let bounty = real_category(&category);
+            let desc = &bounty.bounty[0];
+            for (method, base) in [("solo", &desc.solo), ("multi", &desc.multi)] {
+                let scaled = base.scaled(&m);
+                let expected_coin = ((base.coin as f64) * 1.25).floor() as u32;
+                assert_eq!(
+                    scaled.coin, expected_coin,
+                    "{} {} coin: base {}",
+                    category.name(),
+                    method,
+                    base.coin
+                );
+                let expected_ticket = ((base.ticket as f64) * 1.5).floor() as u32;
+                assert_eq!(
+                    scaled.ticket, expected_ticket,
+                    "{} {} ticket: base {}",
+                    category.name(),
+                    method,
+                    base.ticket
+                );
+            }
+        }
     }
 }

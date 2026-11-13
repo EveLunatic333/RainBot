@@ -237,6 +237,162 @@ pub struct Bounty {
     /// server's cooldown behaviour; the operator has to opt in.
     #[serde(default)]
     pub progression_shares_standard: bool,
+    /// Scale factors applied to the Bounty Coin and Gacha Ticket rewards of each
+    /// group. See [`RewardMultipliers`].
+    ///
+    /// Kept out of the category JSON files on purpose: `static/*_bounty.json` holds
+    /// what a bounty *is* (description, rules, items, base reward), while how much of
+    /// it is paid out is an operator setting that changes far more often.
+    #[serde(default)]
+    pub reward_multiplier: RewardMultipliers,
+}
+
+/// Upper bound for a reward multiplier.
+///
+/// This is a typo guard, not a business limit: `10.00` and `1000` are one keystroke
+/// apart, and a runaway multiplier would mint currency faster than any audit could
+/// catch. Raise the constant deliberately if a larger factor is ever wanted.
+pub const MAX_REWARD_MULTIPLIER: f64 = 100.0;
+
+/// Scale factors for the two currencies a bounty pays out.
+///
+/// Both default to `1.0`, so a config that does not mention them behaves exactly as
+/// before. Values are `f64` because a multiplier like `1.25` is the whole point.
+#[derive(Debug, Deserialize, Clone, Copy, Serialize)]
+pub struct RewardMultiplier {
+    /// Factor applied to the Bounty Coin amount (`coin` in the category JSON).
+    #[serde(default = "default_multiplier")]
+    pub coin: f64,
+    /// Factor applied to the Gacha Ticket amount (`ticket` in the category JSON,
+    /// stored in the `discord.gacha` column).
+    #[serde(default = "default_multiplier")]
+    pub gacha: f64,
+}
+
+fn default_multiplier() -> f64 {
+    1.0
+}
+
+impl Default for RewardMultiplier {
+    fn default() -> Self {
+        Self {
+            coin: default_multiplier(),
+            gacha: default_multiplier(),
+        }
+    }
+}
+
+impl RewardMultiplier {
+    /// Collapses a configured factor into one that is safe to multiply by.
+    ///
+    /// `NaN`, infinity and negatives fall back to `1.0` rather than being clamped to
+    /// zero: a reward of zero is a far worse surprise than an unchanged one, and a
+    /// negative factor would *remove* currency from the player.
+    ///
+    /// Silent on purpose — this runs on every reward grant. Use
+    /// [`Self::report_if_invalid`] to surface a bad value at startup instead.
+    pub fn effective(factor: f64) -> f64 {
+        if !factor.is_finite() || factor < 0.0 {
+            return 1.0;
+        }
+        factor.min(MAX_REWARD_MULTIPLIER)
+    }
+
+    /// Logs a warning when a configured factor had to be rewritten.
+    ///
+    /// Called once while the config is loaded, so a typo is reported without the
+    /// reward path emitting a warning for every bounty handed out.
+    pub fn report_if_invalid(&self, group: &str) {
+        for (field, value) in [("coin", self.coin), ("gacha", self.gacha)] {
+            let effective = Self::effective(value);
+            if effective != value {
+                warn!(
+                    group,
+                    field,
+                    value,
+                    applied = effective,
+                    limit = MAX_REWARD_MULTIPLIER,
+                    "Reward multiplier is unusable and was replaced"
+                );
+            }
+        }
+    }
+
+    /// Applies the factor to one amount.
+    ///
+    /// Rounds **down** so a payout can never exceed `amount * factor`; a fractional
+    /// coin or ticket cannot be granted, and rounding up would quietly pay more than
+    /// the operator configured. Saturates at [`u32::MAX`] instead of wrapping.
+    pub fn apply(value: u32, factor: f64) -> u32 {
+        let scaled = (value as f64) * Self::effective(factor);
+        if !scaled.is_finite() || scaled >= u32::MAX as f64 {
+            return u32::MAX;
+        }
+        // `floor` of a non-negative finite value is >= 0, so the cast is lossless.
+        scaled.floor() as u32
+    }
+
+    pub fn coin_of(&self, base: u32) -> u32 {
+        Self::apply(base, self.coin)
+    }
+
+    pub fn gacha_of(&self, base: u32) -> u32 {
+        Self::apply(base, self.gacha)
+    }
+
+    /// True when this multiplier changes nothing, so callers can skip the work.
+    pub fn is_neutral(&self) -> bool {
+        Self::effective(self.coin) == 1.0 && Self::effective(self.gacha) == 1.0
+    }
+}
+
+/// One multiplier per reward group.
+///
+/// The grouping deliberately matches the cooldown grouping: Bronze, Silver and Gold
+/// form one progression ladder and share a factor, while Free and Event are
+/// independent. Keeping the two groupings identical means an operator learns one
+/// mental model, not two.
+#[derive(Debug, Deserialize, Clone, Copy, Serialize)]
+pub struct RewardMultipliers {
+    /// Free bounties.
+    #[serde(default)]
+    pub free: RewardMultiplier,
+    /// Event bounties.
+    #[serde(default)]
+    pub event: RewardMultiplier,
+    /// The Bronze/Silver/Gold progression ladder, all three at once.
+    #[serde(default)]
+    pub progression: RewardMultiplier,
+}
+
+impl Default for RewardMultipliers {
+    fn default() -> Self {
+        Self {
+            free: RewardMultiplier::default(),
+            event: RewardMultiplier::default(),
+            progression: RewardMultiplier::default(),
+        }
+    }
+}
+
+impl RewardMultipliers {
+    /// The multiplier that applies to a category.
+    ///
+    /// Uses the same mapping the cooldown uses, so the two groupings cannot drift
+    /// apart: a category added to one is automatically grouped in the other.
+    pub fn for_category(&self, category: &crate::reusable::component::bounty::Category) -> RewardMultiplier {
+        use crate::reusable::component::bounty_cooldown::CooldownGroup;
+        match CooldownGroup::from_category(category) {
+            CooldownGroup::Standard => self.free,
+            CooldownGroup::Event => self.event,
+            CooldownGroup::Progression => self.progression,
+        }
+    }
+
+    /// True when every group is neutral, so the whole block can be skipped.
+    pub fn is_neutral(&self) -> bool {
+        self.free.is_neutral() && self.event.is_neutral() && self.progression.is_neutral()
+    }
 }
 
 fn default_progression_no_repeat() -> bool {
@@ -422,6 +578,7 @@ impl Init {
         let input = tokio::fs::read_to_string(&Init::path()).await?;
         let mut config: Init = serde_json::from_str(&input)?;
         config.apply_env_overrides();
+        config.report_reward_multipliers();
         if config.authorized_guilds.is_empty() {
             warn!("authorized_guilds is empty in config.json. Bot will auto-leave ALL guilds. Add at least one guild ID to prevent lockout.");
         }
@@ -432,10 +589,22 @@ impl Init {
         let input = std::fs::read_to_string(&Init::path())?;
         let mut config: Init = serde_json::from_str(&input)?;
         config.apply_env_overrides();
+        config.report_reward_multipliers();
         if config.authorized_guilds.is_empty() {
             warn!("authorized_guilds is empty in config.json. Bot will auto-leave ALL guilds.");
         }
         Ok(config)
+    }
+
+    /// Reports every reward multiplier that had to be rewritten.
+    ///
+    /// Done once at load so a bad value is visible in the log immediately, instead of
+    /// the reward path warning on every single bounty handed out.
+    fn report_reward_multipliers(&self) {
+        let m = &self.bounty.reward_multiplier;
+        m.free.report_if_invalid("free");
+        m.event.report_if_invalid("event");
+        m.progression.report_if_invalid("progression");
     }
 }
 
@@ -588,5 +757,171 @@ mod tests {
 
         let cfg: Init = serde_json::from_value(value).expect("deserialize");
         assert_eq!(cfg.master_commander_id, Some(123456789012345678));
+    }
+
+    /// Builds a config value from the shipped example, so the multiplier tests can
+    /// add a block without depending on the live `config.json`.
+    fn config_value() -> serde_json::Value {
+        serde_json::from_str(&std::fs::read_to_string(Init::path()).expect("config.json"))
+            .expect("valid json")
+    }
+
+    #[test]
+    fn a_missing_multiplier_block_leaves_rewards_untouched() {
+        // The promise that makes this feature safe to ship: without the block, every
+        // reward is paid exactly as the category JSON says.
+        let mut value = config_value();
+        value["bounty"]
+            .as_object_mut()
+            .expect("bounty")
+            .remove("reward_multiplier");
+
+        let cfg: Init = serde_json::from_value(value).expect("deserialize");
+        for category in [
+            crate::reusable::component::bounty::Category::Bronze,
+            crate::reusable::component::bounty::Category::Silver,
+            crate::reusable::component::bounty::Category::Gold,
+            crate::reusable::component::bounty::Category::Free,
+            crate::reusable::component::bounty::Category::Event,
+        ] {
+            let m = cfg.bounty.reward_multiplier.for_category(&category);
+            assert_eq!(m.coin_of(15_000), 15_000, "{} coin", category.name());
+            assert_eq!(m.gacha_of(10), 10, "{} ticket", category.name());
+        }
+    }
+
+    #[test]
+    fn the_multiplier_is_read_from_the_bounty_block() {
+        let mut value = config_value();
+        value["bounty"]["reward_multiplier"] = serde_json::json!({
+            "free":        { "coin": 1.25, "gacha": 2.00 },
+            "event":       { "coin": 3.00, "gacha": 0.50 },
+            "progression": { "coin": 2.00, "gacha": 1.00 }
+        });
+
+        let cfg: Init = serde_json::from_value(value).expect("deserialize");
+        let m = cfg.bounty.reward_multiplier;
+        assert_eq!(m.free.coin, 1.25);
+        assert_eq!(m.free.gacha, 2.0);
+        assert_eq!(m.event.coin, 3.0);
+        assert_eq!(m.progression.coin, 2.0);
+        assert_eq!(m.progression.gacha, 1.0);
+    }
+
+    #[test]
+    fn a_multiplier_scales_only_its_own_group() {
+        use crate::reusable::component::bounty::Category;
+        let mut value = config_value();
+        value["bounty"]["reward_multiplier"] = serde_json::json!({
+            "free": { "coin": 2.00, "gacha": 1.00 }
+        });
+        let cfg: Init = serde_json::from_value(value).expect("deserialize");
+        let m = &cfg.bounty.reward_multiplier;
+
+        assert_eq!(m.for_category(&Category::Free).coin_of(15_000), 30_000);
+        assert_eq!(m.for_category(&Category::Event).coin_of(15_000), 15_000);
+        assert_eq!(m.for_category(&Category::Bronze).coin_of(15_000), 15_000);
+        assert_eq!(m.for_category(&Category::Gold).coin_of(15_000), 15_000);
+    }
+
+    #[test]
+    fn the_progression_group_covers_every_ladder_tier() {
+        // Bronze, Silver and Gold are one group by decision: an operator sets one
+        // number for the whole ladder. This pins that mapping in place.
+        use crate::reusable::component::bounty::Category;
+        let mut value = config_value();
+        value["bounty"]["reward_multiplier"] = serde_json::json!({
+            "progression": { "coin": 1.50, "gacha": 1.00 }
+        });
+        let cfg: Init = serde_json::from_value(value).expect("deserialize");
+        let m = &cfg.bounty.reward_multiplier;
+
+        for tier in [Category::Bronze, Category::Silver, Category::Gold] {
+            assert_eq!(
+                m.for_category(&tier).coin_of(1_000),
+                1_500,
+                "{} must follow the ladder multiplier",
+                tier.name()
+            );
+        }
+        assert_eq!(m.for_category(&Category::Free).coin_of(1_000), 1_000);
+    }
+
+    #[test]
+    fn coin_and_gacha_scale_independently() {
+        let m = RewardMultiplier { coin: 1.25, gacha: 1.0 };
+        assert_eq!(m.coin_of(100_000), 125_000);
+        assert_eq!(m.gacha_of(100_000), 100_000);
+    }
+
+    #[test]
+    fn fractional_rewards_round_down() {
+        let m = RewardMultiplier { coin: 1.25, gacha: 1.0 };
+        // 15_000 * 1.25 = 18_750 exactly.
+        assert_eq!(m.coin_of(15_000), 18_750);
+        // 15_001 * 1.25 = 18_751.25 -> 18_751, never 18_752.
+        assert_eq!(m.coin_of(15_001), 18_751);
+        // 3 * 1.25 = 3.75 -> 3.
+        assert_eq!(m.coin_of(3), 3);
+        // The inverse: rounding up would hand out a currency unit that was never earned.
+        assert_ne!(m.coin_of(3), 4);
+    }
+
+    #[test]
+    fn a_factor_below_one_reduces_the_reward() {
+        // Lowering a reward is a legitimate operator action, not a bug.
+        let m = RewardMultiplier { coin: 0.5, gacha: 0.5 };
+        assert_eq!(m.coin_of(10_000), 5_000);
+        assert_eq!(m.gacha_of(10), 5);
+        assert_eq!(m.gacha_of(1), 0);
+    }
+
+    #[test]
+    fn nonsense_multipliers_fall_back_to_no_change() {
+        // NaN, infinity and negatives cannot mean "pay nothing": a zero or negative
+        // payout would delete currency, which is never what a typo should do.
+        for bad in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY, -1.0, -0.25] {
+            assert_eq!(
+                RewardMultiplier::effective(bad),
+                1.0,
+                "factor {bad} must fall back to 1.0"
+            );
+            assert_eq!(RewardMultiplier::apply(1_000, bad), 1_000);
+        }
+    }
+
+    #[test]
+    fn a_huge_multiplier_saturates_instead_of_overflowing() {
+        // Clamped factor, and the amount itself saturates rather than wrapping.
+        assert_eq!(
+            RewardMultiplier::effective(MAX_REWARD_MULTIPLIER * 10.0),
+            MAX_REWARD_MULTIPLIER
+        );
+        let m = RewardMultiplier { coin: f64::MAX, gacha: 1.0 };
+        assert_eq!(m.coin_of(u32::MAX), u32::MAX);
+        assert_eq!(m.coin_of(1_000_000), 100_000_000, "clamped to 100x");
+    }
+
+    #[test]
+    fn zero_is_a_legal_multiplier() {
+        // Unlike a negative, an explicit 0 is an understandable request.
+        let m = RewardMultiplier { coin: 0.0, gacha: 1.0 };
+        assert_eq!(m.coin_of(15_000), 0);
+        assert_eq!(m.gacha_of(10), 10);
+    }
+
+    #[test]
+    fn the_default_multiplier_is_neutral() {
+        assert!(RewardMultipliers::default().is_neutral());
+        let m = RewardMultiplier { coin: 1.5, gacha: 1.0 };
+        assert!(!m.is_neutral());
+    }
+
+    #[test]
+    fn a_partial_block_fills_the_missing_side_with_one() {
+        // An operator may set only `coin`; `gacha` must not become zero.
+        let m: RewardMultiplier = serde_json::from_str(r#"{"coin": 2.0}"#).expect("deserialize");
+        assert_eq!(m.coin, 2.0);
+        assert_eq!(m.gacha, 1.0);
     }
 }

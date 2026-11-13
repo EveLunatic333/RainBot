@@ -61,7 +61,14 @@
     "progression_no_repeat": true,
 
     "_progression_gate_comment": "What the Bronze -> Silver -> Gold gate requires. 'counter' (default) needs only the completed-bounty counter, which is the trustworthy record. 'either' accepts the counter OR the achievement bit. 'both' requires the counter AND the bit, and will block players whose achievement role was never granted -- check with audit_achievement_roles.py before choosing it.",
-    "progression_gate": "counter"
+    "progression_gate": "counter",
+
+    "_reward_multiplier_comment": "Scales the reward a bounty pays WITHOUT editing static/*_bounty.json. Three groups, matching the cooldown groups: 'free', 'event', and 'progression' (Bronze, Silver and Gold together -- one value for the whole ladder). Each group sets 'coin' (Bounty Coin) and 'gacha' (Gacha Ticket) independently. Default 1.00 leaves every reward exactly as the category file states. Any positive factor is allowed, e.g. 1.25 or 2.00; 0 pays nothing for that currency. Results are rounded DOWN, so a payout never exceeds base x factor. Items and equipment are never scaled. A value above 100 is clamped to 100, and NaN/negative/infinite values are replaced with 1.00 -- both are reported once in the log at startup. Omit the whole block to keep 1.00 everywhere.",
+    "reward_multiplier": {
+      "free": { "coin": 1.00, "gacha": 1.00 },
+      "event": { "coin": 1.00, "gacha": 1.00 },
+      "progression": { "coin": 1.00, "gacha": 1.00 }
+    }
   },
 
   "server_role": {
