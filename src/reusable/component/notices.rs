@@ -771,28 +771,6 @@ pub fn admin_only(command: &str) -> Notice {
 }
 
 // ---------------------------------------------------------------------------
-// Assistant (/gpt)
-// ---------------------------------------------------------------------------
-
-/// The assistant was asked for something it does not do.
-pub fn gpt_unknown_request() -> Notice {
-    Notice::refusal(
-        "Request Not Understood",
-        "That is not one of the actions the assistant offers.",
-    )
-    .command("/gpt")
-    .detail("Available: **chat** and **image**.")
-    .action("Pick one of the listed actions and try again.")
-}
-
-/// A chat request arrived without a question.
-pub fn gpt_no_question() -> Notice {
-    Notice::refusal("Nothing to Answer", "No question was included with this request.")
-        .command("/gpt")
-        .action("Type your question and send it again.")
-}
-
-// ---------------------------------------------------------------------------
 // Binded commands (card, huntercard, transfer)
 // ---------------------------------------------------------------------------
 
@@ -1027,8 +1005,6 @@ mod tests {
             ("market_timed_out", market_timed_out()),
             ("role_already_held", role_already_held("Member")),
             ("role_assign_failed", role_assign_failed("Member", "missing permissions")),
-            ("gpt_unknown_request", gpt_unknown_request()),
-            ("gpt_no_question", gpt_no_question()),
             ("tag_missing_argument", tag_missing_argument()),
             ("party_request_pending", party_request_pending()),
             ("party_no_longer_exists", party_no_longer_exists()),

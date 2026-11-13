@@ -22,7 +22,6 @@ use reusable::postgress::PgConn;
 use reusable::component::registered::Reg;
 use reusable::component::discord::AppReg;
 use reusable::image_edit::Images;
-use reusable::gpt::chat::CompModel;
 use event::interaction::{ModalBundle, SlashBundle, ComponentBundle, Mybundle};
 use event::message::MsgBundle;
 use reusable::component::{MyErr, Mytrait};
@@ -36,7 +35,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 lazy_static! {
     pub static ref COOLDOWN: Mutex<HashMap<String, i64>> = Mutex::new(HashMap::new());
-    pub static ref CHAT: Mutex<HashMap<String, CompModel>> = Mutex::new(HashMap::new());
     pub static ref MONITOR: Mutex<bool> = Mutex::new(true);
     pub static ref BOUNTY: Mutex<HashMap<String, BountySubmit>> = Mutex::new(HashMap::new());
     // Tracks users that are currently filling out a bounty submission form.

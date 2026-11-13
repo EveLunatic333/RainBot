@@ -338,7 +338,7 @@ impl<'a> Server<'a> {
     ///
     /// The file is re-read and only the two id fields are patched. Writing back the
     /// in-memory `Init` would **leak secrets**: `apply_env_overrides` copies
-    /// `DISCORD_TOKEN`, `POSTGRES_PASSWORD` and `CHATGPT_TOKEN` from the environment
+    /// `DISCORD_TOKEN` and `POSTGRES_PASSWORD` from the environment
     /// into that struct, so serializing it persists real credentials into
     /// `config.json` — a file that is meant to hold the placeholders only.
     async fn persist_board_id(&self) {

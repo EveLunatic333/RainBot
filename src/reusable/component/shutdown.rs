@@ -2,10 +2,9 @@ use std::collections::HashMap;
 use std::path::{PathBuf, Path};
 use crate::reusable::config::Init;
 use crate::reusable::postgress::PgConn;
-use crate::{MyErr, CHAT, BOUNTY, PARTIES};
+use crate::{MyErr, BOUNTY, PARTIES};
 use crate::commands::misc::party::PartyRecord;
 use super::bounty::{BountySubmit, Bounty, Category, Title, Hunter, BBQ, Methode};
-use super::super::gpt::chat::Preserve;
 use serde::{Serialize, Deserialize};
 use serenity::all::{GuildId, UserId};
 use serenity::prelude::Context;
@@ -45,7 +44,13 @@ struct SkippedBounty {
 
 #[derive(Serialize, Deserialize)]
 pub struct Shutdown {
-    gpt: Vec<Preserve>,
+    /// Left over from the removed ChatGPT feature. CACHE files written by an older
+    /// build still carry this array; it is accepted and ignored so those files keep
+    /// loading, and it is never written again. Kept as a typed field rather than
+    /// `deny_unknown_fields` bait so an old CACHE cannot block a restore.
+    #[serde(default)]
+    #[allow(dead_code)]
+    gpt: Vec<serde_json::Value>,
     bounty: Vec<BountyPre>,
     // Defaults to an empty list so CACHE files written before the party
     // feature still load correctly.
@@ -84,19 +89,9 @@ impl Shutdown {
             bounty.push(BountyPre { id: s.to_owned(), sub });
         }
 
-        let gpt: Vec<Preserve> = CHAT
-            .lock()
-            .await
-            .iter()
-            .map(|(id, comp)| Preserve {
-                id: id.to_owned(),
-                comp: comp.clone(),
-            })
-            .collect();
-
         let parties: Vec<PartyRecord> = PARTIES.lock().await.values().cloned().collect();
 
-        let sel = Self { gpt, bounty, parties };
+        let sel = Self { gpt: Vec::new(), bounty, parties };
         tokio::fs::write(Self::path(), &serde_json::to_string(&sel)?.as_bytes()).await?;
         Ok(())
     }
@@ -135,14 +130,6 @@ impl Shutdown {
         }
 
         let restored = container.len();
-        {
-            let mut chat = CHAT.lock().await;
-            *chat = file
-                .gpt
-                .iter()
-                .map(|x| (x.id.to_string(), x.comp.clone()))
-                .collect();
-        }
         {
             let mut bounty = BOUNTY.lock().await;
             *bounty = container;
@@ -300,5 +287,62 @@ mod tests {
         assert_eq!(file.bounty[0].sub.url, "https://example.invalid/a.png");
         assert_eq!(file.bounty[0].sub.time, 1_700_000_000);
         assert_eq!(file.bounty[0].sub.gid, 222);
+    }
+
+    /// A CACHE written before the chat feature ever existed has no `gpt` key at all.
+    /// It must still load: `#[serde(default)]` on the leftover field is what allows
+    /// that, so this test fails if the attribute is dropped.
+    #[test]
+    fn a_cache_without_the_legacy_gpt_key_still_loads() {
+        let json = r#"{"bounty":[{"id":"111","sub":{"method":0,"category":3,"bbq":1,"hunter":[111],"url":"u","time":1700000000,"gid":222,"msg_id":1}}],"parties":[]}"#;
+        let file: Shutdown =
+            serde_json::from_str(json).expect("a CACHE with no gpt key must still parse");
+        assert_eq!(file.bounty.len(), 1);
+        assert!(file.gpt.is_empty());
+    }
+
+    /// A CACHE written while the ChatGPT feature still existed carries real chat
+    /// state under `gpt`. Removing the feature must not make such a file unreadable —
+    /// that would silently drop every pending bounty submission on the next restart.
+    #[test]
+    fn a_cache_from_the_removed_chatgpt_era_still_restores_its_bounties() {
+        let json = r#"{"gpt":[
+            {"id":"814352814078820372","comp":{"data":[{"role":"user","content":"hi"}],"comp":"answer"}}
+        ],"bounty":[{"id":"111","sub":{"method":0,"category":3,"bbq":1,"hunter":[111],"url":"u","time":1700000000,"gid":222,"msg_id":987654321}}],"parties":[]}"#;
+
+        let file: Shutdown =
+            serde_json::from_str(json).expect("a CACHE carrying old chat state must still parse");
+
+        assert_eq!(
+            file.bounty.len(),
+            1,
+            "the pending bounty must survive the removal of the chat feature"
+        );
+        assert_eq!(file.bounty[0].sub.msg_id, 987654321);
+        assert_eq!(
+            file.gpt.len(),
+            1,
+            "the leftover chat array is read but ignored, not rejected"
+        );
+    }
+
+    /// The field is never written again: a fresh save must not resurrect it.
+    #[test]
+    fn a_saved_cache_no_longer_writes_chat_state() {
+        // `save()` builds `Shutdown { gpt: Vec::new(), .. }`, so the key is present
+        // but empty. Asserting the shape keeps a future edit from reintroducing a
+        // payload that nothing can read.
+        let empty: Shutdown =
+            serde_json::from_str(cache_json("").as_str()).expect("CACHE should parse");
+        let serialized = serde_json::to_string(&Shutdown {
+            gpt: Vec::new(),
+            bounty: empty.bounty,
+            parties: empty.parties,
+        })
+        .expect("serialize");
+        assert!(
+            serialized.contains(r#""gpt":[]"#),
+            "the key stays as an empty array for shape compatibility, got {serialized}"
+        );
     }
 }

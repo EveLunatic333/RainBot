@@ -7,7 +7,6 @@ use tracing::warn;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Init {
     pub bounty: Bounty,
-    pub chat_gpt: ChatGpt,
     pub server_role: ServerRole,
     pub log_channel: LogChannels,
     pub bot_config: BotConfig,
@@ -587,12 +586,6 @@ impl Default for CooldownHours {
 }
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
-pub struct ChatGpt {
-    pub token: String,
-    pub timeout: u32,
-}
-
-#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct LfgRoles {
     pub raviente_raid: u64,
     pub party_helper: u64,
@@ -620,9 +613,6 @@ impl Init {
         if std::env::var("POSTGRES_PASSWORD").is_ok() {
             redacted.postgress.password = String::new();
         }
-        if std::env::var("CHATGPT_TOKEN").is_ok() {
-            redacted.chat_gpt.token = String::new();
-        }
 
         let content = serde_json::to_string_pretty(&redacted)?;
         Ok(tokio::fs::write(Init::path(), content).await?)
@@ -635,9 +625,6 @@ impl Init {
         }
         if let Ok(password) = std::env::var("POSTGRES_PASSWORD") {
             self.postgress.password = password;
-        }
-        if let Ok(gpt_token) = std::env::var("CHATGPT_TOKEN") {
-            self.chat_gpt.token = gpt_token;
         }
 
         // Connection details are read from the environment so that config.json does

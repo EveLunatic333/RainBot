@@ -189,7 +189,6 @@ async fn route_slash_command(bnd: &SlashBundle<'_>) {
                 tracing::warn!("title_delete command failed: {:?}", e);
             }
         }
-        "gpt" => commands::misc::gpt::discordslash(bnd).await,
         "party" => commands::misc::party::discordslash(bnd).await,
         "add_psn" => commands::register::change_pasword::discordpsn(bnd).await,
         "remind" => {
@@ -229,7 +228,6 @@ async fn route_component_interaction(bnd: &ComponentBundle<'_>) {
     }
     if code.contains("save") { return commands::binded::transfer::discordbutton(bnd).await; }
     if code.contains("bounty") { return commands::bounty::submit::discordbutton(bnd).await; }
-    if code.contains("chat") { return commands::misc::gpt::discordbutton(bnd).await; }
     if code.starts_with("party") { return commands::misc::party::discordbutton(bnd).await; }
     if code.starts_with("papp") { return commands::misc::party::discordapproval(bnd).await; }
     if code.starts_with("extend_food_confirm:") {
