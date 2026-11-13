@@ -962,25 +962,31 @@ impl BountySubmit {
         }
     }
 
+    /// The reward embed shown to the recipient(s) after an approval.
+    ///
+    /// Two precision traps live here, both display-only; neither changes what is paid:
+    ///
+    /// * The title bonus is an `f32`, so `1.0 + 0.3` is `1.29999995`. Deriving the
+    ///   percentage from that printed **29%** for a Gold title, and `39%` for
+    ///   Gold+Bronze. The percentage now comes from [`Title::bonus_precise`].
+    /// * The "Reward With Bonus" figure is computed in `f64` while the payout at
+    ///   `reward()` is computed in `f32`. For 52 of the coin values in the shipped
+    ///   files that printed **1 BC less** than the player actually received. It now
+    ///   uses the same `f32` path as the payout, so the embed cannot disagree.
+    ///
+    /// The Gacha line also says plainly that the title bonus does not apply to it:
+    /// the bonus multiplies Bounty Coin only, which was never obvious from the embed.
     fn reward_embed<'a>(&'a self, item: &ItemPedia) -> HashMap<&'a User, CreateEmbed> {
         let mut out = HashMap::new();
         let mut reward = vec![">>> ".to_owned()];
-        let ticket = format!("Ticket Reward: {} Ticket(s)", self.reward.ticket);
         for i in &self.reward.items {
             reward.push(i.text(item).unwrap());
             reward.push("\n".to_owned());
         }
         let lenre = reward.len() - 1;
         for j in &self.hunter {
-            let bon = (j.title.bonus() - 1.0) * 100.0;
-            let percent = format!("{}%", bon as u32);
-            let bonus = self.reward.coin as f64 * j.title.bonus() as f64;
-            let bounty = format!(
-                "Bounty Reward: {}\nTitle Bonus: {}\nReward With Bonus: {}",
-                Market::currency(self.reward.coin as i64),
-                percent,
-                Market::currency(bonus as i64)
-            );
+            let (bounty, _percent) = coin_field_text(self.reward.coin, &j.title);
+            let ticket = gacha_field_text(self.reward.ticket);
             let embed = CreateEmbed::new()
                 .title("Bounty Reward")
                 .description(format!(
@@ -992,7 +998,7 @@ impl BountySubmit {
                 ))
                 .fields(vec![
                     ("Bounty Coin", bounty, false),
-                    ("Gacha Tickets", ticket.to_owned(), false),
+                    ("Gacha Tickets", ticket, false),
                     ("Items/Equipment", reward[..lenre].to_vec().concat(), false),
                 ])
                 .color(Color::Gold.throw())
@@ -1001,6 +1007,29 @@ impl BountySubmit {
         }
         out
     }
+}
+
+/// The two lines of the Bounty Coin field in the reward embed.
+///
+/// Split out of `reward_embed` so the arithmetic can be tested without a Discord
+/// context — this is exactly where the `f32`/`f64` mismatch used to print an amount
+/// one coin short of what was paid.
+fn coin_field_text(coin: u32, title: &Title) -> (String, String) {
+    let percent = format!("{}%", ((title.bonus_precise() - 1.0) * 100.0).round() as u32);
+    // Must mirror `reward()` exactly: f32 multiply, then a truncating cast.
+    let bonus = coin as f32 * title.bonus();
+    let text = format!(
+        "Bounty Reward: {}\nTitle Bonus: {}\nReward With Bonus: {}",
+        Market::currency(coin as i64),
+        percent,
+        Market::currency(bonus as i64)
+    );
+    (text, percent)
+}
+
+/// The Gacha Tickets field, spelling out that the title bonus does not apply.
+fn gacha_field_text(ticket: u32) -> String {
+    format!("Ticket Reward: {ticket} Ticket(s)\nTitle bonus does not apply to Gacha Tickets")
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
@@ -2141,5 +2170,58 @@ mod testing {
                 "code {code}: payout {payout} vs reported {reported} disagree"
             );
         }
+    }
+
+    #[test]
+    fn the_gold_percentage_is_not_off_by_one() {
+        // Regression, display-only: `(1.29999995 - 1.0) * 100.0` truncated to u32 is
+        // 29, so a Gold title was advertised as "+29%". It is +30%.
+        let (_, percent) = coin_field_text(15_000, &Title::new(4));
+        assert_eq!(percent, "30%", "Gold must read as 30%, got {percent}");
+
+        // Gold + Bronze is +40%, which also read as 39%.
+        let (_, percent) = coin_field_text(15_000, &Title::new(5));
+        assert_eq!(percent, "40%", "Gold+Bronze must read as 40%, got {percent}");
+    }
+
+    #[test]
+    fn the_advertised_amount_matches_what_the_payout_grants() {
+        // Regression, display-only: the embed multiplied in f64 while `reward()`
+        // multiplies in f32, which printed one coin less for 52 real coin values.
+        // This recomputes the payout exactly as `reward()` does and compares.
+        for code in [0u8, 1, 2, 4, 5, 6, 7] {
+            let title = Title::new(code);
+            for coin in [800u32, 4_000, 15_000, 16_000, 19_500, 90_000] {
+                // The payout path.
+                let paid = (coin as f32 * title.bonus()) as i64;
+                // The embed text.
+                let (text, _) = coin_field_text(coin, &title);
+                let shown = Market::currency(paid);
+                assert!(
+                    text.contains(&shown),
+                    "code {code} coin {coin}: embed must contain {shown}, got:\n{text}"
+                );
+                // And the closing figure must be the paid value, not paid - 1.
+                let wrong = Market::currency(paid - 1);
+                assert!(
+                    !text.contains(&wrong),
+                    "code {code} coin {coin}: embed must not show {wrong} (one less than paid)"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn the_gacha_field_says_the_title_bonus_does_not_apply() {
+        // The clarification the operator asked for. It must name Gacha and be
+        // unambiguous that the bonus does not reach it.
+        let text = gacha_field_text(30);
+        assert!(text.contains("Ticket Reward: 30 Ticket(s)"), "got: {text}");
+        assert!(
+            text.contains("does not apply to Gacha Tickets"),
+            "the caveat must be present, got: {text}"
+        );
+        // The figure must be the plain ticket count: the bonus never touches it.
+        assert!(!text.contains("Bonus: "), "must not imply a gacha bonus: {text}");
     }
 }
