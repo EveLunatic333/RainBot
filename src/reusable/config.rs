@@ -1113,4 +1113,78 @@ mod tests {
             "a negative override must not delete currency"
         );
     }
+
+    /// Every field the bot can read must be visible in the shipped example.
+    ///
+    /// A field that only exists in Rust is invisible to an operator: they cannot
+    /// discover it, and it silently takes a default. This test is the guard that
+    /// keeps `config.example.json` a complete map of the configuration.
+    ///
+    /// `postgress` is the one documented exception — its values come from `.env` so
+    /// that `config.json` never discloses credentials (see the `Postgress` docs).
+    #[test]
+    fn the_example_config_documents_every_setting() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let example: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(root.join("config.example.json")).expect("config.example.json"))
+                .expect("example must be valid json");
+
+        // Every scalar path the example carries, comments (`_...`) excluded.
+        fn paths(v: &serde_json::Value, prefix: &str, out: &mut Vec<String>) {
+            match v {
+                serde_json::Value::Object(map) => {
+                    for (k, child) in map {
+                        if k.starts_with('_') {
+                            continue;
+                        }
+                        paths(child, &format!("{prefix}/{k}"), out);
+                    }
+                }
+                serde_json::Value::Array(_) => out.push(prefix.to_string()),
+                _ => out.push(prefix.to_string()),
+            }
+        }
+        let mut have = Vec::new();
+        paths(&example, "", &mut have);
+
+        // The settings this task added, plus the ones that were missing before it.
+        // Named explicitly so the test fails if any disappears from the example.
+        let must_document = [
+            "/bounty/cooldown_hours/same",
+            "/bounty/cooldown_hours/different",
+            "/bounty/cooldown_hours/event",
+            "/bounty/cooldown_hours/progression",
+            "/bounty/event_shares_standard",
+            "/bounty/progression_shares_standard",
+            "/bounty/progression_no_repeat",
+            "/bounty/progression_gate",
+            "/bounty/reward_multiplier/free/coin",
+            "/bounty/reward_multiplier/free/gacha",
+            "/bounty/reward_multiplier/event/coin",
+            "/bounty/reward_multiplier/event/gacha",
+            "/bounty/reward_multiplier/progression/coin",
+            "/bounty/reward_multiplier/progression/gacha",
+            "/master_commander_id",
+        ];
+        for key in must_document {
+            assert!(
+                have.iter().any(|h| h == key),
+                "config.example.json must document {key}"
+            );
+        }
+    }
+
+    /// `leaderboard_ch` was documented for years but no code ever read it.
+    ///
+    /// A phantom key is worse than a missing one: it implies a feature and sends an
+    /// operator looking for a channel that nothing updates.
+    #[test]
+    fn the_example_config_carries_no_dead_keys() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let raw = std::fs::read_to_string(root.join("config.example.json")).expect("example");
+        assert!(
+            !raw.contains("leaderboard_ch"),
+            "config.example.json must not advertise leaderboard_ch: nothing reads it"
+        );
+    }
 }
