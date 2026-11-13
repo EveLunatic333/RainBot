@@ -398,8 +398,18 @@ pub fn reg(init: &Init) -> Vec<CreateCommand> {
         config_cmd = config_cmd
             .add_option(
                 CreateCommandOption::new(CommandOptionType::SubCommand, "bounty", "upload bounty configuration")
-                    .add_sub_option(category_option)
+                    .add_sub_option(category_option.clone())
                     .add_sub_option(att_opt.clone()),
+            )
+            .add_option(
+                // Read-only inspection: shows the effect of the configured multipliers
+                // before an operator commits to them. Needs no attachment.
+                CreateCommandOption::new(
+                    CommandOptionType::SubCommand,
+                    "reward_preview",
+                    "show what every BBQ in a category actually pays right now",
+                )
+                .add_sub_option(category_option),
             )
             .add_option(CreateCommandOption::new(CommandOptionType::SubCommand, "bounty_refresh", "upload bounty refresh schedule").add_sub_option(att_opt.clone()))
             .add_option(CreateCommandOption::new(CommandOptionType::SubCommand, "bounty_title", "upload bounty title mapping configuration").add_sub_option(att_opt.clone()));

@@ -64,10 +64,23 @@
     "progression_gate": "counter",
 
     "_reward_multiplier_comment": "Scales the reward a bounty pays WITHOUT editing static/*_bounty.json. Three groups, matching the cooldown groups: 'free', 'event', and 'progression' (Bronze, Silver and Gold together -- one value for the whole ladder). Each group sets 'coin' (Bounty Coin) and 'gacha' (Gacha Ticket) independently. Default 1.00 leaves every reward exactly as the category file states. Any positive factor is allowed, e.g. 1.25 or 2.00; 0 pays nothing for that currency. Results are rounded DOWN, so a payout never exceeds base x factor. Items and equipment are never scaled. A value above 100 is clamped to 100, and NaN/negative/infinite values are replaced with 1.00 -- both are reported once in the log at startup. Omit the whole block to keep 1.00 everywhere.",
+    "_per_bbq_comment": "Optional per-BBQ overrides inside a group, keyed by BBQ number. An override REPLACES the group value, it does not multiply it: with free.coin = 2.00 and per_bbq '25'.coin = 5.00, BBQ25 pays 5x, not 10x. Any currency the override does not name falls back to 1.00, not to the group value, so name both when both differ. Keys outside 1..25 never apply and are reported at startup. Inspect the result with /config reward_preview before relying on it.",
     "reward_multiplier": {
-      "free": { "coin": 1.00, "gacha": 1.00 },
-      "event": { "coin": 1.00, "gacha": 1.00 },
-      "progression": { "coin": 1.00, "gacha": 1.00 }
+      "free": {
+        "coin": 1.00,
+        "gacha": 1.00,
+        "per_bbq": {}
+      },
+      "event": {
+        "coin": 1.00,
+        "gacha": 1.00,
+        "per_bbq": {}
+      },
+      "progression": {
+        "coin": 1.00,
+        "gacha": 1.00,
+        "per_bbq": {}
+      }
     }
   },
 

@@ -192,7 +192,7 @@ impl Shutdown {
         })?;
         // Same scaling as `BountySubmit::new`; a restored submission must be paid the
         // amount the operator has configured now, not the amount frozen at submit time.
-        let multiplier = init.bounty.reward_multiplier.for_category(&category);
+        let multiplier = init.bounty.reward_multiplier.for_bounty(&category, &bbq);
         let reward = method.get_reward(desc).scaled(&multiplier);
 
         let guild = GuildId::new(i.sub.gid)

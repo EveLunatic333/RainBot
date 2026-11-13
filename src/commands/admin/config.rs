@@ -3,7 +3,7 @@ use crate::{SlashBundle, MyErr};
 use crate::reusable::component::{
     market::{Market, Meal, Trading, Tag},
     gacha::Gacha,
-    bounty::{BountyRefresh, BountyTitle, Category},
+    bounty::{Bounty, BountyRefresh, BountyTitle, Category},
     welcome::WelcomeData,
     Components,
 };
@@ -41,6 +41,7 @@ pub async fn slash(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
         "gacha" => Components::json_config(bnd, Gacha::default()).await?,
         "market" => Components::json_config(bnd, Market::default()).await?,
         "bounty" => bounty(bnd).await?,
+        "reward_preview" => reward_preview(bnd).await?,
         "bounty_refresh" => Components::json_config(bnd, BountyRefresh::default()).await?,
         "bounty_title" => Components::json_config(bnd, BountyTitle::default()).await?,
         "meal" => Components::json_config(bnd, Meal::default()).await?,
@@ -80,6 +81,46 @@ async fn bounty(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
     let code = code_str.parse::<u8>().map_err(|_| MyErr::Custom(format!("Invalid category code: {}", code_str)))?;
     let category = Category::new(code)?;
     Components::bounty_config(bnd, &category).await?;
+
+    Ok(())
+}
+
+/// Shows what every BBQ in one category actually pays right now.
+///
+/// Read-only: it never writes a file, so an operator can inspect the effect of a
+/// multiplier before committing to it. The amounts are computed by the same
+/// `BountyReward::scaled` path the payout uses, so this cannot drift from reality.
+async fn reward_preview(bnd: &SlashBundle<'_>) -> Result<(), MyErr> {
+    let mut category_code = None;
+    for option in Components::sub_options(bnd)? {
+        if let CommandDataOptionValue::String(value) = &option.value {
+            category_code = Some(value);
+            break;
+        }
+    }
+
+    let code_str = category_code
+        .ok_or_else(|| MyErr::Custom("Missing bounty category parameter.".to_owned()))?;
+    let code = code_str
+        .parse::<u8>()
+        .map_err(|_| MyErr::Custom(format!("Invalid category code: {}", code_str)))?;
+    let category = Category::new(code)?;
+
+    let data = Bounty::new(&category).await?;
+    let text = data.reward_preview(&category, &bnd.init.bounty.reward_multiplier);
+
+    // Ephemeral so a 25-row table does not clutter the channel for everyone else.
+    bnd.cmd
+        .create_response(
+            &bnd.ctx.http,
+            CreateInteractionResponse::Message(
+                CreateInteractionResponseMessage::new()
+                    .content(text)
+                    .ephemeral(true),
+            ),
+        )
+        .await
+        .map_err(MyErr::from)?;
 
     Ok(())
 }

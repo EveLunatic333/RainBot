@@ -258,7 +258,7 @@ pub const MAX_REWARD_MULTIPLIER: f64 = 100.0;
 ///
 /// Both default to `1.0`, so a config that does not mention them behaves exactly as
 /// before. Values are `f64` because a multiplier like `1.25` is the whole point.
-#[derive(Debug, Deserialize, Clone, Copy, Serialize)]
+#[derive(Debug, Deserialize, Clone, Copy, Serialize, PartialEq)]
 pub struct RewardMultiplier {
     /// Factor applied to the Bounty Coin amount (`coin` in the category JSON).
     #[serde(default = "default_multiplier")]
@@ -352,46 +352,147 @@ impl RewardMultiplier {
 /// form one progression ladder and share a factor, while Free and Event are
 /// independent. Keeping the two groupings identical means an operator learns one
 /// mental model, not two.
-#[derive(Debug, Deserialize, Clone, Copy, Serialize)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct RewardMultipliers {
     /// Free bounties.
     #[serde(default)]
-    pub free: RewardMultiplier,
+    pub free: RewardGroup,
     /// Event bounties.
     #[serde(default)]
-    pub event: RewardMultiplier,
+    pub event: RewardGroup,
     /// The Bronze/Silver/Gold progression ladder, all three at once.
     #[serde(default)]
-    pub progression: RewardMultiplier,
+    pub progression: RewardGroup,
 }
 
-impl Default for RewardMultipliers {
+/// One group's multipliers: a default for the whole group, plus per-BBQ overrides.
+///
+/// An override **replaces** the group value rather than compounding with it. With
+/// `free.coin = 2.00` and `per_bbq["25"].coin = 5.00`, BBQ25 pays 5x — not 10x. A
+/// compounding rule would make the effective factor depend on a product the operator
+/// has to work out in their head, and a forgotten group value would silently change
+/// every override beneath it.
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub struct RewardGroup {
+    /// Applies to every BBQ in the group unless that BBQ overrides it.
+    #[serde(flatten)]
+    pub default: RewardMultiplier,
+    /// Per-BBQ overrides, keyed by BBQ number as a string (`"1"` .. `"25"`).
+    ///
+    /// A string key keeps the config readable and lets the loader reject an
+    /// out-of-range number with a clear message, instead of only failing once that
+    /// BBQ happens to be submitted.
+    #[serde(default)]
+    pub per_bbq: HashMap<String, RewardMultiplier>,
+}
+
+impl Default for RewardGroup {
     fn default() -> Self {
         Self {
-            free: RewardMultiplier::default(),
-            event: RewardMultiplier::default(),
-            progression: RewardMultiplier::default(),
+            default: RewardMultiplier::default(),
+            per_bbq: HashMap::new(),
         }
     }
 }
 
+impl RewardGroup {
+    /// The multiplier that applies to one BBQ, preferring an override.
+    ///
+    /// `bbq` is the 1-based number the rest of the bot uses (`BBQ::encode()`).
+    pub fn for_bbq(&self, bbq: u8) -> RewardMultiplier {
+        self.per_bbq
+            .get(&bbq.to_string())
+            .copied()
+            .unwrap_or(self.default)
+    }
+
+    /// Reported numbers that cannot ever match a BBQ, so a typo is visible at startup.
+    ///
+    /// Without this an override keyed `"0"` or `"26"` would simply never apply, and the
+    /// operator would see no reward change and no explanation.
+    pub fn report_unreachable_overrides(&self, group: &str) {
+        let mut reported: Vec<&String> = self
+            .per_bbq
+            .keys()
+            .filter(|k| match k.parse::<u8>() {
+                Ok(n) => !(1..=25).contains(&n),
+                Err(_) => true,
+            })
+            .collect();
+        reported.sort();
+        for key in reported {
+            warn!(
+                group,
+                key,
+                "Per-BBQ reward override does not name a BBQ between 1 and 25; it will never apply"
+            );
+        }
+    }
+
+    /// True when nothing here changes a reward.
+    pub fn is_neutral(&self) -> bool {
+        self.default.is_neutral()
+            && self
+                .per_bbq
+                .values()
+                .all(|m| m.is_neutral() || m == &self.default)
+    }
+}
+
 impl RewardMultipliers {
-    /// The multiplier that applies to a category.
+    /// The multiplier that applies to a category and one BBQ number.
     ///
     /// Uses the same mapping the cooldown uses, so the two groupings cannot drift
     /// apart: a category added to one is automatically grouped in the other.
-    pub fn for_category(&self, category: &crate::reusable::component::bounty::Category) -> RewardMultiplier {
+    pub fn for_category(
+        &self,
+        category: &crate::reusable::component::bounty::Category,
+    ) -> RewardMultiplier {
         use crate::reusable::component::bounty_cooldown::CooldownGroup;
         match CooldownGroup::from_category(category) {
-            CooldownGroup::Standard => self.free,
-            CooldownGroup::Event => self.event,
-            CooldownGroup::Progression => self.progression,
+            CooldownGroup::Standard => self.free.default,
+            CooldownGroup::Event => self.event.default,
+            CooldownGroup::Progression => self.progression.default,
         }
+    }
+
+    /// The multiplier for one category **and** one BBQ, honouring any override.
+    pub fn for_bounty(
+        &self,
+        category: &crate::reusable::component::bounty::Category,
+        bbq: &crate::reusable::component::bounty::BBQ,
+    ) -> RewardMultiplier {
+        use crate::reusable::component::bounty_cooldown::CooldownGroup;
+        let group = match CooldownGroup::from_category(category) {
+            CooldownGroup::Standard => &self.free,
+            CooldownGroup::Event => &self.event,
+            CooldownGroup::Progression => &self.progression,
+        };
+        group.for_bbq(bbq.encode())
+    }
+
+    /// Every group, paired with its name, for reporting and previews.
+    pub fn groups(&self) -> [(&'static str, &RewardGroup); 3] {
+        [
+            ("free", &self.free),
+            ("event", &self.event),
+            ("progression", &self.progression),
+        ]
     }
 
     /// True when every group is neutral, so the whole block can be skipped.
     pub fn is_neutral(&self) -> bool {
         self.free.is_neutral() && self.event.is_neutral() && self.progression.is_neutral()
+    }
+}
+
+impl Default for RewardMultipliers {
+    fn default() -> Self {
+        Self {
+            free: RewardGroup::default(),
+            event: RewardGroup::default(),
+            progression: RewardGroup::default(),
+        }
     }
 }
 
@@ -602,9 +703,13 @@ impl Init {
     /// the reward path warning on every single bounty handed out.
     fn report_reward_multipliers(&self) {
         let m = &self.bounty.reward_multiplier;
-        m.free.report_if_invalid("free");
-        m.event.report_if_invalid("event");
-        m.progression.report_if_invalid("progression");
+        for (name, group) in m.groups() {
+            group.default.report_if_invalid(name);
+            group.report_unreachable_overrides(name);
+            for (bbq, override_m) in &group.per_bbq {
+                override_m.report_if_invalid(&format!("{name}[{bbq}]"));
+            }
+        }
     }
 }
 
@@ -801,11 +906,11 @@ mod tests {
 
         let cfg: Init = serde_json::from_value(value).expect("deserialize");
         let m = cfg.bounty.reward_multiplier;
-        assert_eq!(m.free.coin, 1.25);
-        assert_eq!(m.free.gacha, 2.0);
-        assert_eq!(m.event.coin, 3.0);
-        assert_eq!(m.progression.coin, 2.0);
-        assert_eq!(m.progression.gacha, 1.0);
+        assert_eq!(m.free.default.coin, 1.25);
+        assert_eq!(m.free.default.gacha, 2.0);
+        assert_eq!(m.event.default.coin, 3.0);
+        assert_eq!(m.progression.default.coin, 2.0);
+        assert_eq!(m.progression.default.gacha, 1.0);
     }
 
     #[test]
@@ -923,5 +1028,89 @@ mod tests {
         let m: RewardMultiplier = serde_json::from_str(r#"{"coin": 2.0}"#).expect("deserialize");
         assert_eq!(m.coin, 2.0);
         assert_eq!(m.gacha, 1.0);
+    }
+
+    fn multipliers_with_overrides(json: serde_json::Value) -> RewardMultipliers {
+        serde_json::from_value(json).expect("deserialize multipliers")
+    }
+
+    #[test]
+    fn a_per_bbq_override_replaces_the_group_value() {
+        use crate::reusable::component::bounty::{BBQ, Category};
+        // The agreed rule: an override is the final factor, it does not multiply the
+        // group value. 2.00 group + 5.00 override must pay 5x, not 10x.
+        let m = multipliers_with_overrides(serde_json::json!({
+            "free": { "coin": 2.00, "gacha": 1.00, "per_bbq": { "25": { "coin": 5.00 } } }
+        }));
+
+        let bbq25 = m.for_bounty(&Category::Free, &BBQ::BBQ25);
+        assert_eq!(bbq25.coin_of(1_000), 5_000, "override must replace, not compound");
+
+        let bbq24 = m.for_bounty(&Category::Free, &BBQ::BBQ24);
+        assert_eq!(bbq24.coin_of(1_000), 2_000, "other BBQ keep the group value");
+    }
+
+    #[test]
+    fn an_override_may_set_only_one_currency() {
+        use crate::reusable::component::bounty::{BBQ, Category};
+        // Overriding `coin` alone must not reset `gacha` to the group value silently
+        // or to zero: the unset currency falls back to its own default of 1.00.
+        let m = multipliers_with_overrides(serde_json::json!({
+            "progression": { "coin": 3.00, "gacha": 4.00, "per_bbq": { "7": { "coin": 1.00 } } }
+        }));
+
+        let bbq7 = m.for_bounty(&Category::Bronze, &BBQ::BBQ07);
+        assert_eq!(bbq7.coin_of(1_000), 1_000, "explicit override of coin");
+        assert_eq!(bbq7.gacha_of(1_000), 1_000, "unset gacha falls back to 1.00");
+    }
+
+    #[test]
+    fn an_override_applies_across_the_whole_progression_ladder() {
+        use crate::reusable::component::bounty::{BBQ, Category};
+        // The ladder shares one group, so an override keyed on BBQ05 must reach
+        // Bronze, Silver and Gold alike.
+        let m = multipliers_with_overrides(serde_json::json!({
+            "progression": { "coin": 1.00, "gacha": 1.00, "per_bbq": { "5": { "coin": 2.00 } } }
+        }));
+        for tier in [Category::Bronze, Category::Silver, Category::Gold] {
+            assert_eq!(
+                m.for_bounty(&tier, &BBQ::BBQ05).coin_of(1_000),
+                2_000,
+                "{} BBQ05 must use the override",
+                tier.name()
+            );
+        }
+        assert_eq!(m.for_bounty(&Category::Free, &BBQ::BBQ05).coin_of(1_000), 1_000);
+    }
+
+    #[test]
+    fn an_unreachable_override_key_never_applies() {
+        use crate::reusable::component::bounty::{BBQ, Category};
+        // "0" and "26" cannot ever match a BBQ. They must simply not apply, and must
+        // not panic or shift the mapping onto a neighbouring number.
+        let m = multipliers_with_overrides(serde_json::json!({
+            "free": { "coin": 1.00, "per_bbq": { "0": { "coin": 9.0 }, "26": { "coin": 9.0 } } }
+        }));
+        for n in 1..=25u8 {
+            assert_eq!(
+                m.for_bounty(&Category::Free, &BBQ::new(n).unwrap()).coin_of(100),
+                100,
+                "BBQ{n} must be unaffected by out-of-range keys"
+            );
+        }
+    }
+
+    #[test]
+    fn an_override_still_falls_back_when_the_value_is_nonsense() {
+        use crate::reusable::component::bounty::{BBQ, Category};
+        // The same sanitising applies inside an override as at group level.
+        let m = multipliers_with_overrides(serde_json::json!({
+            "free": { "per_bbq": { "3": { "coin": -5.0 } } }
+        }));
+        assert_eq!(
+            m.for_bounty(&Category::Free, &BBQ::BBQ03).coin_of(1_000),
+            1_000,
+            "a negative override must not delete currency"
+        );
     }
 }

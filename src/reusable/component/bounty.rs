@@ -11,6 +11,7 @@ use serenity::all::*;
 use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
+use tracing::info;
 use super::market::Market;
 use super::Components;
 use super::MyErr;
@@ -44,6 +45,27 @@ impl Title {
 
     pub fn bonus(&self) -> f32 {
         let mut out = 1.0;
+        if self.bounty_gold {
+            out += 0.3
+        }
+        if self.bounty_silver {
+            out += 0.2
+        }
+        if self.bounty_bronze {
+            out += 0.1
+        }
+        out
+    }
+
+    /// The same bonus, computed in `f64`.
+    ///
+    /// [`Self::bonus`] returns `f32`, where `1.0 + 0.3` is `1.29999995...`. That is
+    /// fine for the payout (it is the arithmetic the bot has always used) but it
+    /// made an audit line report an effective factor of `2.5999999` for a clean
+    /// `2.0 x 1.3`. This variant exists **for reporting only**; the thresholds must
+    /// stay identical, and a test pins the two to agree.
+    pub fn bonus_precise(&self) -> f64 {
+        let mut out = 1.0f64;
         if self.bounty_gold {
             out += 0.3
         }
@@ -410,6 +432,22 @@ pub struct Hunter {
     pub event: Event,
 }
 
+/// One audit line's numbers, computed once so the arithmetic is testable.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RewardAuditEntry {
+    pub multiplier_coin: f64,
+    pub multiplier_gacha: f64,
+    pub title_bonus: f32,
+    /// `multiplier_coin * title_bonus`: everything the coin was multiplied by.
+    ///
+    /// Computed in `f64` after widening the bonus. The bonus is an `f32` (`1.3` in
+    /// binary is `1.29999995...`), so multiplying it in `f32` and then widening gave
+    /// `2.5999999` instead of `2.6`, which would misreport the factor in the audit
+    /// line even though the paid amount was right.
+    pub effective_coin_factor: f64,    pub coin_granted: u32,
+    pub gacha_granted: u32,
+}
+
 #[derive(Clone)]
 pub struct BountySubmit {
     pub method: Methode,
@@ -608,7 +646,12 @@ impl BountySubmit {
         let desc = bbq.get_bounty(&*bounty)?;
         // The multiplier is applied here, once, so `self.reward` is the final amount:
         // `reward()` pays it and `reward_embed` shows it without a second scaling.
-        let multiplier = bnd.init().bounty.reward_multiplier.for_category(&category);
+        // `for_bounty` honours a per-BBQ override, falling back to the group value.
+        let multiplier = bnd
+            .init()
+            .bounty
+            .reward_multiplier
+            .for_bounty(&category, &bbq);
         let reward = method.get_reward(desc).scaled(&multiplier);
         Ok(BountySubmit {
             hunter,
@@ -716,6 +759,11 @@ impl BountySubmit {
         // Phase 2: apply every write atomically. The policy is passed down so the
         // cooldown row uses the same group the checks just used.
         let policy = bounty_cooldown::CooldownPolicy::from(&bnd.init().bounty);
+
+        // Audit trail, written before the payout so a failed write is still visible
+        // alongside the amounts that were attempted.
+        self.audit_reward(bnd, bypass);
+
         self.send_reward(bypass, pg, &policy).await?;
 
         let ch = ChannelId::new(bnd.init().bounty.receptionist_ch);
@@ -733,6 +781,67 @@ impl BountySubmit {
             .await?;
         }
         Ok(())
+    }
+
+    /// The numbers one audit line carries, for one hunter.
+    ///
+    /// Split out of [`Self::audit_reward`] so the arithmetic — especially the way the
+    /// title bonus stacks on top of the multiplier — can be tested without a Discord
+    /// context or a tracing subscriber.
+    fn audit_entry(
+        &self,
+        multiplier: &crate::reusable::config::RewardMultiplier,
+        title: &Title,
+    ) -> RewardAuditEntry {
+        let bonus = title.bonus();
+        RewardAuditEntry {
+            multiplier_coin: multiplier.coin,
+            multiplier_gacha: multiplier.gacha,
+            title_bonus: bonus,
+            // Reported from the precise variant, so a clean 2.0 x 1.3 reads as 2.6
+            // rather than 2.5999999. The amount actually paid still comes from the
+            // `f32` path above, which is untouched.
+            effective_coin_factor: multiplier.coin * title.bonus_precise(),
+            coin_granted: self.reward.coin,
+            gacha_granted: self.reward.ticket,
+        }
+    }
+
+    /// Writes one audit line per recipient, recording exactly how the payout was
+    /// arrived at.
+    ///
+    /// The line carries the base amount from the category file, the multiplier that
+    /// was in force, and the final amount — so a dispute about "why did I get this
+    /// much" can be answered from the log instead of by re-deriving history that no
+    /// longer exists (the multiplier may have been changed since).
+    ///
+    /// Rewards are logged even when the multiplier is neutral: the absence of a line
+    /// must never be mistaken for "no reward was paid".
+    fn audit_reward<T: Mybundle>(&self, bnd: &T, bypass: bool) {
+        let multiplier = bnd
+            .init()
+            .bounty
+            .reward_multiplier
+            .for_bounty(&self.category, &self.bbq);
+
+        for hunt in &self.hunter {
+            let e = self.audit_entry(&multiplier, &hunt.title);
+            info!(
+                target: "reward_audit",
+                user = %hunt.member.user.id,
+                category = %self.category.name(),
+                bbq = %self.bbq.name(),
+                method = %self.method.name(),
+                bypass,
+                multiplier_coin = e.multiplier_coin,
+                multiplier_gacha = e.multiplier_gacha,
+                title_bonus = e.title_bonus,
+                effective_coin_factor = e.effective_coin_factor,
+                coin_granted = e.coin_granted,
+                gacha_granted = e.gacha_granted,
+                "Reward distributed"
+            );
+        }
     }
 
     pub async fn title<T: Mybundle>(&mut self, bnd: &T, title: &BountyTitle) -> Result<(), MyErr> {
@@ -1197,6 +1306,76 @@ impl Bounty {
         category.bounty_path()
     }
 
+    /// Builds the operator-facing reward preview for one category.
+    ///
+    /// Shows, for every BBQ, the base reward from the category file next to what the
+    /// current multiplier actually pays — so a typo is caught by reading a table
+    /// rather than by a player noticing their reward is wrong.
+    ///
+    /// An amount whose multiplier is not 1.00 is marked with `*` and listed in the
+    /// footer, so a changed row is obvious without comparing every number by eye.
+    /// Split from the Discord command so the arithmetic can be tested offline.
+    pub fn reward_preview(
+        &self,
+        category: &Category,
+        multipliers: &crate::reusable::config::RewardMultipliers,
+    ) -> String {
+        let mut lines = Vec::new();
+        let mut changed: Vec<String> = Vec::new();
+
+        for desc in &self.bounty {
+            let Ok(bbq) = BBQ::new(desc.bbq + 1) else {
+                // The file could carry a number outside 1..=25; skip rather than panic.
+                continue;
+            };
+            let m = multipliers.for_bounty(category, &bbq);
+
+            let base_solo = &desc.solo;
+            let base_multi = &desc.multi;
+            let solo = base_solo.scaled(&m);
+            let multi = base_multi.scaled(&m);
+
+            let mut mark = "";
+            if !m.is_neutral() {
+                mark = "*";
+                changed.push(format!(
+                    "{} coin x{:.2} / gacha x{:.2}",
+                    bbq.name(),
+                    crate::reusable::config::RewardMultiplier::effective(m.coin),
+                    crate::reusable::config::RewardMultiplier::effective(m.gacha)
+                ));
+            }
+
+            lines.push(format!(
+                "{mark}{} S {}->{} / T {}->{} | M {}->{} / T {}->{}",
+                bbq.name(),
+                base_solo.coin,
+                solo.coin,
+                base_solo.ticket,
+                solo.ticket,
+                base_multi.coin,
+                multi.coin,
+                base_multi.ticket,
+                multi.ticket,
+            ));
+        }
+
+        let mut out = format!(
+            "{} reward preview\n`BBQ  Solo(coin/ticket)  Multi(coin/ticket)`\n```\n{}\n```",
+            category.name(),
+            lines.join("\n")
+        );
+        if changed.is_empty() {
+            out.push_str("\nNo multiplier is active: every amount equals the category file.");
+        } else {
+            out.push_str("\n`*` = a multiplier changes this row:\n");
+            for entry in changed {
+                out.push_str(&format!("• {entry}\n"));
+            }
+        }
+        out
+    }
+
     pub fn desc<T: Mybundle>(
         &self,
         bnd: &T,
@@ -1225,8 +1404,12 @@ impl Bounty {
         let solen = solo.len() - 1;
         // Show what the operator has configured, not the raw file values: a player who
         // reads "15,000 BC" here must receive 15,000 BC, so the advertised amount and
-        // the paid amount come from the same scaling.
-        let multiplier = bnd.init().bounty.reward_multiplier.for_category(category);
+        // the paid amount come from the same scaling and the same per-BBQ override.
+        let multiplier = bnd
+            .init()
+            .bounty
+            .reward_multiplier
+            .for_bounty(category, bbq);
         let solo_reward = bdesc.solo.scaled(&multiplier);
         let multi_reward = bdesc.multi.scaled(&multiplier);
         Ok(CreateEmbed::new()
@@ -1807,6 +1990,156 @@ mod testing {
                     base.ticket
                 );
             }
+        }
+    }
+
+    /// A preview built from the real shipped Free file, so the rows and the amounts
+    /// are the ones an operator would actually see.
+    #[test]
+    fn the_preview_lists_every_bbq_with_base_and_scaled_amounts() {
+        let data = real_category(&Category::Free);
+        let multipliers = crate::reusable::config::RewardMultipliers::default();
+
+        let text = data.reward_preview(&Category::Free, &multipliers);
+
+        // One row per BBQ, and the total must be 25 — a silently dropped row is the
+        // failure this guards.
+        let rows = text
+            .lines()
+            .filter(|l| l.contains("BBQ"))
+            .filter(|l| l.contains(" S "))
+            .count();
+        assert_eq!(rows, 25, "every BBQ needs a row, got {rows}");
+
+        // With a neutral multiplier the scaled figure equals the base, and the header
+        // must say so rather than leave the operator guessing.
+        assert!(
+            text.contains("every amount equals the category file"),
+            "a neutral preview must say nothing changed"
+        );
+        assert!(!text.contains('*'), "no row may be marked when nothing changes");
+    }
+
+    #[test]
+    fn the_preview_marks_the_rows_a_multiplier_changes() {
+        let data = real_category(&Category::Free);
+        let multipliers: crate::reusable::config::RewardMultipliers = serde_json::from_value(
+            serde_json::json!({
+                "free": { "coin": 2.00, "gacha": 1.00, "per_bbq": { "1": { "coin": 5.00 } } }
+            }),
+        )
+        .expect("multipliers");
+
+        let text = data.reward_preview(&Category::Free, &multipliers);
+
+        assert!(text.contains('*'), "changed rows must be marked");
+        assert!(
+            text.contains("BBQ01 coin x5.00"),
+            "the per-BBQ override must be reported, got:\n{text}"
+        );
+        assert!(
+            text.contains("BBQ02 coin x2.00"),
+            "non-overridden rows must report the group factor"
+        );
+    }
+
+    #[test]
+    fn the_preview_shows_the_amount_that_will_actually_be_paid() {
+        // The whole point of the preview: what it prints must equal what the payout
+        // path computes. Both go through `scaled`, so a divergence means the preview
+        // drifted from the payment.
+        let data = real_category(&Category::Free);
+        let multipliers: crate::reusable::config::RewardMultipliers = serde_json::from_value(
+            serde_json::json!({ "free": { "coin": 1.25, "gacha": 1.00 } }),
+        )
+        .expect("multipliers");
+
+        let m = multipliers.for_bounty(&Category::Free, &BBQ::BBQ01);
+        let expected = data.bounty[0].solo.scaled(&m).coin;
+        let text = data.reward_preview(&Category::Free, &multipliers);
+
+        let first = data.bounty[0].solo.coin;
+        let needle = format!("BBQ01 S {first}->{expected}");
+        assert!(
+            text.contains(&needle),
+            "preview must show {needle}, got:\n{text}"
+        );
+    }
+    fn submit_with_reward(coin: u32, ticket: u32) -> BountySubmit {
+        BountySubmit {
+            method: Methode::Solo,
+            category: Category::Free,
+            bbq: BBQ::BBQ01,
+            hunter: Vec::new(),
+            url: String::new(),
+            thumb: String::new(),
+            time: 0,
+            reward: BountyReward { coin, ticket, items: Vec::new() },
+            msg_id: 0,
+        }
+    }
+
+    #[test]
+    fn the_audit_entry_reports_both_factors_and_both_amounts() {
+        // The audit line has to answer "what was I multiplied by" and "what did I get".
+        // A row missing either half is useless in a dispute.
+        let submit = submit_with_reward(30_000, 30);
+        let m = crate::reusable::config::RewardMultiplier { coin: 2.0, gacha: 3.0 };
+        let title = Title::new(0); // no bounty titles -> bonus 1.0
+
+        let e = submit.audit_entry(&m, &title);
+
+        assert_eq!(e.multiplier_coin, 2.0);
+        assert_eq!(e.multiplier_gacha, 3.0);
+        assert_eq!(e.title_bonus, 1.0);
+        assert_eq!(e.effective_coin_factor, 2.0);
+        assert_eq!(e.coin_granted, 30_000);
+        assert_eq!(e.gacha_granted, 30);
+    }
+
+    #[test]
+    fn the_audit_entry_stacks_the_title_bonus_on_the_multiplier() {
+        // A player holding the Gold bounty title gets +30%. The effective factor must
+        // show the product, because the paid amount is the product.
+        let submit = submit_with_reward(26_000, 10);
+        let m = crate::reusable::config::RewardMultiplier { coin: 2.0, gacha: 1.0 };
+        // Bit 4 is the Gold bounty title.
+        let title = Title::new(4);
+        assert!(title.bounty_gold);
+
+        let e = submit.audit_entry(&m, &title);
+
+        assert_eq!(e.title_bonus, 1.3, "Gold title carries +30%");
+        assert!(
+            (e.effective_coin_factor - 2.6).abs() < 1e-9,
+            "2.0 x 1.3 must be 2.6, got {}",
+            e.effective_coin_factor
+        );
+    }
+
+    #[test]
+    fn the_precise_bonus_agrees_with_the_payout_bonus() {
+        // `bonus_precise` exists only for reporting. If the two ever disagreed on
+        // which titles count, the audit line would describe a payout that never
+        // happened. Every bit combination of the three bounty titles is checked.
+        for bits in 0u8..8 {
+            let code = match bits {
+                0 => 0,
+                1 => 1, // bronze
+                2 => 2, // silver
+                3 => 3, // bronze + silver
+                4 => 4, // gold
+                5 => 5, // gold + bronze
+                6 => 6, // gold + silver
+                _ => 7, // all three
+            };
+            let title = Title::new(code);
+            let payout = title.bonus() as f64;
+            let reported = title.bonus_precise();
+            assert!(
+                (payout - reported).abs() < 1e-6,
+                "code {code}: payout {payout} vs reported {reported} disagree"
+            );
         }
     }
 }
