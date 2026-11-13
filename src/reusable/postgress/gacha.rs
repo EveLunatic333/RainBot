@@ -1105,4 +1105,92 @@ mod event_sharing_db_tests {
 
         cleanup(&pool).await;
     }
+
+    #[tokio::test]
+    #[ignore]
+    async fn an_operator_can_still_patch_a_ladder_cooldown_with_sql() {
+        // The reported regression, end to end against a real database: an operator
+        // "corrects" a cooldown with a plain
+        // `UPDATE discord SET latest_bounty_time = ...` on a player whose last run
+        // was a ladder step, while the ladder shares the standard row.
+        //
+        // Before the fix the entry was placed on the static group (3) while
+        // evaluation read group 0, so the edit was parsed, written to a row nothing
+        // consulted, and silently ignored. On the live server that was 1623 of 3621
+        // readable players whose last run was a ladder step.
+        let pool = pool().await;
+        cleanup(&pool).await;
+        let on = CooldownPolicy::default().with_progression_sharing(true);
+
+        // The column says "a Gold run happened just now", and there is no stored row
+        // at all — exactly a player whose cooldown an operator is extending by hand.
+        let legacy = (legacy_code(Category::Gold, BBQ::BBQ07), now());
+
+        // The ladder must be gated by it.
+        match verdict_for(&pool, USER_A, Category::Bronze, BBQ::BBQ01, &on, (&legacy.0, legacy.1), now()).await {
+            CooldownVerdict::Blocked { ends_at } => assert!(ends_at > now()),
+            other => panic!("a ladder row in the column must still gate the ladder, got {other:?}"),
+        }
+
+        // Free shares the same row, so it must be gated too.
+        match verdict_for(&pool, USER_A, Category::Free, BBQ::BBQ01, &on, (&legacy.0, legacy.1), now()).await {
+            CooldownVerdict::Blocked { ends_at } => assert!(ends_at > now()),
+            other => panic!("the shared row must gate Free as well, got {other:?}"),
+        }
+
+        // Clearing the column must release both. This is the other half of the
+        // operator habit (`SET latest_bounty_time = 0`) and has to keep working.
+        assert_eq!(
+            verdict_for(&pool, USER_A, Category::Bronze, BBQ::BBQ01, &on, (&legacy.0, 0), now()).await,
+            CooldownVerdict::Allowed,
+            "a zeroed column must release the ladder"
+        );
+        assert_eq!(
+            verdict_for(&pool, USER_A, Category::Free, BBQ::BBQ01, &on, (&legacy.0, 0), now()).await,
+            CooldownVerdict::Allowed,
+            "a zeroed column must release Free"
+        );
+
+        cleanup(&pool).await;
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn an_operator_patch_reaches_a_player_with_a_stale_stored_row() {
+        // The case that filled the live table: a real completion already left a row
+        // behind, and the operator then edits the column. The stored row is older, so
+        // the column must win — or the correction looks applied and does nothing.
+        let pool = pool().await;
+        cleanup(&pool).await;
+        let on = CooldownPolicy::default().with_progression_sharing(true);
+
+        // A ladder completion from two days ago: expired either way.
+        record_group_completion_tx(
+            &mut pool.acquire().await.unwrap(),
+            USER_B,
+            on.group_of(&Category::Bronze).encode(),
+            Category::Bronze.encode() as i16,
+            BBQ::BBQ01.encode() as i16,
+            now() - 48 * 3600,
+        )
+        .await
+        .expect("the old completion must be recorded");
+
+        // Unpatched, the ladder is open again.
+        let old = (legacy_code(Category::Bronze, BBQ::BBQ01), now() - 48 * 3600);
+        assert_eq!(
+            verdict_for(&pool, USER_B, Category::Bronze, BBQ::BBQ02, &on, (&old.0, old.1), now()).await,
+            CooldownVerdict::Allowed,
+            "a two-day-old run must not still be blocking"
+        );
+
+        // The operator pushes the cooldown forward via the column alone.
+        let patched = (legacy_code(Category::Bronze, BBQ::BBQ01), now());
+        match verdict_for(&pool, USER_B, Category::Bronze, BBQ::BBQ02, &on, (&patched.0, patched.1), now()).await {
+            CooldownVerdict::Blocked { ends_at } => assert!(ends_at > now()),
+            other => panic!("the operator patch must block the ladder, got {other:?}"),
+        }
+
+        cleanup(&pool).await;
+    }
 }

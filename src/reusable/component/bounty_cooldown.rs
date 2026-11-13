@@ -752,13 +752,35 @@ pub enum LegacyStandard {
     Unusable,
 }
 
+/// Reads the legacy column for the standard timer, ignoring the sharing switches.
+///
+/// Kept for callers that have no policy to hand. Anything that *evaluates* a
+/// cooldown must use [`legacy_entry_with_policy`] instead, or the entry can land on
+/// a group the evaluator never reads.
+pub fn legacy_entry(latest_bounty: &str, latest_bounty_time: i64) -> LegacyStandard {
+    legacy_entry_with_policy(latest_bounty, latest_bounty_time, &CooldownPolicy::default())
+}
+
 /// Reads the legacy column for the standard timer.
 ///
 /// A zero means "no cooldown", which is exactly how the old build read it, so an
 /// operator clearing the column still clears the wait. An unreadable
 /// `latest_bounty` is ignored rather than treated as a permanent block: the old
 /// build could not decrypt those rows either and fell through to no history.
-pub fn legacy_entry(latest_bounty: &str, latest_bounty_time: i64) -> LegacyStandard {
+///
+/// The entry is placed on **the group the policy gives that category**, not on the
+/// static one. Which row a category reads is decided by `progression_shares_standard`
+/// and `event_shares_standard`, so seeding the static group while the evaluator
+/// reads the policy group puts the entry on a row nobody consults. The visible
+/// effect was that `UPDATE discord SET latest_bounty_time = ...` silently stopped
+/// working for every player whose last run was a ladder step: the column parsed
+/// fine, the entry was written to group `3`, and evaluation — with sharing on —
+/// only ever looked at group `0`.
+pub fn legacy_entry_with_policy(
+    latest_bounty: &str,
+    latest_bounty_time: i64,
+    policy: &CooldownPolicy,
+) -> LegacyStandard {
     if latest_bounty_time <= 0 {
         return LegacyStandard::Cleared;
     }
@@ -774,7 +796,7 @@ pub fn legacy_entry(latest_bounty: &str, latest_bounty_time: i64) -> LegacyStand
     // `Standard`: the column used to gate the whole ladder, so a Gold legacy entry
     // has to seed the progression timer rather than the Free one.
     LegacyStandard::Entry(GroupHistory {
-        group: CooldownGroup::from_category(&category),
+        group: policy.group_of(&category),
         category,
         bbq,
         completed_at: latest_bounty_time,
@@ -817,12 +839,20 @@ pub fn apply_legacy(history: &[GroupHistory], legacy: LegacyStandard) -> Vec<Gro
 ///
 /// Every caller goes through this so the submit pre-check, `Hunter::new` and the
 /// player card cannot disagree about a cooldown.
+///
+/// Uses the shipped policy, so it ignores the sharing switches. Callers that
+/// evaluate a real cooldown must use [`history_with_legacy_and_policy`] instead: an
+/// entry placed on a group the evaluator does not read is silently inert.
 pub fn history_with_legacy(
     history: &[GroupHistory],
     latest_bounty: &str,
     latest_bounty_time: i64,
 ) -> Vec<GroupHistory> {
-    apply_legacy(history, legacy_entry(latest_bounty, latest_bounty_time))
+    let policy = CooldownPolicy::default();
+    apply_legacy(
+        history,
+        legacy_entry_with_policy(latest_bounty, latest_bounty_time, &policy),
+    )
 }
 
 /// History for a policy that may fold Event into the standard group.
@@ -832,9 +862,12 @@ pub fn history_with_legacy(
 /// Event row stays in its own group, so turning `event_shares_standard` on would
 /// not make a completed Event block the progression ladder.
 ///
-/// The legacy column is applied afterwards on purpose: `legacy_entry` already
-/// refuses to drive Event (an Event timestamp reports `Unusable`), which stays
-/// correct in both modes because that column never gated Event.
+/// The legacy entry is placed through the same policy, so an SQL-planted cooldown
+/// lands on the row the evaluator actually reads.
+///
+/// The legacy column is applied afterwards on purpose: `legacy_entry_with_policy`
+/// still refuses to drive Event (an Event timestamp reports `Unusable`), which
+/// stays correct in both modes because that column never gated Event.
 pub fn history_with_legacy_and_policy(
     history: &[GroupHistory],
     latest_bounty: &str,
@@ -842,7 +875,10 @@ pub fn history_with_legacy_and_policy(
     policy: &CooldownPolicy,
 ) -> Vec<GroupHistory> {
     let normalized = policy.normalize(history);
-    apply_legacy(&normalized, legacy_entry(latest_bounty, latest_bounty_time))
+    apply_legacy(
+        &normalized,
+        legacy_entry_with_policy(latest_bounty, latest_bounty_time, policy),
+    )
 }
 
 #[cfg(test)]
@@ -1835,6 +1871,68 @@ mod tests {
         assert_eq!(
             evaluate(&hist, &Category::Free, &BBQ::BBQ03, &policy(), T0 + HOUR),
             CooldownVerdict::Allowed
+        );
+    }
+
+    #[test]
+    fn a_legacy_ladder_entry_still_drives_the_timer_when_the_ladder_shares_it() {
+        // The regression this pins: with `progression_shares_standard` on, the
+        // evaluator reads group 0 for a ladder category. The legacy entry used to be
+        // placed on the *static* group (3), so an operator's
+        // `UPDATE discord SET latest_bounty_time = ...` was parsed, written to a row
+        // nothing read, and silently ignored for every player whose last run was a
+        // ladder step — 1623 of 3621 readable live players.
+        let on = shared_ladder_policy(true);
+        let hist = history_with_legacy_and_policy(
+            &[],
+            &code(&Category::Gold, &BBQ::BBQ07),
+            T0,
+            &on,
+        );
+        // The entry has to land on the row the evaluator itself uses.
+        assert_eq!(hist.len(), 1);
+        assert_eq!(hist[0].group, on.group_of(&Category::Gold));
+        assert_eq!(hist[0].completed_at, T0);
+
+        // And it has to actually gate: same row, so the ladder waits `different`.
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ03, &on, T0 + HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 20 * HOUR
+            }
+        );
+        // ...and a cleared column still clears that same row.
+        let cleared = history_with_legacy_and_policy(
+            &[],
+            &code(&Category::Gold, &BBQ::BBQ07),
+            0,
+            &on,
+        );
+        assert!(cleared.is_empty(), "a zeroed column must clear the wait");
+        assert_eq!(
+            evaluate(&cleared, &Category::Bronze, &BBQ::BBQ03, &on, T0 + HOUR),
+            CooldownVerdict::Allowed
+        );
+    }
+
+    #[test]
+    fn a_legacy_ladder_entry_follows_the_switch_back_off() {
+        // With sharing off the same column value must seed group 3 instead, so the
+        // placement is driven by the switch rather than hard-coded either way.
+        let off = shared_ladder_policy(false);
+        let hist = history_with_legacy_and_policy(
+            &[],
+            &code(&Category::Gold, &BBQ::BBQ07),
+            T0,
+            &off,
+        );
+        assert_eq!(hist.len(), 1);
+        assert_eq!(hist[0].group, CooldownGroup::Progression);
+        assert_eq!(
+            evaluate(&hist, &Category::Bronze, &BBQ::BBQ03, &off, T0 + HOUR),
+            CooldownVerdict::Blocked {
+                ends_at: T0 + 40 * HOUR
+            }
         );
     }
 
